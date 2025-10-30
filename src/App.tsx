@@ -15,6 +15,7 @@ import { LoginModal } from './components/auth/LoginModal';
 import { SignupModal } from './components/auth/SignupModal';
 import { ALL_STUDIOS } from './data/studios';
 import type { FormData, ProfileStep } from './types';
+import { createProfileDocument } from './services/profile';
 
 function AppContent() {
   const { scrollProgress, navShrunk, showScrollTop } = useScrollProgress();
@@ -25,6 +26,7 @@ function AppContent() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [showAuthRequiredModal, setShowAuthRequiredModal] = useState(false);
+  const [showApprovalNotice, setShowApprovalNotice] = useState(false);
   const [profileStep, setProfileStep] = useState<ProfileStep>('create');
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<FormData>({
@@ -39,6 +41,9 @@ function AppContent() {
     email: '',
   });
   const [submittedProfile, setSubmittedProfile] = useState<FormData | null>(null);
+
+  const DB_ID = import.meta.env.VITE_APPWRITE_DATABASE_ID as string;
+  const PROFILE_TABLE_ID = import.meta.env.VITE_APPWRITE_PROFILE_TABLE_ID as string;
 
   // Filter states
   const [genre, setGenre] = useState('');
@@ -76,8 +81,9 @@ function AppContent() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   }, []);
 
-  const handleNextStep = useCallback(() => {
+  const handleNextStep = useCallback(async () => {
     if (profileStep === 'create') {
+      // validate required fields
       if (
         formData.name &&
         formData.tagline &&
@@ -86,15 +92,39 @@ function AppContent() {
         formData.teamSize &&
         formData.location
       ) {
-        setSubmittedProfile(formData);
-        setProfileStep('review');
+        if (!user) {
+          setShowAuthRequiredModal(true);
+          return;
+        }
+        if (!DB_ID || !PROFILE_TABLE_ID) {
+          alert('Missing database configuration. Please set VITE_APPWRITE_DATABASE_ID and VITE_APPWRITE_PROFILE_TABLE_ID.');
+          return;
+        }
+        try {
+          setIsLoading(true);
+          await createProfileDocument({
+            databaseId: DB_ID,
+            tableId: PROFILE_TABLE_ID,
+            userId: (user as any).$id || (user as any).id,
+            data: formData,
+          });
+          setSubmittedProfile(formData);
+          setShowProfileModal(false);
+          setShowApprovalNotice(true);
+        } catch (e: any) {
+          alert(e?.message || 'Failed to submit profile.');
+        } finally {
+          setIsLoading(false);
+        }
       } else {
         alert('Please fill in all required fields');
       }
     } else if (profileStep === 'review') {
-      setProfileStep('list');
+      // legacy path (kept for safety) – treat as submitted
+      setShowProfileModal(false);
+      setShowApprovalNotice(true);
     }
-  }, [profileStep, formData]);
+  }, [profileStep, formData, user, DB_ID, PROFILE_TABLE_ID]);
 
   const handleBackStep = useCallback(() => {
     if (profileStep === 'review') setProfileStep('create');
@@ -128,7 +158,7 @@ function AppContent() {
 
       {/* HEADER */}
       <Header 
-        navShrunk={navShrunk} 
+        navShrunk={navShrunk}
         onOpenLogin={handleOpenLogin}
         onOpenSignup={handleOpenSignup}
       />
@@ -255,6 +285,42 @@ function AppContent() {
                 Sign Up
                   </button>
                 </div>
+          </div>
+        </div>
+      )}
+
+      {/* APPROVAL NOTICE MODAL */}
+      {showApprovalNotice && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-100 p-5" onClick={() => setShowApprovalNotice(false)}>
+          <div className="bg-[rgba(20,28,42,0.95)] backdrop-blur-[20px] border border-white/8 rounded-2xl max-w-md w-full p-8 relative shadow-[0_25px_50px_rgba(0,0,0,0.5)]" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="absolute top-4 right-4 bg-white/10 border-0 text-white w-8 h-8 rounded-lg cursor-pointer text-xl transition-all duration-200 hover:bg-white/20"
+              onClick={() => setShowApprovalNotice(false)}
+            >
+              ✕
+            </button>
+
+            <div className="mb-6 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 bg-linear-to-br from-cyan-400 to-cyan-300 rounded-full flex items-center justify-center text-[#001018] text-2xl font-black">
+                ✓
+              </div>
+              <h2 className="text-2xl font-bold mb-2 bg-linear-to-r from-cyan-100 to-cyan-300 bg-clip-text text-transparent">
+                Profile Submitted
+              </h2>
+              <p className="text-cyan-200 text-sm">
+                Thanks! We’ll let you know when your profile is approved
+                {submittedProfile?.email ? ` at ${submittedProfile.email}` : ''}.
+              </p>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                className="h-12 px-4 bg-linear-to-b from-cyan-500 to-cyan-300 text-[#001018] font-extrabold rounded-xl border-0 cursor-pointer transition-all duration-200 hover:from-cyan-400 hover:to-cyan-500 shadow-[0_8px_22px_rgba(34,211,238,0.35)]"
+                onClick={() => setShowApprovalNotice(false)}
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}
