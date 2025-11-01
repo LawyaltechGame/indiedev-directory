@@ -2,6 +2,8 @@ import { useState, useCallback } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useScrollProgress } from './hooks/useScrollProgress';
 import { useCursorAura } from './hooks/useCursorAura';
+import { useTeamMember } from './hooks/useTeamMember';
+import { usePendingProfile } from './hooks/usePendingProfile';
 import { Header } from './components/sections/Header';
 import { Hero } from './components/sections/Hero';
 import { CTA } from './components/sections/CTA';
@@ -13,13 +15,15 @@ import { Footer } from './components/sections/Footer';
 import { ProfileModal } from './components/sections/ProfileModal';
 import { LoginModal } from './components/auth/LoginModal';
 import { SignupModal } from './components/auth/SignupModal';
-import { ALL_STUDIOS } from './data/studios';
+import { ReviewDashboard } from './components/dashboard/ReviewDashboard';
 import type { FormData, ProfileStep } from './types';
 import { createProfileDocument } from './services/profile';
 
 function AppContent() {
   const { scrollProgress, navShrunk, showScrollTop } = useScrollProgress();
   const { user } = useAuth();
+  const { isTeamMember } = useTeamMember();
+  const { hasPendingProfile, refresh: refreshPendingStatus } = usePendingProfile();
   useCursorAura();
 
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -27,8 +31,9 @@ function AppContent() {
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [showAuthRequiredModal, setShowAuthRequiredModal] = useState(false);
   const [showApprovalNotice, setShowApprovalNotice] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
   const [profileStep, setProfileStep] = useState<ProfileStep>('create');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     name: '',
     tagline: '',
@@ -57,24 +62,33 @@ function AppContent() {
       return;
     }
 
-    setIsLoading(true);
+    // Team members cannot create profiles
+    if (isTeamMember) {
+      alert('Team members cannot create profiles. You already have access to the Review Dashboard.');
+      return;
+    }
+
+    if (hasPendingProfile) {
+      alert('You already have a profile pending review. Please wait for it to be approved or rejected before submitting another.');
+      return;
+    }
+
     setTimeout(() => {
-    setShowProfileModal(true);
-    setProfileStep('create');
-    setFormData({
-      name: '',
-      tagline: '',
-      genre: '',
-      platform: '',
-      teamSize: '',
-      location: '',
-      description: '',
-      website: '',
-      email: '',
-    });
-      setIsLoading(false);
+      setShowProfileModal(true);
+      setProfileStep('create');
+      setFormData({
+        name: '',
+        tagline: '',
+        genre: '',
+        platform: '',
+        teamSize: '',
+        location: '',
+        description: '',
+        website: '',
+        email: '',
+      });
     }, 300);
-  }, [user]);
+  }, [user, isTeamMember, hasPendingProfile]);
 
   const handleFormChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -101,7 +115,7 @@ function AppContent() {
           return;
         }
         try {
-          setIsLoading(true);
+          setIsSubmitting(true);
           await createProfileDocument({
             databaseId: DB_ID,
             tableId: PROFILE_TABLE_ID,
@@ -111,10 +125,14 @@ function AppContent() {
           setSubmittedProfile(formData);
           setShowProfileModal(false);
           setShowApprovalNotice(true);
+          // Refresh pending status immediately
+          setTimeout(() => {
+            refreshPendingStatus();
+          }, 1000);
         } catch (e: any) {
           alert(e?.message || 'Failed to submit profile.');
         } finally {
-          setIsLoading(false);
+          setIsSubmitting(false);
         }
       } else {
         alert('Please fill in all required fields');
@@ -146,6 +164,19 @@ function AppContent() {
     setShowLoginModal(false);
   }, []);
 
+  const handleOpenDashboard = useCallback(() => {
+    if (!user || !isTeamMember) {
+      alert('Access denied. The Review Dashboard is only available to team members.');
+      return;
+    }
+    setShowDashboard(true);
+  }, [user, isTeamMember]);
+
+  // If dashboard is shown, render only the dashboard
+  if (showDashboard) {
+    return <ReviewDashboard onClose={() => setShowDashboard(false)} />;
+  }
+
   return (
     <div className="min-h-screen bg-bg text-white font-sans">
       {/* SCROLL PROGRESS BAR */}
@@ -158,16 +189,17 @@ function AppContent() {
 
       {/* HEADER */}
       <Header 
-        navShrunk={navShrunk}
+        navShrunk={navShrunk} 
         onOpenLogin={handleOpenLogin}
         onOpenSignup={handleOpenSignup}
+        onOpenDashboard={handleOpenDashboard}
       />
 
       {/* HERO SECTION */}
-      <Hero onCreateProfile={handleCreateProfile} />
+      <Hero onCreateProfile={handleCreateProfile} hasPendingProfile={hasPendingProfile} isTeamMember={isTeamMember} />
 
       {/* CTA SECTION */}
-      <CTA onCreateProfile={handleCreateProfile} />
+      <CTA onCreateProfile={handleCreateProfile} hasPendingProfile={hasPendingProfile} isTeamMember={isTeamMember} />
 
       {/* HOW IT WORKS */}
       <HowItWorks />
@@ -177,7 +209,6 @@ function AppContent() {
 
       {/* DIRECTORY */}
       <Directory
-        studios={ALL_STUDIOS}
         genre={genre}
         setGenre={setGenre}
         platform={platform}
@@ -186,11 +217,10 @@ function AppContent() {
         setTeamSize={setTeamSize}
         location={location}
         setLocation={setLocation}
-        isLoading={isLoading}
       />
 
       {/* JOIN CTA FOOTER */}
-      <JoinCTA onCreateProfile={handleCreateProfile} />
+      <JoinCTA onCreateProfile={handleCreateProfile} hasPendingProfile={hasPendingProfile} isTeamMember={isTeamMember} />
 
       {/* FOOTER */}
       <Footer />

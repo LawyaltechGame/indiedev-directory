@@ -1,13 +1,16 @@
 import { useAuth } from '../../contexts/AuthContext';
+import { useTeamMember } from '../../hooks/useTeamMember';
 
 interface HeaderProps {
   navShrunk: boolean;
   onOpenLogin: () => void;
   onOpenSignup: () => void;
+  onOpenDashboard?: () => void;
 }
 
-export function Header({ navShrunk, onOpenLogin, onOpenSignup }: HeaderProps) {
-  const { user, logout, loading } = useAuth();
+export function Header({ navShrunk, onOpenLogin, onOpenSignup, onOpenDashboard }: HeaderProps) {
+  const { user, logout, loading: authLoading } = useAuth();
+  const { isTeamMember, loading: teamLoading } = useTeamMember();
 
   const handleLogout = async () => {
     try {
@@ -17,7 +20,7 @@ export function Header({ navShrunk, onOpenLogin, onOpenSignup }: HeaderProps) {
     }
   };
 
-  if (loading) {
+  if (authLoading || teamLoading) {
     return (
       <header className={`fixed top-1 left-0 right-0 z-50 transition-all duration-300 ${
         navShrunk ? 'bg-[rgba(7,11,18,0.7)] backdrop-blur-[14px]' : 'bg-[rgba(7,11,18,0.55)] backdrop-blur-md'
@@ -43,6 +46,14 @@ export function Header({ navShrunk, onOpenLogin, onOpenSignup }: HeaderProps) {
           <span>IndieDev Directory</span>
         </a>
         <div className="flex items-center gap-2.5 flex-1 justify-end">
+          {onOpenDashboard && isTeamMember && (
+            <button
+              className="h-10 px-4 border border-cyan-500 bg-[rgba(9,14,22,0.55)] text-cyan-100 rounded-xl font-extrabold transition-all duration-200 hover:bg-[rgba(0,229,255,0.12)] hover:text-white hover:shadow-[0_0_10px_rgba(0,229,255,0.35)]"
+              onClick={onOpenDashboard}
+            >
+              📊 Review Dashboard
+            </button>
+          )}
           {user ? (
             <>
               <div className="flex items-center gap-2">

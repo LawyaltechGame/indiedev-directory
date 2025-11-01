@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Select } from '../ui/Select';
 import { TiltCard } from '../ui/TiltCard';
 import type { Studio } from '../../types';
 import { GENRES, PLATFORMS, TEAM_SIZES, LOCATIONS } from '../../constants';
+import { getApprovedProfiles } from '../../services/profile';
 
 interface DirectoryProps {
-  studios: Studio[];
   genre: string;
   setGenre: (value: string) => void;
   platform: string;
@@ -14,11 +14,9 @@ interface DirectoryProps {
   setTeamSize: (value: string) => void;
   location: string;
   setLocation: (value: string) => void;
-  isLoading: boolean;
 }
 
 export function Directory({
-  studios,
   genre,
   setGenre,
   platform,
@@ -27,8 +25,48 @@ export function Directory({
   setTeamSize,
   location,
   setLocation,
-  isLoading,
 }: DirectoryProps) {
+  const [studios, setStudios] = useState<Studio[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const DB_ID = import.meta.env.VITE_APPWRITE_DATABASE_ID as string;
+  const PROFILE_TABLE_ID = import.meta.env.VITE_APPWRITE_PROFILE_TABLE_ID as string;
+
+  useEffect(() => {
+    const fetchApprovedProfiles = async () => {
+      if (!DB_ID || !PROFILE_TABLE_ID) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const profiles = await getApprovedProfiles(DB_ID, PROFILE_TABLE_ID);
+        
+        // Transform profiles to Studio format
+        const transformedStudios: Studio[] = profiles.map((profile: any, index: number) => ({
+          id: profile.$id || profile.id || index + 1,
+          name: profile.name || 'Unknown Studio',
+          tagline: profile.tagline || '',
+          genre: profile.genre || '',
+          platform: profile.platform || '',
+          teamSize: profile.teamSize || '',
+          location: profile.location || '',
+          hue: (index * 37) % 360, // Generate hue for card colors
+        }));
+
+        setStudios(transformedStudios);
+      } catch (error) {
+        console.error('Error fetching approved profiles:', error);
+        setStudios([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchApprovedProfiles();
+  }, []);
+
   const filtered = useMemo(() => {
     return studios.filter((s) => {
       const gOK = !genre || s.genre === genre;
@@ -97,7 +135,7 @@ export function Directory({
               </div>
             ))
           ) : (
-            filtered.slice(0, 6).map((s, i) => (
+            filtered.map((s, i) => (
               <TiltCard key={s.id} studio={s} delay={i * 0.04} />
             ))
           )}
