@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useMemo, useCallback } 
 import type { ReactNode } from 'react';
 import { account, ID } from '../config/appwrite';
 import type { Models } from 'appwrite';
+import type { OAuthProvider } from 'appwrite';
 
 interface User extends Models.User {}
 
@@ -11,7 +12,7 @@ interface AuthContextType {
   register: (email: string, password: string, name: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  loginWithOAuth: (provider: string) => Promise<void>;
+  loginWithOAuth: (provider: OAuthProvider) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -63,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const loginWithOAuth = useCallback(async (provider: string) => {
+  const loginWithOAuth = useCallback(async (provider: OAuthProvider) => {
     try {
       await account.createOAuth2Session(
         provider,

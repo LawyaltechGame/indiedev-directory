@@ -30,10 +30,10 @@ export async function isUserInReviewTeam(userId: string, teamId: string): Promis
 
 /**
  * Get all teams the user is a member of
- * @param userId - The user ID
+ * @param _userId - The user ID
  * @returns Promise<string[]> - Array of team IDs
  */
-export async function getUserTeams(userId: string): Promise<string[]> {
+export async function getUserTeams(_userId: string): Promise<string[]> {
   try {
     const userTeams = await teams.list();
     return userTeams.teams.map((team) => team.$id);
