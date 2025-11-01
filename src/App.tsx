@@ -33,7 +33,7 @@ function AppContent() {
   const [showApprovalNotice, setShowApprovalNotice] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [profileStep, setProfileStep] = useState<ProfileStep>('create');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     name: '',
     tagline: '',
