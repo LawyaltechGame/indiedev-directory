@@ -14,6 +14,7 @@ interface DirectoryProps {
   setTeamSize: (value: string) => void;
   location: string;
   setLocation: (value: string) => void;
+  searchQuery?: string;
 }
 
 export function Directory({
@@ -25,6 +26,7 @@ export function Directory({
   setTeamSize,
   location,
   setLocation,
+  searchQuery = '',
 }: DirectoryProps) {
   const [studios, setStudios] = useState<Studio[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -68,14 +70,18 @@ export function Directory({
   }, []);
 
   const filtered = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
     return studios.filter((s) => {
       const gOK = !genre || s.genre === genre;
       const pOK = !platform || s.platform === platform;
       const tOK = !teamSize || s.teamSize === teamSize;
       const lOK = !location || s.location === location;
-      return gOK && pOK && tOK && lOK;
+      const textOK = !q || [s.name, s.tagline, s.genre, s.platform, s.location]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(q));
+      return gOK && pOK && tOK && lOK && textOK;
     });
-  }, [studios, genre, platform, teamSize, location]);
+  }, [studios, genre, platform, teamSize, location, searchQuery]);
 
   const clearFilters = () => {
     setGenre('');
@@ -120,9 +126,9 @@ export function Directory({
           </button>
         </div>
 
-        <div className="grid justify-center gap-12 grid-cols-[repeat(auto-fill,minmax(320px,1fr))]">
-          {isLoading ? (
-            Array.from({ length: 6 }).map((_, i) => (
+        {isLoading ? (
+          <div className="grid justify-center gap-12 grid-cols-[repeat(auto-fill,minmax(320px,1fr))]">
+            {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="w-80 min-h-[330px] bg-[rgba(20,28,42,0.6)] backdrop-blur-[10px] border border-white/8 rounded-2xl p-4.5 animate-pulse">
                 <div className="h-30 rounded-2xl mb-3 skeleton" />
                 <div className="h-6 bg-white/10 rounded mb-2 skeleton" />
@@ -133,17 +139,38 @@ export function Directory({
                 </div>
                 <div className="h-12 bg-white/5 rounded-xl skeleton" />
               </div>
-            ))
-          ) : (
-            filtered.map((s, i) => (
-              <TiltCard key={s.id} studio={s} delay={i * 0.04} />
-            ))
-          )}
-        </div>
-        <p className="text-cyan-200 text-center text-sm mt-6">
-          Compact preview — full directory will include pagination & sticky
-          filters.
-        </p>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="text-6xl mb-4">🎮</div>
+            <h3 className="text-2xl font-bold mb-2 text-cyan-100">No profiles found</h3>
+            <p className="text-cyan-200/70 mb-6">
+              {studios.length === 0 
+                ? "No studios have been approved yet. Check back soon!"
+                : "No studios match your current filters. Try adjusting your search criteria."}
+            </p>
+            {studios.length > 0 && (
+              <button
+                className="h-10 px-4 border border-cyan-500 bg-[rgba(9,14,22,0.55)] text-cyan-100 rounded-xl font-extrabold transition-all duration-200 hover:bg-[rgba(0,229,255,0.12)] hover:text-white hover:shadow-[0_0_10px_rgba(0,229,255,0.35)]"
+                onClick={clearFilters}
+              >
+                Clear All Filters
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="grid justify-center gap-12 grid-cols-[repeat(auto-fill,minmax(320px,1fr))]">
+              {filtered.map((s, i) => (
+                <TiltCard key={s.id} studio={s} delay={i * 0.04} />
+              ))}
+            </div>
+            <p className="text-cyan-200/70 text-center text-sm mt-6">
+              Showing {filtered.length} {filtered.length === 1 ? 'studio' : 'studios'} in the directory
+            </p>
+          </>
+        )}
       </div>
     </section>
   );

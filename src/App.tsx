@@ -55,6 +55,17 @@ function AppContent() {
   const [platform, setPlatform] = useState('');
   const [teamSize, setTeamSize] = useState('');
   const [location, setLocation] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearch = useCallback((q: string) => {
+    setSearchQuery(q);
+    const el = document.getElementById('directory');
+    if (el) {
+      const offset = 80;
+      const y = el.getBoundingClientRect().top + window.pageYOffset - offset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  }, []);
 
   const handleCreateProfile = useCallback(() => {
     if (!user) {
@@ -196,7 +207,7 @@ function AppContent() {
       />
 
       {/* HERO SECTION */}
-      <Hero onCreateProfile={handleCreateProfile} hasPendingProfile={hasPendingProfile} isTeamMember={isTeamMember} />
+      <Hero onCreateProfile={handleCreateProfile} hasPendingProfile={hasPendingProfile} isTeamMember={isTeamMember} onSearch={handleSearch} />
 
       {/* CTA SECTION */}
       <CTA onCreateProfile={handleCreateProfile} hasPendingProfile={hasPendingProfile} isTeamMember={isTeamMember} />
@@ -217,6 +228,7 @@ function AppContent() {
         setTeamSize={setTeamSize}
         location={location}
         setLocation={setLocation}
+        searchQuery={searchQuery}
       />
 
       {/* JOIN CTA FOOTER */}

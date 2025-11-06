@@ -19,26 +19,6 @@ export async function createProfileDocument(params: {
     hour12: false,
   }).format(new Date());
 
-  // Get review team ID for team permissions
-  const REVIEW_TEAM_ID = import.meta.env.VITE_REVIEW_TEAM_ID as string;
-
-  // Permissions: anyone can read, owner can update/delete, team members can update/delete
-  const permissions = [
-    Permission.read(Role.any()),
-    Permission.update(Role.user(userId)),
-    Permission.delete(Role.user(userId)),
-    Permission.write(Role.user(userId)),
-  ];
-
-  // Add team permissions if team ID is configured
-  if (REVIEW_TEAM_ID) {
-    permissions.push(
-      Permission.update(Role.team(REVIEW_TEAM_ID)),
-      Permission.delete(Role.team(REVIEW_TEAM_ID)),
-      Permission.write(Role.team(REVIEW_TEAM_ID))
-    );
-  }
-
   // Normalize payload to simple fields
   const documentData = {
     userId,
@@ -55,7 +35,10 @@ export async function createProfileDocument(params: {
     createdAt,
   } as const;
 
-  return await databases.createDocument(databaseId, tableId, ID.unique(), documentData as any, permissions);
+  // For Appwrite Tables, don't pass permissions during creation
+  // Use table-level permissions instead (configured in Appwrite Console)
+  // Row security can be enabled later if document-level permissions are needed
+  return await databases.createDocument(databaseId, tableId, ID.unique(), documentData as any);
 }
 
 export async function getAllProfiles(databaseId: string, tableId: string) {
@@ -127,14 +110,13 @@ export async function updateProfilePermissions(
     const userId = document.userId;
 
     // Build permissions array with both user and team permissions
+    // Note: Document-level permissions support read/update/delete. Avoid 'write' on documents.
     const permissions = [
       Permission.read(Role.any()),
       Permission.update(Role.user(userId)),
       Permission.delete(Role.user(userId)),
-      Permission.write(Role.user(userId)),
       Permission.update(Role.team(REVIEW_TEAM_ID)),
       Permission.delete(Role.team(REVIEW_TEAM_ID)),
-      Permission.write(Role.team(REVIEW_TEAM_ID)),
     ];
 
     // Try to update permissions (this requires write access)

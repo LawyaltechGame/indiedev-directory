@@ -4,14 +4,16 @@ interface HeroProps {
   onCreateProfile: () => void;
   hasPendingProfile?: boolean;
   isTeamMember?: boolean;
+  onSearch?: (query: string) => void;
 }
 
-export function Hero({ onCreateProfile, hasPendingProfile = false, isTeamMember = false }: HeroProps) {
+export function Hero({ onCreateProfile, hasPendingProfile = false, isTeamMember = false, onSearch }: HeroProps) {
   const [query, setQuery] = useState('');
 
-  const onSearch = (e: React.FormEvent) => {
+  const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    alert(`Searching: ${query || '(empty)'}`);
+    const q = query.trim();
+    if (onSearch) onSearch(q);
   };
 
   return (
@@ -67,22 +69,22 @@ export function Hero({ onCreateProfile, hasPendingProfile = false, isTeamMember 
           <div className="relative">
             <form
               className="flex items-center bg-[rgba(13,21,36,0.65)] border border-white/8 rounded-2xl overflow-hidden w-full max-w-lg shadow-[0_2px_16px_rgba(0,0,0,0.25)] h-15 transition-all duration-300 focus-within:border-cyan-400 focus-within:shadow-[0_4px_24px_rgba(34,211,238,0.25)]"
-              onSubmit={onSearch}
+              onSubmit={onSubmit}
               role="search"
             >
-              <span className="pl-3 text-cyan-200">🔎</span>
+              <span className="pl-3 text-cyan-200">🔎</span>  
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search studios, genres, tags"
                 aria-label="Search"
-                className="flex-1 px-3 bg-transparent text-white border-0 outline-none placeholder:text-cyan-300/60 focus:placeholder:text-cyan-300/40 transition-colors duration-200"
+                className="flex-1 px-3 bg-transparent text-white border-0 outline-none ring-0 focus:ring-0 shadow-none focus:shadow-none appearance-none placeholder:text-cyan-300/60 focus:placeholder:text-cyan-300/40 transition-colors duration-200"
               />
               <button className="h-12 px-4 bg-linear-to-b from-cyan-500 to-cyan-300 text-[#001018] font-extrabold rounded-xl border-0 cursor-pointer transition-all duration-200 hover:from-cyan-400 hover:to-cyan-500 active:scale-[0.995] active:translate-y-px shadow-[0_8px_22px_rgba(34,211,238,0.35)]" type="submit">
                 Search
               </button>
             </form>
-            <div className="absolute -inset-20 flex items-center justify-center" aria-hidden>
+            <div className="absolute -inset-20 flex items-center justify-center pointer-events-none" aria-hidden>
               <div className="relative w-[520px] h-[520px] animate-spin" style={{ animationDuration: '25s' }}>
                 {['🎮', '👾', '🕹️', '🎯', '🚀', '✨'].map((icon, i) => {
                   const angle = i * 60;
