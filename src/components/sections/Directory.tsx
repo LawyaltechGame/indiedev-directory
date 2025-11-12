@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Select } from '../ui/Select';
 import { TiltCard } from '../ui/TiltCard';
+import { ProfileDetailModal } from './ProfileDetailModal';
 import type { Studio } from '../../types';
 import { GENRES, PLATFORMS, TEAM_SIZES, LOCATIONS } from '../../constants';
 import { getApprovedProfiles } from '../../services/profile';
@@ -30,6 +31,8 @@ export function Directory({
 }: DirectoryProps) {
   const [studios, setStudios] = useState<Studio[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedProfile, setSelectedProfile] = useState<any | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const DB_ID = import.meta.env.VITE_APPWRITE_DATABASE_ID as string;
   const PROFILE_TABLE_ID = import.meta.env.VITE_APPWRITE_PROFILE_TABLE_ID as string;
@@ -55,9 +58,10 @@ export function Directory({
           teamSize: profile.teamSize || '',
           location: profile.location || '',
           hue: (index * 37) % 360, // Generate hue for card colors
+          fullProfile: profile, // Store full profile data for the modal
         }));
 
-        setStudios(transformedStudios);
+        setStudios(transformedStudios as any);
       } catch (error) {
         console.error('Error fetching approved profiles:', error);
         setStudios([]);
@@ -163,7 +167,15 @@ export function Directory({
           <>
             <div className="grid justify-center gap-12 grid-cols-[repeat(auto-fill,minmax(320px,1fr))]">
               {filtered.map((s, i) => (
-                <TiltCard key={s.id} studio={s} delay={i * 0.04} />
+                <TiltCard 
+                  key={s.id} 
+                  studio={s} 
+                  delay={i * 0.04}
+                  onViewProfile={() => {
+                    setSelectedProfile((s as any).fullProfile);
+                    setIsModalOpen(true);
+                  }}
+                />
               ))}
             </div>
             <p className="text-cyan-200/70 text-center text-sm mt-6">
@@ -172,6 +184,16 @@ export function Directory({
           </>
         )}
       </div>
+
+      {/* Profile Detail Modal */}
+      <ProfileDetailModal
+        profile={selectedProfile}
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedProfile(null);
+        }}
+      />
     </section>
   );
 }

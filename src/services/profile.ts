@@ -31,6 +31,7 @@ export async function createProfileDocument(params: {
     description: data.description || '',
     website: data.website || '',
     email: data.email,
+    authEmail: data.authEmail, // User's authentication email
     status: 'pending', // pending, approved, rejected
     createdAt,
   } as const;

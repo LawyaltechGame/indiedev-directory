@@ -19,6 +19,7 @@ export interface FormData {
   description: string;
   website: string;
   email: string;
+  authEmail?: string;  // User's authentication email
 }
 
 export type ProfileStep = 'create' | 'review' | 'list';

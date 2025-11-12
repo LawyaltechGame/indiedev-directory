@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTeamMember } from '../../hooks/useTeamMember';
 import { getAllProfiles, updateProfileStatus, deleteProfile } from '../../services/profile';
 import { Button } from '../ui/Button';
+import { useToast } from '../../hooks/useToast';
 
 interface Profile {
   $id: string;
@@ -16,6 +17,7 @@ interface Profile {
   description?: string;
   website?: string;
   email: string;
+  authEmail: string;  // User's authentication email
   status: string;
   createdAt: string;
 }
@@ -27,6 +29,7 @@ interface ReviewDashboardProps {
 export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
   const { user } = useAuth();
   const { isTeamMember, loading: teamLoading } = useTeamMember();
+  const { toast } = useToast();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
@@ -36,6 +39,72 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
 
   const DB_ID = import.meta.env.VITE_APPWRITE_DATABASE_ID as string;
   const PROFILE_TABLE_ID = import.meta.env.VITE_APPWRITE_PROFILE_TABLE_ID as string;
+  const EMAILJS_SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID as string;
+  const EMAILJS_PUBLIC_KEY = (import.meta.env.VITE_EMAILJS_PUBLIC_KEY || import.meta.env.VITE_EMAILJS_USER_ID) as string;
+  
+  // EmailJS templates for different statuses
+  const TEMPLATES = {
+    approved: import.meta.env.VITE_EMAILJS_TEMPLATE_ID as string,
+    rejected: import.meta.env.VITE_EMAILJS_REJECTION_TEMPLATE_ID as string
+  };
+
+  const sendStatusEmail = async (profile: Profile | null, status: 'approved' | 'rejected') => {
+    if (!profile) return;
+    if (!EMAILJS_SERVICE_ID || !EMAILJS_PUBLIC_KEY) {
+      console.warn('EmailJS not configured (VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_PUBLIC_KEY)');
+      return;
+    }
+
+    const templateId = TEMPLATES[status];
+    if (!templateId) {
+      console.warn(`No template configured for status: ${status}`);
+      return;
+    }
+
+    if (!profile.authEmail) {
+      console.warn('No auth email found in profile');
+      return;
+    }
+
+    try {
+      const endpoint = 'https://api.emailjs.com/api/v1.0/email/send';
+      
+      // Ensure email is properly formatted
+      if (!profile.authEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.authEmail)) {
+        throw new Error('Profile has invalid or missing auth email');
+      }
+
+      const payload = {
+        service_id: EMAILJS_SERVICE_ID,
+        template_id: templateId,
+        user_id: EMAILJS_PUBLIC_KEY,
+        template_params: {
+          email: profile.authEmail.trim(),
+          to_name: profile.name,
+          studio_name: profile.name,
+          to_email: profile.authEmail.trim(),
+          message: status === 'approved'
+            ? `Your studio profile "${profile.name}" has been approved and is now live on IndieDev Directory!`
+            : `Your studio profile "${profile.name}" has been reviewed but could not be approved at this time.`
+        }
+      };
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to send ${status} email: ${response.statusText}`);
+      }
+
+      console.log(`${status} email sent successfully to ${profile.authEmail}`);
+    } catch (error) {
+      console.error(`Failed to send ${status} email:`, error);
+      throw error;
+    }
+  };
 
   const fetchProfiles = async () => {
     if (!DB_ID || !PROFILE_TABLE_ID) {
@@ -125,15 +194,41 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
       return;
     }
 
+    // capture current profile data so we can email the submitter after status change
+    const currentProfile = profiles.find((p) => p.$id === documentId) || null;
+
     try {
       setUpdating(documentId);
       await updateProfileStatus(DB_ID, PROFILE_TABLE_ID, documentId, status);
       await fetchProfiles(); // Refresh the list
+
+      // If approved, notify the profile owner via EmailJS (non-blocking)
+      // Send email for both approval and rejection
+      await sendStatusEmail(currentProfile, status as 'approved' | 'rejected')
+        .then(() => {
+          toast({
+            title: `Profile ${status}`,
+            description: `Profile has been ${status} and notification email sent.`,
+            type: 'success'
+          });
+        })
+        .catch((err: Error) => {
+          console.warn(`${status} email error:`, err);
+          toast({
+            title: `Profile ${status}`,
+            description: `Profile has been ${status} but failed to send notification email.`,
+            type: 'warning'
+          });
+        });
     } catch (error: any) {
-      alert(error?.message || 'Failed to update profile status');
+      toast({
+        title: 'Error',
+        description: error?.message || 'Failed to update profile status',
+        type: 'error'
+      });
     } finally {
       setUpdating(null);
-    }
+    };
   };
 
   const handleDeleteProfile = async (documentId: string) => {

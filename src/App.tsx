@@ -4,6 +4,7 @@ import { useScrollProgress } from './hooks/useScrollProgress';
 import { useCursorAura } from './hooks/useCursorAura';
 import { useTeamMember } from './hooks/useTeamMember';
 import { usePendingProfile } from './hooks/usePendingProfile';
+import { ToastContainer } from './components/ui/ToastContainer';
 import { Header } from './components/sections/Header';
 import { Hero } from './components/sections/Hero';
 import { CTA } from './components/sections/CTA';
@@ -46,6 +47,58 @@ function AppContent() {
     email: '',
   });
   const [submittedProfile, setSubmittedProfile] = useState<FormData | null>(null);
+  const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle');
+  const [emailError, setEmailError] = useState<string | null>(null);
+
+  // Helper to send notification to reviewer via FormSubmit.co
+  const sendReviewerEmail = useCallback(async (profile: FormData) => {
+    const recipient = 'cryptotrader035@gmail.com';
+    const endpoint = `https://formsubmit.co/ajax/${encodeURIComponent(recipient)}`;
+
+    setEmailStatus('sending');
+    setEmailError(null);
+
+    try {
+      const messageLines = [
+        `New studio profile submitted:\n`,
+        `Name: ${profile.name}`,
+        `Tagline: ${profile.tagline}`,
+        `Genre: ${profile.genre}`,
+        `Platform: ${profile.platform}`,
+        `Team Size: ${profile.teamSize}`,
+        `Location: ${profile.location}`,
+        `Website: ${profile.website || 'N/A'}`,
+        `Email: ${profile.email}`,
+        `Description: ${profile.description || 'N/A'}`,
+      ];
+
+      const form = new FormData();
+      // form.append('name', 'IndieDev Directory — New Profile');
+      // form.append('email', profile.email || 'no-reply@example.com');
+      form.append('subject', `New profile submitted: ${profile.name}`);
+      form.append('message', messageLines.join('\n'));
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        body: form,
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        setEmailStatus('failed');
+        setEmailError(`Server returned ${res.status}: ${text}`);
+        console.warn('Failed to send reviewer email via FormSubmit:', text);
+        return;
+      }
+
+      // success
+      setEmailStatus('sent');
+    } catch (err: any) {
+      setEmailStatus('failed');
+      setEmailError(err?.message || String(err));
+      console.warn('Error sending reviewer email:', err);
+    }
+  }, []);
 
   const DB_ID = import.meta.env.VITE_APPWRITE_DATABASE_ID as string;
   const PROFILE_TABLE_ID = import.meta.env.VITE_APPWRITE_PROFILE_TABLE_ID as string;
@@ -127,12 +180,24 @@ function AppContent() {
         }
         try {
           setIsSubmitting(true);
+          // Debug log the auth user data
+          console.log('Creating profile with auth data:', {
+            userId: (user as any).$id || (user as any).id,
+            userEmail: (user as any).email,
+            user: user
+          });
+
           await createProfileDocument({
             databaseId: DB_ID,
             tableId: PROFILE_TABLE_ID,
             userId: (user as any).$id || (user as any).id,
-            data: formData,
+            data: {
+              ...formData,
+              authEmail: (user as any).email // Add authenticated user's email
+            },
           });
+
+          // Profile created successfully
           setSubmittedProfile(formData);
           setShowProfileModal(false);
           setShowApprovalNotice(true);
@@ -333,7 +398,7 @@ function AppContent() {
 
       {/* APPROVAL NOTICE MODAL */}
       {showApprovalNotice && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-100 p-5" onClick={() => setShowApprovalNotice(false)}>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-100 p-5" onClick={() => { setShowApprovalNotice(false); setEmailStatus('idle'); setEmailError(null); }}>
           <div className="bg-[rgba(20,28,42,0.95)] backdrop-blur-[20px] border border-white/8 rounded-2xl max-w-md w-full p-8 relative shadow-[0_25px_50px_rgba(0,0,0,0.5)]" onClick={(e) => e.stopPropagation()}>
             <button
               className="absolute top-4 right-4 bg-white/10 border-0 text-white w-8 h-8 rounded-lg cursor-pointer text-xl transition-all duration-200 hover:bg-white/20"
@@ -354,11 +419,38 @@ function AppContent() {
                 {submittedProfile?.email ? ` at ${submittedProfile.email}` : ''}.
               </p>
             </div>
+            {/* Email send status and controls */}
+            <div className="mb-4">
+              <div className="text-sm text-cyan-200 mb-2">Reviewer notification</div>
+              <div className="flex items-center gap-3">
+                {emailStatus === 'idle' && <div className="text-xs text-yellow-300">Not sent yet</div>}
+                {emailStatus === 'sending' && <div className="text-xs text-cyan-300">Sending...</div>}
+                {emailStatus === 'sent' && <div className="text-xs text-green-300">Sent to reviewer ✓</div>}
+                {emailStatus === 'failed' && <div className="text-xs text-red-300">Failed to send</div>}
+                <div className="ml-auto">
+                  <button
+                    className="h-9 px-3 bg-[rgba(9,14,22,0.55)] text-cyan-100 rounded-lg border border-white/8 text-sm"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (!submittedProfile) return;
+                      await sendReviewerEmail(submittedProfile);
+                    }}
+                    disabled={emailStatus === 'sending' || !submittedProfile}
+                  >
+                    Resend
+                  </button>
+                </div>
+              </div>
+
+              {emailError && (
+                <div className="mt-2 text-xs text-red-300 break-all">{emailError}</div>
+              )}
+            </div>
 
             <div className="flex justify-end">
               <button
                 className="h-12 px-4 bg-linear-to-b from-cyan-500 to-cyan-300 text-[#001018] font-extrabold rounded-xl border-0 cursor-pointer transition-all duration-200 hover:from-cyan-400 hover:to-cyan-500 shadow-[0_8px_22px_rgba(34,211,238,0.35)]"
-                onClick={() => setShowApprovalNotice(false)}
+                onClick={() => { setShowApprovalNotice(false); setEmailStatus('idle'); setEmailError(null); }}
               >
                 Done
               </button>
@@ -374,6 +466,7 @@ export default function App() {
   return (
     <AuthProvider>
       <AppContent />
+      <ToastContainer />
     </AuthProvider>
   );
 }
