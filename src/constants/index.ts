@@ -23,3 +23,35 @@ export const LOCATIONS = [
   'Oceania',
   'Africa',
 ];
+
+export const TOOLS = [
+  'Unity',
+  'Unreal',
+  'Godot',
+  'Blender',
+  'Maya',
+  'ZBrush',
+  'Figma',
+  'Photoshop',
+];
+
+export const REVENUE_MODELS = ['Premium', 'F2P', 'Subscription'];
+
+export const TAGS = [
+  'Co-op',
+  'Multiplayer',
+  'Pixel-Art',
+  'Narrative',
+  'Casual',
+  'Competitive',
+  'Roguelike',
+  'Metroidvania',
+  'Platformer',
+  'Puzzle',
+  'Strategy',
+  'Simulation',
+  'Sandbox',
+  'Live-Ops',
+  'Economy',
+  'Social',
+];

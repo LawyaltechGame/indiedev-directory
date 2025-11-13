@@ -18,6 +18,10 @@ interface Profile {
   website?: string;
   email: string;
   authEmail: string;  // User's authentication email
+  tools?: string[];
+  revenue?: string;
+  foundedYear?: string;
+  tags?: string[];
   status: string;
   createdAt: string;
 }
@@ -299,7 +303,7 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-4xl font-bold mb-2 bg-linear-to-r from-cyan-100 to-cyan-300 bg-clip-text text-transparent">
-                Profile Review Dashboard
+               Studio Profile Review Dashboard
               </h1>
               <p className="text-cyan-200">Review and manage submitted studio profiles</p>
             </div>
@@ -368,7 +372,7 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
                       <div className="bg-[rgba(0,229,255,0.08)] border border-cyan-500/15 rounded-lg p-3">
                         <span className="text-cyan-400 text-xs font-semibold block mb-1">Genre</span>
                         <span className="font-semibold text-white">{profile.genre}</span>
@@ -384,6 +388,10 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
                       <div className="bg-[rgba(0,229,255,0.08)] border border-cyan-500/15 rounded-lg p-3">
                         <span className="text-cyan-400 text-xs font-semibold block mb-1">Location</span>
                         <span className="font-semibold text-white">{profile.location}</span>
+                      </div>
+                      <div className="bg-[rgba(0,229,255,0.08)] border border-cyan-500/15 rounded-lg p-3">
+                        <span className="text-cyan-400 text-xs font-semibold block mb-1">Founded</span>
+                        <span className="font-semibold text-white">{profile.foundedYear || '—'}</span>
                       </div>
                     </div>
 
@@ -410,6 +418,12 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
                           >
                             {profile.website}
                           </a>
+                        </div>
+                      )}
+                      {profile.tags && profile.tags.length > 0 && (
+                        <div className="w-full">
+                          <span className="text-cyan-400">Tags: </span>
+                          <span className="text-white">{profile.tags.join(', ')}</span>
                         </div>
                       )}
                       <div>

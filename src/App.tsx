@@ -1,9 +1,13 @@
 import { useState, useCallback } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import StudiosDirectory from './components/sections/StudiosDirectory';
+import Publishers from './components/sections/Publishers';
+import Tools from './components/sections/Tools';
+import Resources from './components/sections/Resources';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useScrollProgress } from './hooks/useScrollProgress';
 import { useCursorAura } from './hooks/useCursorAura';
 import { useTeamMember } from './hooks/useTeamMember';
-import { usePendingProfile } from './hooks/usePendingProfile';
 import { ToastContainer } from './components/ui/ToastContainer';
 import { Header } from './components/sections/Header';
 import { Hero } from './components/sections/Hero';
@@ -24,7 +28,6 @@ function AppContent() {
   const { scrollProgress, navShrunk, showScrollTop } = useScrollProgress();
   const { user } = useAuth();
   const { isTeamMember } = useTeamMember();
-  const { hasPendingProfile, refresh: refreshPendingStatus } = usePendingProfile();
   useCursorAura();
 
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -45,6 +48,9 @@ function AppContent() {
     description: '',
     website: '',
     email: '',
+    tools: [],
+    revenue: '',
+    foundedYear: '',
   });
   const [submittedProfile, setSubmittedProfile] = useState<FormData | null>(null);
   const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle');
@@ -120,42 +126,30 @@ function AppContent() {
     }
   }, []);
 
-  const handleCreateProfile = useCallback(() => {
-    if (!user) {
-      setShowAuthRequiredModal(true);
-      return;
-    }
-
-    // Team members cannot create profiles
-    if (isTeamMember) {
-      alert('Team members cannot create profiles. You already have access to the Review Dashboard.');
-      return;
-    }
-
-    if (hasPendingProfile) {
-      alert('You already have a profile pending review. Please wait for it to be approved or rejected before submitting another.');
-      return;
-    }
-
-    setTimeout(() => {
-      setShowProfileModal(true);
-      setProfileStep('create');
-      setFormData({
-        name: '',
-        tagline: '',
-        genre: '',
-        platform: '',
-        teamSize: '',
-        location: '',
-        description: '',
-        website: '',
-        email: '',
-      });
-    }, 300);
-  }, [user, isTeamMember, hasPendingProfile]);
-
   const handleFormChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
+    const target = e.target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+    const name = target.name;
+
+    // Handle multi-select for tools
+    // Handle multi-select (native select) for tools
+    if (name === 'tools' && target instanceof HTMLSelectElement && target.multiple) {
+      const values = Array.from(target.selectedOptions).map((o) => o.value);
+      setFormData((prev) => ({ ...prev, tools: values }));
+      return;
+    }
+
+    // Handle checkbox toggles for tools and tags (we render checkboxes in the modal)
+    if (target instanceof HTMLInputElement && target.type === 'checkbox' && (name === 'tools' || name === 'tags')) {
+      const val = target.value;
+      setFormData((prev) => {
+        const cur = new Set(((name === 'tools') ? prev.tools : prev.tags) || []);
+        if (target.checked) cur.add(val); else cur.delete(val);
+        return { ...prev, [name]: Array.from(cur) } as any;
+      });
+      return;
+    }
+
+    const value = target.value;
     setFormData((prev) => ({ ...prev, [name]: value }));
   }, []);
 
@@ -201,10 +195,6 @@ function AppContent() {
           setSubmittedProfile(formData);
           setShowProfileModal(false);
           setShowApprovalNotice(true);
-          // Refresh pending status immediately
-          setTimeout(() => {
-            refreshPendingStatus();
-          }, 1000);
         } catch (e: any) {
           alert(e?.message || 'Failed to submit profile.');
         } finally {
@@ -248,6 +238,14 @@ function AppContent() {
     setShowDashboard(true);
   }, [user, isTeamMember]);
 
+  const handleCreateProfile = useCallback(() => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    setShowProfileModal(true);
+  }, [user]);
+
   // If dashboard is shown, render only the dashboard
   if (showDashboard) {
     return <ReviewDashboard onClose={() => setShowDashboard(false)} />;
@@ -263,44 +261,77 @@ function AppContent() {
         />
           </div>
 
-      {/* HEADER */}
-      <Header 
-        navShrunk={navShrunk} 
-        onOpenLogin={handleOpenLogin}
-        onOpenSignup={handleOpenSignup}
-        onOpenDashboard={handleOpenDashboard}
-      />
+      {/* HEADER (hide global header on StudioHub routes) */}
+      {(() => {
+        try {
+          const loc = window.location.pathname || '';
+          if (loc.startsWith('/studios_directory')) return null;
+        } catch (e) {}
+        return (
+          <Header 
+            navShrunk={navShrunk} 
+            onOpenLogin={handleOpenLogin}
+            onOpenSignup={handleOpenSignup}
+            onOpenDashboard={handleOpenDashboard}
+          />
+        );
+      })()}
 
-      {/* HERO SECTION */}
-      <Hero onCreateProfile={handleCreateProfile} hasPendingProfile={hasPendingProfile} isTeamMember={isTeamMember} onSearch={handleSearch} />
+      <Routes>
+        <Route
+          path="/studios_directory"
+          element={<StudiosDirectory onCreateProfile={handleCreateProfile} />}
+        />
+        <Route
+          path="/studios_directory/publishers"
+          element={<Publishers onCreateProfile={handleCreateProfile} />}
+        />
+        <Route
+          path="/studios_directory/tools"
+          element={<Tools onCreateProfile={handleCreateProfile} />}
+        />
+        <Route
+          path="/studios_directory/resources"
+          element={<Resources onCreateProfile={handleCreateProfile} />}
+        />
+        <Route
+          path="/"
+          element={
+            <>
+              {/* HERO SECTION */}
+              <Hero onSearch={handleSearch} />
 
-      {/* CTA SECTION */}
-      <CTA onCreateProfile={handleCreateProfile} hasPendingProfile={hasPendingProfile} isTeamMember={isTeamMember} />
+              {/* CTA SECTION */}
+              <CTA />
 
-      {/* HOW IT WORKS */}
-      <HowItWorks />
+              {/* HOW IT WORKS */}
+              <HowItWorks />
 
-      {/* WHY JOIN */}
-      <WhyJoin />
+              {/* WHY JOIN */}
+              <WhyJoin />
 
-      {/* DIRECTORY */}
-      <Directory
-        genre={genre}
-        setGenre={setGenre}
-        platform={platform}
-        setPlatform={setPlatform}
-        teamSize={teamSize}
-        setTeamSize={setTeamSize}
-        location={location}
-        setLocation={setLocation}
-        searchQuery={searchQuery}
-      />
+              {/* DIRECTORY */}
+              <Directory
+                genre={genre}
+                setGenre={setGenre}
+                platform={platform}
+                setPlatform={setPlatform}
+                teamSize={teamSize}
+                setTeamSize={setTeamSize}
+                location={location}
+                setLocation={setLocation}
+                searchQuery={searchQuery}
+              />
 
-      {/* JOIN CTA FOOTER */}
-      <JoinCTA onCreateProfile={handleCreateProfile} hasPendingProfile={hasPendingProfile} isTeamMember={isTeamMember} />
+              {/* JOIN CTA FOOTER */}
+              <JoinCTA />
 
-      {/* FOOTER */}
-      <Footer />
+              {/* FOOTER */}
+              <Footer />
+            </>
+          }
+        />
+      </Routes>
 
       {/* CURSOR AURA */}
       <div className="fixed inset-0 pointer-events-none z-5 bg-gradient-radial from-cyan-500/18 via-transparent to-transparent mix-blend-screen transition-all duration-100" style={{ background: `radial-gradient(220px 160px at var(--mx) var(--my), rgba(0,229,255,.18), transparent 45%)` }} aria-hidden />
@@ -465,8 +496,10 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppContent />
-      <ToastContainer />
+      <BrowserRouter>
+        <AppContent />
+        <ToastContainer />
+      </BrowserRouter>
     </AuthProvider>
   );
 }

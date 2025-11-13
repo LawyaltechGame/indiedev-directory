@@ -1,13 +1,10 @@
 import { useState } from 'react';
 
 interface HeroProps {
-  onCreateProfile: () => void;
-  hasPendingProfile?: boolean;
-  isTeamMember?: boolean;
   onSearch?: (query: string) => void;
 }
 
-export function Hero({ onCreateProfile, hasPendingProfile = false, isTeamMember = false, onSearch }: HeroProps) {
+export function Hero({ onSearch }: HeroProps) {
   const [query, setQuery] = useState('');
 
   const onSubmit = (e: React.FormEvent) => {
@@ -30,30 +27,6 @@ export function Hero({ onCreateProfile, hasPendingProfile = false, isTeamMember 
             connects creators, publishers, and collaborators.
           </p>
           <div className="flex gap-3.5 flex-wrap items-center">
-            {isTeamMember ? (
-              <div className="h-14 px-6 bg-[rgba(20,28,42,0.6)] border border-cyan-500/30 rounded-xl flex items-center text-cyan-200 text-sm font-semibold">
-                👋 Team members can review profiles from the dashboard
-              </div>
-            ) : (
-              <button
-                className={`h-14 px-6 font-extrabold rounded-xl border-0 transition-all duration-200 text-base ${
-                  hasPendingProfile
-                    ? 'bg-[rgba(20,28,42,0.6)] border border-yellow-500/50 text-yellow-300 cursor-not-allowed shadow-[0_8px_22px_rgba(251,191,36,0.25)]'
-                    : 'bg-linear-to-b from-cyan-500 to-cyan-300 text-[#001018] cursor-pointer hover:from-cyan-400 hover:to-cyan-500 active:scale-[0.995] active:translate-y-px shadow-[0_8px_22px_rgba(34,211,238,0.35)]'
-                }`}
-                onClick={onCreateProfile}
-                disabled={hasPendingProfile}
-              >
-                {hasPendingProfile ? (
-                  <span className="flex items-center gap-2">
-                    <span className="animate-pulse">⏳</span>
-                    Review Pending
-                  </span>
-                ) : (
-                  'Create a Profile'
-                )}
-              </button>
-            )}
             <a
               href="#directory"
               className="h-14 px-6 border border-cyan-500 bg-[rgba(9,14,22,0.55)] text-cyan-100 rounded-xl no-underline font-extrabold flex items-center justify-center transition-all duration-200 hover:bg-[rgba(0,229,255,0.12)] hover:text-white hover:shadow-[0_0_10px_rgba(0,229,255,0.35)] hover:-translate-y-0.5 shadow-[0_10px_28px_rgba(56,189,248,0.20)] text-base"

@@ -7,6 +7,10 @@ export interface Studio {
   teamSize: string;
   location: string;
   hue: number;
+  tools?: string[];
+  revenue?: string;
+  foundedYear?: string;
+  tags?: string[];
 }
 
 export interface FormData {
@@ -20,6 +24,10 @@ export interface FormData {
   website: string;
   email: string;
   authEmail?: string;  // User's authentication email
+  tools?: string[];
+  revenue?: string;
+  foundedYear?: string;
+  tags?: string[];
 }
 
 export type ProfileStep = 'create' | 'review' | 'list';

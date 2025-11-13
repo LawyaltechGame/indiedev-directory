@@ -12,6 +12,10 @@ interface ProfileDetailModalProps {
     description?: string;
     website?: string;
     email?: string;
+    foundedYear?: string;
+    tools?: string[];
+    revenue?: string;
+    tags?: string[];
   } | null;
   isOpen: boolean;
   onClose: () => void;
@@ -91,6 +95,7 @@ export function ProfileDetailModal({ profile, isOpen, onClose }: ProfileDetailMo
                 { label: 'Platform', value: profile.platform, icon: '🖥️' },
                 { label: 'Team Size', value: profile.teamSize, icon: '👥' },
                 { label: 'Location', value: profile.location, icon: '📍' },
+                { label: 'Founded', value: profile.foundedYear, icon: '📅' },
               ].map((stat, idx) => (
                 <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-white/3 border border-white/6">
                   <div className="text-lg md:text-xl">{stat.icon}</div>
@@ -101,6 +106,37 @@ export function ProfileDetailModal({ profile, isOpen, onClose }: ProfileDetailMo
                 </div>
               ))}
             </motion.div>
+
+            {/* Tools & Revenue */}
+            {(profile.tools?.length || profile.revenue || profile.tags?.length) && (
+              <motion.div variants={itemVariants} className="mb-6">
+                <h2 className="text-sm font-semibold mb-3 text-white/90">Details</h2>
+                <div className="grid md:grid-cols-3 gap-3">
+                  <div className="p-3 rounded-lg bg-white/3 border border-white/6">
+                    <div className="text-xs text-white/70 uppercase tracking-wider mb-2">Tools</div>
+                    <div className="flex flex-wrap gap-2">
+                      {(profile.tools || []).map((t, i) => (
+                        <span key={i} className="px-2 py-1 bg-[#172033] border border-[#223049] rounded-full text-xs text-cyan-300 font-semibold">{t}</span>
+                      ))}
+                      {(!profile.tools || profile.tools.length === 0) && <div className="text-sm text-white/70">No tools listed</div>}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-white/3 border border-white/6">
+                    <div className="text-xs text-white/70 uppercase tracking-wider mb-2">Revenue Model</div>
+                    <div className="text-sm text-white font-medium">{profile.revenue || 'N/A'}</div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-white/3 border border-white/6">
+                    <div className="text-xs text-white/70 uppercase tracking-wider mb-2">Tags</div>
+                    <div className="flex flex-wrap gap-2">
+                      {(profile.tags || []).map((tag, i) => (
+                        <span key={i} className="px-2 py-1 bg-[#172033] border border-[#223049] rounded-full text-xs text-cyan-300 font-semibold">{tag}</span>
+                      ))}
+                      {(!profile.tags || profile.tags.length === 0) && <div className="text-sm text-white/70">No tags listed</div>}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
 
             {/* Contact */}
             <motion.div variants={itemVariants} className="mb-6">

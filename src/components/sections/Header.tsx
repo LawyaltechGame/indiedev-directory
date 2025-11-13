@@ -1,5 +1,6 @@
 import { useAuth } from '../../contexts/AuthContext';
 import { useTeamMember } from '../../hooks/useTeamMember';
+import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   navShrunk: boolean;
@@ -11,6 +12,7 @@ interface HeaderProps {
 export function Header({ navShrunk, onOpenLogin, onOpenSignup, onOpenDashboard }: HeaderProps) {
   const { user, logout, loading: authLoading } = useAuth();
   const { isTeamMember, loading: teamLoading } = useTeamMember();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     try {
@@ -88,6 +90,14 @@ export function Header({ navShrunk, onOpenLogin, onOpenSignup, onOpenDashboard }
             className="text-white font-extrabold no-underline transition-all duration-200 hover:text-cyan-300 hover:shadow-[0_0_10px_rgba(0,229,255,0.35)]"
           >
             Directory
+          </a>
+          {/* Publishers link intentionally omitted here — publishers live under StudioHub */}
+          <a
+            href="/studios_directory"
+            onClick={(e) => { e.preventDefault(); navigate('/studios_directory'); }}
+            className="text-white font-extrabold no-underline transition-all duration-200 hover:text-cyan-300 hover:shadow-[0_0_10px_rgba(0,229,255,0.35)]"
+          >
+            StudioHub
           </a>
         </nav>
         <div className="flex items-center gap-2.5 flex-1 justify-end">

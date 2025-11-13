@@ -32,6 +32,10 @@ export async function createProfileDocument(params: {
     website: data.website || '',
     email: data.email,
     authEmail: data.authEmail, // User's authentication email
+    tools: data.tools || [],
+    foundedYear: data.foundedYear || '',
+    tags: data.tags || [],
+    revenue: data.revenue || '',
     status: 'pending', // pending, approved, rejected
     createdAt,
   } as const;

@@ -1,5 +1,5 @@
 import type { FormData, ProfileStep } from '../../types';
-import { GENRES, PLATFORMS, TEAM_SIZES, LOCATIONS } from '../../constants';
+import { GENRES, PLATFORMS, TEAM_SIZES, LOCATIONS, TOOLS, REVENUE_MODELS, TAGS } from '../../constants';
 
 interface ProfileModalProps {
   showProfileModal: boolean;
@@ -157,6 +157,76 @@ export function ProfileModal({
                 />
               </div>
               <div className="flex flex-col gap-1.5">
+                <label className="font-semibold text-white text-sm">Founded Year</label>
+                <input
+                  type="number"
+                  name="foundedYear"
+                  value={formData.foundedYear || ''}
+                  onChange={onFormChange}
+                  placeholder="e.g. 2018"
+                  min={1900}
+                  max={new Date().getFullYear()}
+                  className="bg-[rgba(10,16,28,0.65)] border border-white/8 text-cyan-100 rounded-lg p-2.5 font-inherit text-sm transition-all duration-200 focus:outline-none focus:border-cyan-400 focus:shadow-[0_0_0_2px_rgba(34,211,238,0.2)]"
+                />
+              </div>
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-semibold text-white text-sm">Tags</label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-2 bg-[rgba(10,16,28,0.55)] rounded-lg border border-white/8">
+                    {TAGS.map((tag) => (
+                      <label key={tag} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="tags"
+                          value={tag}
+                          checked={(formData.tags || []).includes(tag)}
+                          onChange={onFormChange}
+                          className="accent-cyan-400"
+                        />
+                        <span className="text-cyan-100">{tag}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-xs text-cyan-300 mt-1">Select tags that best describe your studio/game.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-semibold text-white text-sm">Tools</label>
+                    <div className="grid grid-cols-2 gap-2 p-2 bg-[rgba(10,16,28,0.55)] rounded-lg border border-white/8">
+                      {TOOLS.map((t) => (
+                        <label key={t} className="flex items-center gap-2 text-sm cursor-pointer">
+                          <input
+                            type="checkbox"
+                            name="tools"
+                            value={t}
+                            checked={(formData.tools || []).includes(t)}
+                            onChange={onFormChange}
+                            className="accent-cyan-400"
+                          />
+                          <span className="text-cyan-100">{t}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-xs text-cyan-300 mt-1">Select one or more tools used by your studio.</p>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-semibold text-white text-sm">Revenue Model</label>
+                    <select
+                      name="revenue"
+                      value={formData.revenue || ''}
+                      onChange={onFormChange}
+                      className="bg-[rgba(10,16,28,0.65)] border border-white/8 text-cyan-100 rounded-lg p-2.5 font-inherit text-sm transition-all duration-200 focus:outline-none focus:border-cyan-400"
+                    >
+                      <option value="">Select revenue model</option>
+                      {REVENUE_MODELS.map((r) => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5">
                 <label className="font-semibold text-white text-sm">Email *</label>
                 <input
                   type="email"
@@ -213,6 +283,18 @@ export function ProfileModal({
                 <div className="bg-[rgba(0,229,255,0.08)] border border-cyan-500/15 rounded-lg p-3">
                   <span className="text-cyan-400 text-xs font-semibold mb-1.5 block">Location</span>
                   <span className="font-semibold text-white block">{submittedProfile.location}</span>
+                </div>
+                <div className="bg-[rgba(0,229,255,0.08)] border border-cyan-500/15 rounded-lg p-3">
+                  <span className="text-cyan-400 text-xs font-semibold mb-1.5 block">Tools</span>
+                  <span className="font-semibold text-white block">{(submittedProfile.tools || []).join(', ')}</span>
+                </div>
+                <div className="bg-[rgba(0,229,255,0.08)] border border-cyan-500/15 rounded-lg p-3">
+                  <span className="text-cyan-400 text-xs font-semibold mb-1.5 block">Revenue</span>
+                  <span className="font-semibold text-white block">{submittedProfile.revenue || '—'}</span>
+                </div>
+                <div className="bg-[rgba(0,229,255,0.08)] border border-cyan-500/15 rounded-lg p-3">
+                  <span className="text-cyan-400 text-xs font-semibold mb-1.5 block">Founded</span>
+                  <span className="font-semibold text-white block">{submittedProfile.foundedYear || '—'}</span>
                 </div>
               </div>
               {submittedProfile.description && (
