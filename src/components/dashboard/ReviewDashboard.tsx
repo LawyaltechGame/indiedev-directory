@@ -206,24 +206,32 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
       await updateProfileStatus(DB_ID, PROFILE_TABLE_ID, documentId, status);
       await fetchProfiles(); // Refresh the list
 
-      // If approved, notify the profile owner via EmailJS (non-blocking)
-      // Send email for both approval and rejection
-      await sendStatusEmail(currentProfile, status as 'approved' | 'rejected')
-        .then(() => {
-          toast({
-            title: `Profile ${status}`,
-            description: `Profile has been ${status} and notification email sent.`,
-            type: 'success'
+      // Only send notification email for APPROVALs. Do NOT send rejection emails.
+      if (status === 'approved') {
+        await sendStatusEmail(currentProfile, 'approved')
+          .then(() => {
+            toast({
+              title: `Profile approved`,
+              description: `Profile has been approved and notification email sent.`,
+              type: 'success'
+            });
+          })
+          .catch((err: Error) => {
+            console.warn(`approved email error:`, err);
+            toast({
+              title: `Profile approved`,
+              description: `Profile has been approved but failed to send notification email.`,
+              type: 'warning'
+            });
           });
-        })
-        .catch((err: Error) => {
-          console.warn(`${status} email error:`, err);
-          toast({
-            title: `Profile ${status}`,
-            description: `Profile has been ${status} but failed to send notification email.`,
-            type: 'warning'
-          });
+      } else {
+        // For rejections, do not send an email; just inform the reviewer in the UI.
+        toast({
+          title: `Profile rejected`,
+          description: `Profile has been rejected. No notification email was sent.`,
+          type: 'success'
         });
+      }
     } catch (error: any) {
       toast({
         title: 'Error',
