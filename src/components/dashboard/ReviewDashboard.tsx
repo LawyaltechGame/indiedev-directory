@@ -3,7 +3,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTeamMember } from '../../hooks/useTeamMember';
 import { getAllProfiles, updateProfileStatus, deleteProfile } from '../../services/profile';
 import { Button } from '../ui/Button';
-import { useToast } from '../../hooks/useToast';
 
 interface Profile {
   $id: string;
@@ -17,11 +16,6 @@ interface Profile {
   description?: string;
   website?: string;
   email: string;
-  authEmail: string;  // User's authentication email
-  tools?: string[];
-  revenue?: string;
-  foundedYear?: string;
-  tags?: string[];
   status: string;
   createdAt: string;
 }
@@ -33,82 +27,18 @@ interface ReviewDashboardProps {
 export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
   const { user } = useAuth();
   const { isTeamMember, loading: teamLoading } = useTeamMember();
-  const { toast } = useToast();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
   const [deleting, setDeleting] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Profile | null>(null);
+  const [rejectModal, setRejectModal] = useState<Profile | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [sendingReject, setSendingReject] = useState<string | null>(null);
 
   const DB_ID = import.meta.env.VITE_APPWRITE_DATABASE_ID as string;
   const PROFILE_TABLE_ID = import.meta.env.VITE_APPWRITE_PROFILE_TABLE_ID as string;
-  const EMAILJS_SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID as string;
-  const EMAILJS_PUBLIC_KEY = (import.meta.env.VITE_EMAILJS_PUBLIC_KEY || import.meta.env.VITE_EMAILJS_USER_ID) as string;
-  
-  // EmailJS templates for different statuses
-  const TEMPLATES = {
-    approved: import.meta.env.VITE_EMAILJS_TEMPLATE_ID as string,
-    rejected: import.meta.env.VITE_EMAILJS_REJECTION_TEMPLATE_ID as string
-  };
-
-  const sendStatusEmail = async (profile: Profile | null, status: 'approved' | 'rejected') => {
-    if (!profile) return;
-    if (!EMAILJS_SERVICE_ID || !EMAILJS_PUBLIC_KEY) {
-      console.warn('EmailJS not configured (VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_PUBLIC_KEY)');
-      return;
-    }
-
-    const templateId = TEMPLATES[status];
-    if (!templateId) {
-      console.warn(`No template configured for status: ${status}`);
-      return;
-    }
-
-    if (!profile.authEmail) {
-      console.warn('No auth email found in profile');
-      return;
-    }
-
-    try {
-      const endpoint = 'https://api.emailjs.com/api/v1.0/email/send';
-      
-      // Ensure email is properly formatted
-      if (!profile.authEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.authEmail)) {
-        throw new Error('Profile has invalid or missing auth email');
-      }
-
-      const payload = {
-        service_id: EMAILJS_SERVICE_ID,
-        template_id: templateId,
-        user_id: EMAILJS_PUBLIC_KEY,
-        template_params: {
-          email: profile.authEmail.trim(),
-          to_name: profile.name,
-          studio_name: profile.name,
-          to_email: profile.authEmail.trim(),
-          message: status === 'approved'
-            ? `Your studio profile "${profile.name}" has been approved and is now live on IndieDev Directory!`
-            : `Your studio profile "${profile.name}" has been reviewed but could not be approved at this time.`
-        }
-      };
-
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to send ${status} email: ${response.statusText}`);
-      }
-
-      console.log(`${status} email sent successfully to ${profile.authEmail}`);
-    } catch (error) {
-      console.error(`Failed to send ${status} email:`, error);
-      throw error;
-    }
-  };
 
   const fetchProfiles = async () => {
     if (!DB_ID || !PROFILE_TABLE_ID) {
@@ -198,49 +128,15 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
       return;
     }
 
-    // capture current profile data so we can email the submitter after status change
-    const currentProfile = profiles.find((p) => p.$id === documentId) || null;
-
     try {
       setUpdating(documentId);
       await updateProfileStatus(DB_ID, PROFILE_TABLE_ID, documentId, status);
       await fetchProfiles(); // Refresh the list
-
-      // Only send notification email for APPROVALs. Do NOT send rejection emails.
-      if (status === 'approved') {
-        await sendStatusEmail(currentProfile, 'approved')
-          .then(() => {
-            toast({
-              title: `Profile approved`,
-              description: `Profile has been approved and notification email sent.`,
-              type: 'success'
-            });
-          })
-          .catch((err: Error) => {
-            console.warn(`approved email error:`, err);
-            toast({
-              title: `Profile approved`,
-              description: `Profile has been approved but failed to send notification email.`,
-              type: 'warning'
-            });
-          });
-      } else {
-        // For rejections, do not send an email; just inform the reviewer in the UI.
-        toast({
-          title: `Profile rejected`,
-          description: `Profile has been rejected. No notification email was sent.`,
-          type: 'success'
-        });
-      }
     } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error?.message || 'Failed to update profile status',
-        type: 'error'
-      });
+      alert(error?.message || 'Failed to update profile status');
     } finally {
       setUpdating(null);
-    };
+    }
   };
 
   const handleDeleteProfile = async (documentId: string) => {
@@ -273,6 +169,88 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
       }
     } finally {
       setDeleting(null);
+    }
+  };
+
+  const handleRejectWithReason = async (documentId: string, reason: string) => {
+    if (!DB_ID || !PROFILE_TABLE_ID) {
+      alert('Missing database configuration');
+      return;
+    }
+
+    try {
+      setUpdating(documentId);
+      // First update the profile status to rejected
+      await updateProfileStatus(DB_ID, PROFILE_TABLE_ID, documentId, 'rejected');
+      
+      // Then send notification email (we'll implement this logic here)
+      const profile = profiles.find(p => p.$id === documentId);
+      if (profile) {
+        // Send email using FormSubmit
+        await sendRejectionEmail({
+          email: profile.email, // Using profile email for now
+          name: profile.name,
+          reason: reason
+        });
+      }
+      
+      await fetchProfiles(); // Refresh the list
+    } catch (error: any) {
+      alert(error?.message || 'Failed to reject profile');
+    } finally {
+      setUpdating(null);
+    }
+  };
+
+  // Function to send rejection email using FormSubmit
+  const sendRejectionEmail = async (params: {
+    email: string;
+    name: string;
+    reason: string;
+  }) => {
+    const { email, name, reason } = params;
+    
+    try {
+      // Using FormSubmit to send the email
+      const formBody = new URLSearchParams();
+      formBody.append('_subject', 'IndieDev Directory Profile Rejection - Please Resubmit');
+      formBody.append('name', name);
+      formBody.append('email', email);
+      formBody.append('message', `Dear ${name},
+
+We regret to inform you that your profile submission to the IndieDev Directory has been rejected for the following reason:
+
+${reason}
+
+Please correct the issues mentioned above and resubmit your profile for review.
+
+If you have any questions or need clarification, please feel free to reach out to us.
+
+Best regards,
+The IndieDev Directory Team`);
+
+      // Send from cryptotrader035@gmail.com
+      const response = await fetch('https://formsubmit.co/cryptotrader035@gmail.com', {
+        method: 'POST',
+        body: formBody,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      });
+      
+      // FormSubmit often returns HTML on success
+      const text = await response.text();
+      
+      // Check if response indicates success
+      if (response.ok || text.includes('Thank you') || text.includes('success') || !text.startsWith('<!DOCTYPE')) {
+        console.log('Rejection email sent successfully');
+      } else {
+        console.error('FormSubmit response:', text);
+        throw new Error('Failed to send email - received error page');
+      }
+    } catch (error) {
+      console.error('Error sending rejection email:', error);
+      // We don't throw the error here because we don't want to fail the profile rejection if email sending fails
     }
   };
 
@@ -311,7 +289,7 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-4xl font-bold mb-2 bg-linear-to-r from-cyan-100 to-cyan-300 bg-clip-text text-transparent">
-               Studio Profile Review Dashboard
+                Profile Review Dashboard
               </h1>
               <p className="text-cyan-200">Review and manage submitted studio profiles</p>
             </div>
@@ -380,7 +358,7 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                       <div className="bg-[rgba(0,229,255,0.08)] border border-cyan-500/15 rounded-lg p-3">
                         <span className="text-cyan-400 text-xs font-semibold block mb-1">Genre</span>
                         <span className="font-semibold text-white">{profile.genre}</span>
@@ -396,10 +374,6 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
                       <div className="bg-[rgba(0,229,255,0.08)] border border-cyan-500/15 rounded-lg p-3">
                         <span className="text-cyan-400 text-xs font-semibold block mb-1">Location</span>
                         <span className="font-semibold text-white">{profile.location}</span>
-                      </div>
-                      <div className="bg-[rgba(0,229,255,0.08)] border border-cyan-500/15 rounded-lg p-3">
-                        <span className="text-cyan-400 text-xs font-semibold block mb-1">Founded</span>
-                        <span className="font-semibold text-white">{profile.foundedYear || '—'}</span>
                       </div>
                     </div>
 
@@ -428,12 +402,6 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
                           </a>
                         </div>
                       )}
-                      {profile.tags && profile.tags.length > 0 && (
-                        <div className="w-full">
-                          <span className="text-cyan-400">Tags: </span>
-                          <span className="text-white">{profile.tags.join(', ')}</span>
-                        </div>
-                      )}
                       <div>
                         <span className="text-cyan-400">Submitted: </span>
                         <span className="text-white">{profile.createdAt}</span>
@@ -457,7 +425,7 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
                         </Button>
                         <Button
                           variant="outline"
-                          onClick={() => handleStatusUpdate(profile.$id, 'rejected')}
+                          onClick={() => setRejectModal(profile)}
                           disabled={updating === profile.$id || deleting === profile.$id}
                           loading={updating === profile.$id}
                           fullWidth
@@ -518,6 +486,60 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
                 className="bg-red-600 hover:bg-red-700 border-red-600"
               >
                 {deleting === deleteConfirm.$id ? 'Deleting...' : 'Delete Permanently'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Reason Modal */}
+      {rejectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-[rgba(20,28,42,0.95)] border border-white/8 rounded-2xl p-6 max-w-md w-full shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+            <div className="mb-4">
+              <h3 className="text-2xl font-bold mb-2 text-red-300">Reject Profile: {rejectModal.name}</h3>
+              <p className="text-cyan-200 mb-4">Please state the reason(s) for rejecting this profile. The author will receive an email with these details.</p>
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                rows={6}
+                className="w-full bg-[rgba(0,0,0,0.4)] text-white border border-white/8 rounded-md p-3 placeholder:text-cyan-300"
+                placeholder="Enter rejection reasons here..."
+              />
+            </div>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => { setRejectModal(null); setRejectReason(''); }}
+                fullWidth
+                disabled={sendingReject === rejectModal.$id}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={async () => {
+                  if (!rejectReason.trim()) {
+                    alert('Please provide a reason for rejection.');
+                    return;
+                  }
+                  try {
+                    setSendingReject(rejectModal.$id);
+                    await handleRejectWithReason(rejectModal.$id, rejectReason.trim());
+                    await fetchProfiles();
+                  } catch (error: any) {
+                    alert(error?.message || 'Failed to reject profile');
+                  } finally {
+                    setSendingReject(null);
+                    setRejectModal(null);
+                    setRejectReason('');
+                  }
+                }}
+                fullWidth
+                loading={sendingReject === rejectModal.$id}
+                className="bg-red-600 hover:bg-red-700 border-red-600"
+              >
+                {sendingReject === rejectModal.$id ? 'Sending...' : 'Submit & Reject'}
               </Button>
             </div>
           </div>

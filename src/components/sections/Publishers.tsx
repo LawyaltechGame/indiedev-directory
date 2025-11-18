@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useState } from 'react';
 
 interface PublishersProps {
   onCreateProfile?: () => void;
@@ -10,6 +11,7 @@ export default function Publishers({ onCreateProfile }: PublishersProps) {
   const isStudiosActive = location.pathname === '/studios_directory';
   const isPublishersActive = location.pathname.startsWith('/studios_directory/publishers');
   const isResourcesActive = location.pathname.startsWith('/studios_directory/resources');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
     <>
@@ -21,19 +23,77 @@ export default function Publishers({ onCreateProfile }: PublishersProps) {
             <span className="text-xl font-extrabold text-white hidden sm:block">StudioHub</span>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8">
+          {/* Mobile menu button */}
+          <button 
+            className="md:hidden flex flex-col justify-center items-center w-10 h-10 rounded-lg bg-[rgba(9,14,22,0.55)] border border-white/8"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label="Toggle navigation menu"
+          >
+            <span className={`block w-6 h-0.5 bg-white transition-all duration-300 ${isMenuOpen ? 'rotate-45 translate-y-1' : ''}`}></span>
+            <span className={`block w-6 h-0.5 bg-white mt-1.5 transition-all duration-300 ${isMenuOpen ? 'opacity-0' : ''}`}></span>
+            <span className={`block w-6 h-0.5 bg-white mt-1.5 transition-all duration-300 ${isMenuOpen ? '-rotate-45 -translate-y-1' : ''}`}></span>
+          </button>
+
+          <nav className="hidden md:flex items-center gap-8 font-bold">
             <a onClick={() => navigate('/')} className="text-cyan-300 hover:text-white cursor-pointer transition">Home</a>
-            <a onClick={() => navigate('/studios_directory')} className={`cursor-pointer transition ${isStudiosActive ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}>Studios</a>
+            <a onClick={() => navigate('/studios_directory')} className={`cursor-pointer transition ${isStudiosActive ? 'text-white' : 'text-cyan-300 hover:text-white'}`}>Studios</a>
             <a onClick={() => navigate('/studios_directory/publishers')} className={`cursor-pointer transition ${isPublishersActive ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}>Publishers</a>
             <a onClick={() => navigate('/studios_directory/tools')} className={`cursor-pointer transition ${location.pathname.startsWith('/studios_directory/tools') ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}>Tools</a>
             <a onClick={() => navigate('/studios_directory/resources')} className={`cursor-pointer transition ${isResourcesActive ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}>Resources</a>
           </nav>
 
           <div className="flex items-center gap-3">
-            <button className="w-10 h-10 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition" title="Search">🔍</button>
-            <button onClick={onCreateProfile} className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all">Create a Profile</button>
+            {/* <button className="w-10 h-10 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition hidden md:block" title="Search">🔍</button> */}
+            <button onClick={onCreateProfile} className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all hidden md:block">Create a Profile</button>
           </div>
         </div>
+        
+        {/* Mobile Navigation Menu */}
+        {isMenuOpen && (
+          <div className="md:hidden absolute top-full left-0 right-0 bg-[#0B1020] backdrop-blur-xl border-b border-white/8 py-4 px-6">
+            <nav className="flex flex-col gap-4 font-bold">
+              <a
+                onClick={() => { navigate('/'); setIsMenuOpen(false); }}
+                className="text-cyan-300 hover:text-white cursor-pointer transition py-2"
+              >
+                Home
+              </a>
+              <a
+                onClick={() => { navigate('/studios_directory'); setIsMenuOpen(false); }}
+                className={`cursor-pointer transition py-2 ${isStudiosActive ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}
+              >
+                Studios
+              </a>
+              <a
+                onClick={() => { navigate('/studios_directory/publishers'); setIsMenuOpen(false); }}
+                className={`cursor-pointer transition py-2 ${isPublishersActive ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}
+              >
+                Publishers
+              </a>
+              <a
+                onClick={() => { navigate('/studios_directory/tools'); setIsMenuOpen(false); }}
+                className={`cursor-pointer transition py-2 ${location.pathname.startsWith('/studios_directory/tools') ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}
+              >
+                Tools
+              </a>
+              <a
+                onClick={() => { navigate('/studios_directory/resources'); setIsMenuOpen(false); }}
+                className={`cursor-pointer transition py-2 ${isResourcesActive ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}
+              >
+                Resources
+              </a>
+              <button className="w-10 h-10 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition" title="Search">🔍</button>
+              {onCreateProfile && (
+                <button 
+                  onClick={() => { onCreateProfile(); setIsMenuOpen(false); }}
+                  className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all"
+                >
+                  Create a Profile
+                </button>
+              )}
+            </nav>
+          </div>
+        )}
       </header>
 
       <main className="min-h-screen py-8 bg-transparent">

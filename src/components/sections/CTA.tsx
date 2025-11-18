@@ -2,10 +2,10 @@ interface CTAProps {}
 
 export function CTA({}: CTAProps) {
   return (
-    <section className="py-18 relative">
-      <div className="max-w-7xl mx-auto px-6 relative overflow-hidden flex items-center justify-between gap-4 rounded-2xl bg-linear-to-br from-[rgba(0,229,255,0.18)] to-[rgba(15,24,40,0.9)] border border-cyan-500/35 shadow-[0_18px_40px_rgba(34,211,238,0.18)] p-6">
-        <div>
-          <h3 className="text-2xl font-bold mb-1.5">Ready to showcase your studio?</h3>
+    <section className="py-12 md:py-18 relative">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-4 rounded-2xl bg-linear-to-br from-[rgba(0,229,255,0.18)] to-[rgba(15,24,40,0.9)] border border-cyan-500/35 shadow-[0_18px_40px_rgba(34,211,238,0.18)] p-5 md:p-6">
+        <div className="w-full md:w-auto">
+          <h3 className="text-xl md:text-2xl font-bold mb-1.5">Ready to showcase your studio?</h3>
           <p className="text-cyan-200 text-sm">
             Create a profile and start getting discovered today in StudioHub.
           </p>

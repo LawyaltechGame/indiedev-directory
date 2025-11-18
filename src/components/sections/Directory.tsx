@@ -33,6 +33,7 @@ export function Directory({
   const [isLoading, setIsLoading] = useState(true);
   const [selectedProfile, setSelectedProfile] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   const DB_ID = import.meta.env.VITE_APPWRITE_DATABASE_ID as string;
   const PROFILE_TABLE_ID = import.meta.env.VITE_APPWRITE_PROFILE_TABLE_ID as string;
@@ -97,51 +98,65 @@ export function Directory({
   return (
     <section id="directory" className="py-17 bg-[rgba(6,10,16,0.35)] border-t border-b border-white/8">
       <div className="max-w-7xl mx-auto px-6">
-        <div className="flex gap-3 flex-wrap mb-4.5">
-          <Select
-            label="Genre"
-            value={genre}
-            onChange={setGenre}
-            options={GENRES}
-          />
-          <Select
-            label="Platform"
-            value={platform}
-            onChange={setPlatform}
-            options={PLATFORMS}
-          />
-          <Select
-            label="Team Size"
-            value={teamSize}
-            onChange={setTeamSize}
-            options={TEAM_SIZES}
-          />
-          <Select
-            label="Location"
-            value={location}
-            onChange={setLocation}
-            options={LOCATIONS}
-          />
+        {/* Mobile filter toggle */}
+        <div className="md:hidden mb-4">
           <button
-            className="h-10 px-4 border border-cyan-500 bg-[rgba(9,14,22,0.55)] text-cyan-100 rounded-xl font-extrabold transition-all duration-200 hover:bg-[rgba(0,229,255,0.12)] hover:text-white hover:shadow-[0_0_10px_rgba(0,229,255,0.35)] hover:-translate-y-0.5 shadow-[0_10px_28px_rgba(56,189,248,0.20)]"
-            onClick={clearFilters}
+            className="w-full h-12 px-4 border border-cyan-500 bg-[rgba(9,14,22,0.55)] text-cyan-100 rounded-xl font-extrabold transition-all duration-200 hover:bg-[rgba(0,229,255,0.12)] hover:text-white hover:shadow-[0_0_10px_rgba(0,229,255,0.35)] flex items-center justify-between"
+            onClick={() => setIsFiltersOpen(!isFiltersOpen)}
           >
-            Clear
+            <span>Filters</span>
+            <span className={`transform transition-transform ${isFiltersOpen ? 'rotate-180' : ''}`}>▼</span>
           </button>
+        </div>
+        
+        {/* Filter controls */}
+        <div className={`${isFiltersOpen ? 'block' : 'hidden'} md:block mb-4.5`}>
+          <div className="flex flex-wrap gap-3 mb-3">
+            <Select
+              label="Genre"
+              value={genre}
+              onChange={setGenre}
+              options={GENRES}
+            />
+            <Select
+              label="Platform"
+              value={platform}
+              onChange={setPlatform}
+              options={PLATFORMS}
+            />
+            <Select
+              label="Team Size"
+              value={teamSize}
+              onChange={setTeamSize}
+              options={TEAM_SIZES}
+            />
+            <Select
+              label="Location"
+              value={location}
+              onChange={setLocation}
+              options={LOCATIONS}
+            />
+            <button
+              className="h-10 px-4 border border-cyan-500 bg-[rgba(9,14,22,0.55)] text-cyan-100 rounded-xl font-extrabold transition-all duration-200 hover:bg-[rgba(0,229,255,0.12)] hover:text-white hover:shadow-[0_0_10px_rgba(0,229,255,0.35)] hover:-translate-y-0.5 shadow-[0_10px_28px_rgba(56,189,248,0.20)]"
+              onClick={clearFilters}
+            >
+              Clear
+            </button>
+          </div>
         </div>
 
         {isLoading ? (
-          <div className="grid justify-center gap-12 grid-cols-[repeat(auto-fill,minmax(320px,1fr))]">
+          <div className="grid justify-center gap-4 sm:gap-6 md:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="w-80 min-h-[330px] bg-[rgba(20,28,42,0.6)] backdrop-blur-[10px] border border-white/8 rounded-2xl p-4.5 animate-pulse">
-                <div className="h-30 rounded-2xl mb-3 skeleton" />
-                <div className="h-6 bg-white/10 rounded mb-2 skeleton" />
+              <div key={i} className="w-full min-h-[300px] md:min-h-[330px] bg-[rgba(20,28,42,0.6)] backdrop-blur-[10px] border border-white/8 rounded-2xl p-4 md:p-4.5 animate-pulse">
+                <div className="h-24 md:h-30 rounded-2xl mb-3 skeleton" />
+                <div className="h-5 md:h-6 bg-white/10 rounded mb-2 skeleton" />
                 <div className="h-4 bg-white/5 rounded mb-3 skeleton" />
                 <div className="flex gap-2 mb-3">
-                  <div className="h-7 w-16 bg-white/5 rounded-2xl skeleton" />
-                  <div className="h-7 w-20 bg-white/5 rounded-2xl skeleton" />
+                  <div className="h-6 md:h-7 w-16 bg-white/5 rounded-2xl skeleton" />
+                  <div className="h-6 md:h-7 w-20 bg-white/5 rounded-2xl skeleton" />
                 </div>
-                <div className="h-12 bg-white/5 rounded-xl skeleton" />
+                <div className="h-10 md:h-12 bg-white/5 rounded-xl skeleton" />
               </div>
             ))}
           </div>
@@ -165,7 +180,7 @@ export function Directory({
           </div>
         ) : (
           <>
-            <div className="grid justify-center gap-12 grid-cols-[repeat(auto-fill,minmax(320px,1fr))]">
+            <div className="grid justify-center gap-4 sm:gap-6 md:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filtered.map((s, i) => (
                 <TiltCard 
                   key={s.id} 
@@ -178,7 +193,7 @@ export function Directory({
                 />
               ))}
             </div>
-            <p className="text-cyan-200/70 text-center text-sm mt-6">
+            <p className="text-cyan-200/70 text-center text-xs md:text-sm mt-6">
               Showing {filtered.length} {filtered.length === 1 ? 'studio' : 'studios'} in the directory
             </p>
           </>

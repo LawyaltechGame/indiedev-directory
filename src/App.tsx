@@ -273,6 +273,7 @@ function AppContent() {
             onOpenLogin={handleOpenLogin}
             onOpenSignup={handleOpenSignup}
             onOpenDashboard={handleOpenDashboard}
+            onSearch={handleSearch}
           />
         );
       })()}

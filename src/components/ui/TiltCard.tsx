@@ -34,24 +34,24 @@ export const TiltCard = memo(function TiltCard({ studio, delay = 0, onViewProfil
   return (
     <article
       ref={cardRef}
-      className="w-80 min-h-[330px] transition-all duration-300 bg-[rgba(20,28,42,0.6)] backdrop-blur-[10px] border border-white/8 rounded-2xl p-4.5 shadow-[0_14px_36px_rgba(0,0,0,0.35)] relative transform-gpu animate-fade-up hover:-translate-y-2 hover:shadow-[0_28px_64px_rgba(34,211,238,0.28)] hover:border-cyan-500/50 hover:scale-[1.02] group"
+      className="w-full min-h-[300px] md:min-h-[330px] transition-all duration-300 bg-[rgba(20,28,42,0.6)] backdrop-blur-[10px] border border-white/8 rounded-2xl p-4 md:p-4.5 shadow-[0_14px_36px_rgba(0,0,0,0.35)] relative transform-gpu animate-fade-up hover:-translate-y-2 hover:shadow-[0_28px_64px_rgba(34,211,238,0.28)] hover:border-cyan-500/50 hover:scale-[1.02] group"
       style={{ animationDelay: `${delay}s` }}
       onMouseMove={onMove}
       onMouseLeave={onLeave}
     >
       <div
-        className="h-30 rounded-2xl mb-3"
+        className="h-24 md:h-30 rounded-2xl mb-3"
         style={{
           background: `linear-gradient(135deg, hsla(${studio.hue} 80% 55% / .45), rgba(34,211,238,.55))`,
         }}
       />
-      <h3 className="text-xl font-bold mb-1 tracking-tight">{studio.name}</h3>
-      <p className="text-cyan-200 mb-3.5">{studio.tagline}</p>
+      <h3 className="text-lg md:text-xl font-bold mb-1 tracking-tight">{studio.name}</h3>
+      <p className="text-cyan-200 mb-3 md:mb-3.5 text-sm md:text-base line-clamp-2">{studio.tagline}</p>
       <div className="flex gap-2 flex-wrap mb-3">
-        <span className="inline-flex items-center h-7.5 px-3.5 rounded-2xl bg-white/6 text-cyan-100 text-xs border border-white/8">{studio.genre}</span>
-        <span className="inline-flex items-center h-7.5 px-3.5 rounded-2xl bg-white/6 text-cyan-100 text-xs border border-white/8">{studio.platform}</span>
+        <span className="inline-flex items-center h-6 md:h-7.5 px-2.5 md:px-3.5 rounded-2xl bg-white/6 text-cyan-100 text-xs border border-white/8">{studio.genre}</span>
+        <span className="inline-flex items-center h-6 md:h-7.5 px-2.5 md:px-3.5 rounded-2xl bg-white/6 text-cyan-100 text-xs border border-white/8">{studio.platform}</span>
       </div>
-      <button className="w-full h-12 px-4 border border-cyan-500 bg-[rgba(9,14,22,0.55)] text-cyan-100 rounded-xl font-extrabold transition-all duration-300 hover:bg-[rgba(0,229,255,0.12)] hover:text-white hover:shadow-[0_0_15px_rgba(0,229,255,0.45)] hover:-translate-y-1 hover:scale-[1.02] group-hover:border-cyan-400 shadow-[0_10px_28px_rgba(56,189,248,0.20)]" onClick={onViewProfile}>
+      <button className="w-full h-11 md:h-12 px-3 md:px-4 border border-cyan-500 bg-[rgba(9,14,22,0.55)] text-cyan-100 rounded-xl font-extrabold transition-all duration-300 hover:bg-[rgba(0,229,255,0.12)] hover:text-white hover:shadow-[0_0_15px_rgba(0,229,255,0.45)] hover:-translate-y-1 hover:scale-[1.02] group-hover:border-cyan-400 shadow-[0_10px_28px_rgba(56,189,248,0.20)] text-sm md:text-base" onClick={onViewProfile}>
         <span className="flex items-center justify-center gap-2">
           View Profile
           <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
