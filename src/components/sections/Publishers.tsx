@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface PublishersProps {
   onCreateProfile?: () => void;
@@ -12,6 +12,11 @@ export default function Publishers({ onCreateProfile }: PublishersProps) {
   const isPublishersActive = location.pathname.startsWith('/studios_directory/publishers');
   const isResourcesActive = location.pathname.startsWith('/studios_directory/resources');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
     <>

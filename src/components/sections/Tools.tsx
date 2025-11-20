@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface ToolsProps {
   onCreateProfile?: () => void;
@@ -71,6 +71,11 @@ export default function Tools({ onCreateProfile }: ToolsProps) {
   const isToolsActive = location.pathname.startsWith('/studios_directory/tools');
   const isResourcesActive = location.pathname.startsWith('/studios_directory/resources');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
     <>

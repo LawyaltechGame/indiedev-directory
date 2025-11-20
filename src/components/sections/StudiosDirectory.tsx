@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface StudiosDirectoryProps {
   onCreateProfile?: () => void;
@@ -12,6 +12,11 @@ export default function StudiosDirectory({ onCreateProfile }: StudiosDirectoryPr
   const isPublishersActive = location.pathname.startsWith('/studios_directory/publishers');
   const isResourcesActive = location.pathname.startsWith('/studios_directory/resources');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // Scroll to top when component mounts or route changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   // This page now shows a marketing/overview for studios to register.
 

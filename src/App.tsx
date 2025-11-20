@@ -4,6 +4,12 @@ import StudiosDirectory from './components/sections/StudiosDirectory';
 import Publishers from './components/sections/Publishers';
 import Tools from './components/sections/Tools';
 import Resources from './components/sections/Resources';
+import { BlogsPage } from './components/sections/BlogsPage';
+import { NewsPage } from './components/sections/NewsPage';
+import { BlogPostDetail } from './components/sections/BlogPostDetail';
+import { NewsPostDetail } from './components/sections/NewsPostDetail';
+import { ContentHub } from './components/sections/ContentHub';
+import { ContentPostDetail } from './components/sections/ContentPostDetail';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useScrollProgress } from './hooks/useScrollProgress';
 import { useCursorAura } from './hooks/useCursorAura';
@@ -261,7 +267,7 @@ function AppContent() {
         />
           </div>
 
-      {/* HEADER (hide global header on StudioHub routes) */}
+      {/* HEADER (hide global header on StudioHub routes, show on blogs/news) */}
       {(() => {
         try {
           const loc = window.location.pathname || '';
@@ -294,6 +300,30 @@ function AppContent() {
         <Route
           path="/studios_directory/resources"
           element={<Resources onCreateProfile={handleCreateProfile} />}
+        />
+        <Route
+          path="/content"
+          element={<ContentHub />}
+        />
+        <Route
+          path="/content/:slug"
+          element={<ContentPostDetail />}
+        />
+        <Route
+          path="/blogs"
+          element={<BlogsPage />}
+        />
+        <Route
+          path="/blogs/:slug"
+          element={<BlogPostDetail />}
+        />
+        <Route
+          path="/news"
+          element={<NewsPage />}
+        />
+        <Route
+          path="/news/:slug"
+          element={<NewsPostDetail />}
         />
         <Route
           path="/"

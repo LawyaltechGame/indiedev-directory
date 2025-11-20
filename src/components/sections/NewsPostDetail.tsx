@@ -1,0 +1,191 @@
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import type { WordPressPost } from '../../services/wordpress';
+
+export function NewsPostDetail() {
+  const navigate = useNavigate();
+  const { slug } = useParams<{ slug: string }>();
+  const [post, setPost] = useState<WordPressPost | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
+
+    const loadPost = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(
+          `https://test.lawyaltech.org/wp-json/wp/v2/posts?slug=${slug}&_embed`
+        );
+        
+        if (!response.ok) {
+          throw new Error('Failed to load post');
+        }
+        
+        const data = await response.json();
+        if (data.length > 0) {
+          setPost(data[0]);
+        } else {
+          setError('Post not found');
+        }
+        setLoading(false);
+      } catch (err) {
+        setError('Failed to load post');
+        setLoading(false);
+      }
+    };
+
+    if (slug) {
+      loadPost();
+    }
+  }, [slug]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-bg text-white pt-28 pb-16 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="animate-pulse">
+            <div className="h-8 bg-white/10 rounded w-1/4 mb-8" />
+            <div className="h-12 bg-white/10 rounded w-3/4 mb-4" />
+            <div className="h-6 bg-white/10 rounded w-1/2 mb-8" />
+            <div className="h-96 bg-white/10 rounded mb-8" />
+            <div className="space-y-4">
+              <div className="h-4 bg-white/10 rounded" />
+              <div className="h-4 bg-white/10 rounded" />
+              <div className="h-4 bg-white/10 rounded w-5/6" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !post) {
+    return (
+      <div className="min-h-screen bg-bg text-white pt-28 pb-16 px-6">
+        <div className="max-w-4xl mx-auto">
+          <button
+            onClick={() => navigate('/news')}
+            className="mb-6 flex items-center gap-2 text-cyan-300 hover:text-cyan-200 transition-colors duration-200"
+          >
+            <span>←</span> Back to News
+          </button>
+          <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-8 text-center">
+            <p className="text-red-300 text-lg">{error || 'Post not found'}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const author = post._embedded?.author?.[0];
+
+  return (
+    <div className="min-h-screen bg-bg text-white pt-28 pb-16 px-6">
+      <div className="max-w-4xl mx-auto">
+        {/* Back Button */}
+        <button
+          onClick={() => navigate('/news')}
+          className="mb-8 flex items-center gap-2 text-cyan-300 hover:text-cyan-200 transition-colors duration-200"
+        >
+          <span>←</span> Back to News
+        </button>
+
+        {/* Article Header */}
+        <article className="bg-[rgba(20,28,42,0.6)] border border-white/8 rounded-2xl overflow-hidden">
+          {/* Featured Image */}
+          {post._embedded?.['wp:featuredmedia']?.[0]?.source_url && (
+            <div className="w-full h-96 overflow-hidden">
+              <img
+                src={post._embedded['wp:featuredmedia'][0].source_url}
+                alt={post._embedded['wp:featuredmedia'][0].alt_text || post.title.rendered}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+
+          <div className="p-8 md:p-12">
+            {/* Meta Info */}
+            <div className="flex items-center gap-3 mb-6">
+              <span className="px-3 py-1 bg-cyan-500/20 text-cyan-300 text-xs font-bold rounded-full">
+                NEWS
+              </span>
+              <span className="text-sm text-cyan-300/60">
+                {new Date(post.date).toLocaleDateString('en-US', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric'
+                })}
+              </span>
+              {author && (
+                <>
+                  <span className="text-cyan-300/40">•</span>
+                  <span className="text-sm text-cyan-300 font-semibold">
+                    By {author.name}
+                  </span>
+                </>
+              )}
+            </div>
+
+            {/* Title */}
+            <h1
+              className="text-4xl md:text-5xl font-black mb-6 bg-linear-to-r from-cyan-100 to-cyan-300 bg-clip-text text-transparent"
+              dangerouslySetInnerHTML={{ __html: post.title.rendered }}
+            />
+
+            {/* Content */}
+            <div
+              className="prose prose-lg prose-invert prose-cyan max-w-none mb-12
+                prose-headings:text-white prose-headings:font-bold prose-headings:mb-6 prose-headings:mt-12
+                prose-h2:text-3xl prose-h2:leading-tight
+                prose-h3:text-2xl prose-h3:leading-snug
+                prose-p:text-cyan-200/90 prose-p:leading-[1.8] prose-p:mb-6 prose-p:text-[17px]
+                prose-a:text-cyan-300 prose-a:underline prose-a:underline-offset-2 hover:prose-a:text-cyan-200
+                prose-strong:text-white prose-strong:font-bold
+                prose-ul:text-cyan-200/90 prose-ul:my-6 prose-ul:space-y-2
+                prose-ol:text-cyan-200/90 prose-ol:my-6 prose-ol:space-y-2
+                prose-li:text-[17px] prose-li:leading-relaxed prose-li:mb-2
+                prose-li:marker:text-cyan-400
+                prose-img:rounded-xl prose-img:shadow-lg prose-img:my-8
+                prose-hr:border-white/10 prose-hr:my-12
+                prose-blockquote:border-l-4 prose-blockquote:border-cyan-400 prose-blockquote:pl-6 prose-blockquote:py-2 prose-blockquote:italic prose-blockquote:text-cyan-200/70
+                [&>*:first-child]:mt-0"
+              dangerouslySetInnerHTML={{ __html: post.content.rendered }}
+            />
+
+            {/* Author Profile Section */}
+            {author && (
+              <div className="mt-12 pt-8 border-t border-white/10">
+                <div className="flex gap-6 items-start bg-[rgba(13,21,36,0.65)] border border-white/8 rounded-2xl p-6">
+                  {/* Author Avatar */}
+                  <div className="flex-shrink-0">
+                    <img
+                      src={author.avatar_urls[96]}
+                      alt={author.name}
+                      className="w-20 h-20 rounded-full border-2 border-cyan-400/40"
+                    />
+                  </div>
+
+                  {/* Author Info */}
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-bold text-cyan-100 mb-2">
+                      {author.name}
+                    </h3>
+                    {author.description && (
+                      <p className="text-cyan-200/70 leading-relaxed">
+                        {author.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </article>
+      </div>
+    </div>
+  );
+}
