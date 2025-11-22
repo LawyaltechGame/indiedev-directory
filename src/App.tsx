@@ -351,9 +351,9 @@ function AppContent() {
                 setTeamSize={setTeamSize}
                 location={location}
                 setLocation={setLocation}
-                searchQuery={searchQuery} tools={''} settools={function (value: string): void {
+                searchQuery={searchQuery} tools={''} settools={function (): void {
                   throw new Error('Function not implemented.');
-                } } tags={''} settags={function (value: string): void {
+                } } tags={''} settags={function (): void {
                   throw new Error('Function not implemented.');
                 } }              />
 
