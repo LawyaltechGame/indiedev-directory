@@ -18,7 +18,10 @@ export function ReactionButtons({ postId, onAuthRequired }: ReactionButtonsProps
 
   // Load initial reaction counts
   useEffect(() => {
-    loadReactions();
+    // Only load if collection is configured
+    if (import.meta.env.VITE_APPWRITE_REACTIONS_COLLECTION_ID) {
+      loadReactions();
+    }
   }, [postId, user]);
 
   const loadReactions = async () => {
