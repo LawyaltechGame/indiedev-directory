@@ -3,7 +3,7 @@ import { Select } from '../ui/Select';
 import { TiltCard } from '../ui/TiltCard';
 import { ProfileDetailModal } from './ProfileDetailModal';
 import type { Studio } from '../../types';
-import { GENRES, PLATFORMS, TEAM_SIZES, LOCATIONS } from '../../constants';
+import { GENRES, PLATFORMS, TEAM_SIZES, LOCATIONS, TOOLS, TAGS } from '../../constants';
 import { getApprovedProfiles } from '../../services/profile';
 
 interface DirectoryProps {
@@ -15,6 +15,10 @@ interface DirectoryProps {
   setTeamSize: (value: string) => void;
   location: string;
   setLocation: (value: string) => void;
+  tools: string;
+  settools: (value: string) => void;
+  tags: string;
+  settags: (value: string) => void;
   searchQuery?: string;
 }
 
@@ -27,6 +31,10 @@ export function Directory({
   setTeamSize,
   location,
   setLocation,
+  tools,
+  settools,
+  tags,
+  settags,
   searchQuery = '',
 }: DirectoryProps) {
   const [studios, setStudios] = useState<Studio[]>([]);
@@ -58,6 +66,7 @@ export function Directory({
           platform: profile.platform || '',
           teamSize: profile.teamSize || '',
           location: profile.location || '',
+          tools: profile.tools || '',
           hue: (index * 37) % 360, // Generate hue for card colors
           fullProfile: profile, // Store full profile data for the modal
         }));
@@ -93,6 +102,7 @@ export function Directory({
     setPlatform('');
     setTeamSize('');
     setLocation('');
+    settools('');
   };
 
   return (
@@ -135,6 +145,18 @@ export function Directory({
               value={location}
               onChange={setLocation}
               options={LOCATIONS}
+            />
+            <Select
+              label="Tools"
+              value={tools}
+              onChange={settools}
+              options={TOOLS}
+            />
+            <Select
+              label="Tags"
+              value={tags}
+              onChange={settags}
+              options={TAGS}
             />
             <button
               className="h-10 px-4 border border-cyan-500 bg-[rgba(9,14,22,0.55)] text-cyan-100 rounded-xl font-extrabold transition-all duration-200 hover:bg-[rgba(0,229,255,0.12)] hover:text-white hover:shadow-[0_0_10px_rgba(0,229,255,0.35)] hover:-translate-y-0.5 shadow-[0_10px_28px_rgba(56,189,248,0.20)]"
