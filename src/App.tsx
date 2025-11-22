@@ -351,8 +351,11 @@ function AppContent() {
                 setTeamSize={setTeamSize}
                 location={location}
                 setLocation={setLocation}
-                searchQuery={searchQuery}
-              />
+                searchQuery={searchQuery} tools={''} settools={function (value: string): void {
+                  throw new Error('Function not implemented.');
+                } } tags={''} settags={function (value: string): void {
+                  throw new Error('Function not implemented.');
+                } }              />
 
               {/* JOIN CTA FOOTER */}
               <JoinCTA />
