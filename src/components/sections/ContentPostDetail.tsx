@@ -7,7 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 export function ContentPostDetail() {
   const navigate = useNavigate();
   const { slug } = useParams<{ slug: string }>();
-  const { user } = useAuth();
+  useAuth();
   const [post, setPost] = useState<WordPressPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
