@@ -184,8 +184,8 @@ export function BlogPostDetail() {
               </div>
             )}
 
-            {/* Reaction Buttons */}
-            <div className="mt-8 pt-6 border-t border-white/10">
+            {/* Reaction Buttons - Temporarily disabled */}
+            {/* <div className="mt-8 pt-6 border-t border-white/10">
               <div className="flex items-center justify-between flex-wrap gap-4">
                 <div>
                   <h3 className="text-lg font-bold text-cyan-100 mb-1">Was this helpful?</h3>
@@ -196,7 +196,7 @@ export function BlogPostDetail() {
                   onAuthRequired={() => setShowAuthModal(true)}
                 />
               </div>
-            </div>
+            </div> */}
           </div>
         </article>
 
