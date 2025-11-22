@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { WordPressPost } from '../../services/wordpress';
+import { ReactionButtons } from '../ui/ReactionButtons';
+import { useAuth } from '../../contexts/AuthContext';
 
 export function BlogPostDetail() {
   const navigate = useNavigate();
   const { slug } = useParams<{ slug: string }>();
+  const { user } = useAuth();
   const [post, setPost] = useState<WordPressPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   useEffect(() => {
     // Scroll to top when component mounts
@@ -180,8 +184,65 @@ export function BlogPostDetail() {
               </div>
             )}
 
+            {/* Reaction Buttons */}
+            <div className="mt-8 pt-6 border-t border-white/10">
+              <div className="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                  <h3 className="text-lg font-bold text-cyan-100 mb-1">Was this helpful?</h3>
+                  <p className="text-sm text-cyan-200/60">Let us know what you think</p>
+                </div>
+                <ReactionButtons
+                  postId={post.id.toString()}
+                  onAuthRequired={() => setShowAuthModal(true)}
+                />
+              </div>
+            </div>
           </div>
         </article>
+
+        {/* Auth Required Modal */}
+        {showAuthModal && (
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-100 p-5"
+            onClick={() => setShowAuthModal(false)}
+          >
+            <div
+              className="bg-[rgba(20,28,42,0.95)] backdrop-blur-[20px] border border-white/8 rounded-2xl max-w-md w-full p-8 relative shadow-[0_25px_50px_rgba(0,0,0,0.5)]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                className="absolute top-4 right-4 bg-white/10 border-0 text-white w-8 h-8 rounded-lg cursor-pointer text-xl transition-all duration-200 hover:bg-white/20"
+                onClick={() => setShowAuthModal(false)}
+              >
+                ✕
+              </button>
+
+              <div className="mb-6 text-center">
+                <div className="w-16 h-16 mx-auto mb-4 bg-linear-to-br from-cyan-400 to-cyan-300 rounded-full flex items-center justify-center text-[#001018] text-2xl font-black">
+                  🔒
+                </div>
+                <h2 className="text-2xl font-bold mb-2 bg-linear-to-r from-cyan-100 to-cyan-300 bg-clip-text text-transparent">
+                  Login Required
+                </h2>
+                <p className="text-cyan-200 text-sm">
+                  Please sign in to like or dislike posts
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  className="flex-1 h-12 bg-linear-to-b from-cyan-500 to-cyan-300 text-[#001018] font-extrabold rounded-xl border-0 cursor-pointer transition-all duration-200 hover:from-cyan-400 hover:to-cyan-500 shadow-[0_8px_22px_rgba(34,211,238,0.35)]"
+                  onClick={() => {
+                    setShowAuthModal(false);
+                    navigate('/?login=true');
+                  }}
+                >
+                  Sign In
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
