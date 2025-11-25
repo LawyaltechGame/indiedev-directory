@@ -11,14 +11,27 @@ export function ContentHub() {
   const [posts, setPosts] = useState<WordPressPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  // Load initial posts when tab changes
   useEffect(() => {
     const loadPosts = async () => {
       try {
         setLoading(true);
         setError(null);
-        const data = activeTab === 'blogs' ? await fetchBlogs() : await fetchNews();
+        setPosts([]);
+        setPage(1);
+        setHasMore(true);
+        const data = activeTab === 'blogs' ? await fetchBlogs(1, 12) : await fetchNews(1, 12);
         setPosts(data);
+        setHasMore(data.length === 12);
         setLoading(false);
       } catch (err) {
         setError(`Failed to load ${activeTab}`);
@@ -28,6 +41,48 @@ export function ContentHub() {
 
     loadPosts();
   }, [activeTab]);
+
+  // Load more posts
+  const loadMorePosts = async () => {
+    if (loadingMore || !hasMore) return;
+
+    try {
+      setLoadingMore(true);
+      const nextPage = page + 1;
+      const data = activeTab === 'blogs' ? await fetchBlogs(nextPage, 12) : await fetchNews(nextPage, 12);
+      
+      if (data.length === 0) {
+        setHasMore(false);
+      } else {
+        setPosts(prev => [...prev, ...data]);
+        setPage(nextPage);
+        setHasMore(data.length === 12);
+      }
+      setLoadingMore(false);
+    } catch (err) {
+      console.error('Error loading more posts:', err);
+      setLoadingMore(false);
+    }
+  };
+
+  // Infinite scroll detection
+  useEffect(() => {
+    const handleScroll = () => {
+      if (loading || loadingMore || !hasMore) return;
+
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight;
+      const clientHeight = document.documentElement.clientHeight;
+
+      // Load more when user is 500px from bottom
+      if (scrollTop + clientHeight >= scrollHeight - 500) {
+        loadMorePosts();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [loading, loadingMore, hasMore, page, activeTab]);
 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
@@ -271,6 +326,42 @@ export function ContentHub() {
               </div>
             )}
           </>
+        )}
+
+        {/* Loading More Indicator */}
+        {loadingMore && (
+          <div className="flex justify-center items-center py-12">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-12 h-12 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin"></div>
+              <p className="text-cyan-300 font-semibold">Loading more {activeTab}...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Load More Button (fallback for manual loading) */}
+        {!loading && !loadingMore && hasMore && posts.length > 0 && (
+          <div className="flex justify-center items-center py-12">
+            <button
+              onClick={loadMorePosts}
+              className="px-8 py-4 bg-linear-to-b from-cyan-500 to-cyan-300 text-[#001018] font-bold rounded-xl transition-all duration-200 hover:from-cyan-400 hover:to-cyan-500 shadow-[0_8px_22px_rgba(34,211,238,0.35)] hover:shadow-[0_12px_28px_rgba(34,211,238,0.45)] hover:-translate-y-1"
+            >
+              Load More {activeTab === 'blogs' ? 'Blogs' : 'News'}
+            </button>
+          </div>
+        )}
+
+        {/* End of Content Message */}
+        {!loading && !loadingMore && !hasMore && posts.length > 0 && (
+          <div className="flex justify-center items-center py-12">
+            <div className="text-center">
+              <p className="text-cyan-200/60 text-lg">
+                🎉 You've reached the end!
+              </p>
+              <p className="text-cyan-200/40 text-sm mt-2">
+                No more {activeTab} to load
+              </p>
+            </div>
+          </div>
         )}
       </div>
     </div>

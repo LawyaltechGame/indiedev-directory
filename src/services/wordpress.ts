@@ -69,6 +69,12 @@ export async function fetchBlogs(page: number = 1, perPage: number = 10): Promis
 
     const response = await fetch(`${config.baseUrl}/posts?${params.toString()}`);
     
+    // If 400 error, it likely means no more posts (invalid page number)
+    if (response.status === 400) {
+      console.log('No more blog posts available');
+      return [];
+    }
+    
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -77,7 +83,8 @@ export async function fetchBlogs(page: number = 1, perPage: number = 10): Promis
     return data;
   } catch (error) {
     console.error('Error fetching blogs:', error);
-    throw error;
+    // Return empty array instead of throwing to prevent infinite scroll errors
+    return [];
   }
 }
 
@@ -105,6 +112,12 @@ export async function fetchNews(page: number = 1, perPage: number = 10): Promise
 
     const response = await fetch(`${config.baseUrl}/posts?${params.toString()}`);
     
+    // If 400 error, it likely means no more posts (invalid page number)
+    if (response.status === 400) {
+      console.log('No more news posts available');
+      return [];
+    }
+    
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -113,7 +126,8 @@ export async function fetchNews(page: number = 1, perPage: number = 10): Promise
     return data;
   } catch (error) {
     console.error('Error fetching news:', error);
-    throw error;
+    // Return empty array instead of throwing to prevent infinite scroll errors
+    return [];
   }
 }
 
