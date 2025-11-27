@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { WordPressPost } from '../../services/wordpress';
 import { ReactionButtons } from '../ui/ReactionButtons';
+import { CommentsSection } from '../ui/CommentsSection';
 import { useAuth } from '../../contexts/AuthContext';
 
 export function NewsPostDetail() {
@@ -200,6 +201,12 @@ export function NewsPostDetail() {
                 />
               </div>
             </div>
+
+            {/* Comments Section */}
+            <CommentsSection
+              postId={post.id.toString()}
+              onAuthRequired={() => setShowAuthModal(true)}
+            />
           </div>
         </article>
 
