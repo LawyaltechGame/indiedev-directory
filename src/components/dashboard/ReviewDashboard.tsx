@@ -213,12 +213,12 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
     try {
       // Using FormSubmit to send the email
       const formBody = new URLSearchParams();
-      formBody.append('_subject', 'IndieDev Directory Profile Rejection - Please Resubmit');
+      formBody.append('_subject', 'Game Centralen Profile Rejection - Please Resubmit');
       formBody.append('name', name);
       formBody.append('email', email);
       formBody.append('message', `Dear ${name},
 
-We regret to inform you that your profile submission to the IndieDev Directory has been rejected for the following reason:
+We regret to inform you that your profile submission to Game Centralen has been rejected for the following reason:
 
 ${reason}
 
@@ -227,7 +227,7 @@ Please correct the issues mentioned above and resubmit your profile for review.
 If you have any questions or need clarification, please feel free to reach out to us.
 
 Best regards,
-The IndieDev Directory Team`);
+The Game Centralen Team`);
 
       // Send from cryptotrader035@gmail.com
       const response = await fetch('https://formsubmit.co/cryptotrader035@gmail.com', {

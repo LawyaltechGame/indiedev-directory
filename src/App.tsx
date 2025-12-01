@@ -85,7 +85,7 @@ function AppContent() {
       ];
 
       const form = new FormData();
-      // form.append('name', 'IndieDev Directory — New Profile');
+      // form.append('name', 'Game Centralen — New Profile');
       // form.append('email', profile.email || 'no-reply@example.com');
       form.append('subject', `New profile submitted: ${profile.name}`);
       form.append('message', messageLines.join('\n'));

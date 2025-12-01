@@ -38,7 +38,7 @@ export function LoginModal({ onClose, onSwitchToSignup }: LoginModalProps) {
       isOpen={true}
       onClose={onClose}
       title="Welcome Back"
-      subtitle="Sign in to your IndieDev Directory account"
+      subtitle="Sign in to your Game Centralen account"
     >
       {error && (
         <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm">

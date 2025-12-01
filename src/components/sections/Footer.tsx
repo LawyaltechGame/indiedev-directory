@@ -5,13 +5,13 @@ export function Footer() {
         <div>
           <h4 className="font-bold mb-2 text-base md:text-lg">About</h4>
           <p className="text-cyan-200 text-sm">
-            IndieDev Directory is a curated hub for discovering indie game
+            Game Centralen is a curated hub for discovering indie game
             studios globally.
           </p>
         </div>
         <div>
           <h4 className="font-bold mb-2 text-base md:text-lg">Contact</h4>
-          <p className="text-cyan-200 text-sm break-all">hello@indiedev.directory</p>
+          <p className="text-cyan-200 text-sm break-all">hello@gamecentralen.com</p>
         </div>
         <div>
           <h4 className="font-bold mb-2 text-base md:text-lg">Newsletter</h4>
@@ -24,7 +24,7 @@ export function Footer() {
         </div>
       </div>
       <div className="text-cyan-200 text-center text-xs md:text-sm py-4 pb-6 px-4">
-        © {new Date().getFullYear()} IndieDev Directory. All rights reserved.
+        © {new Date().getFullYear()} Game Centralen. All rights reserved.
       </div>
     </footer>
   );

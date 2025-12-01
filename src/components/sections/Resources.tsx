@@ -16,7 +16,7 @@ const RESOURCES = [
   },
   {
     id: 2,
-    title: 'Funding for Indie Developers',
+    title: 'Funding for Game Developers',
     type: 'Guide',
     avatar: '💰',
     description: 'Explore grants, publisher programs, and crowdfunding strategies for your next project.',

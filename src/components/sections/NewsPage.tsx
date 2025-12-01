@@ -40,7 +40,7 @@ export function NewsPage() {
             📰 News
           </h1>
           <p className="text-xl text-cyan-200/80">
-            Latest updates, announcements, and industry news for indie developers
+            Latest updates, announcements, and industry news for gamers and developers
           </p>
         </div>
 

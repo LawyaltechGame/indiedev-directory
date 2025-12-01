@@ -51,7 +51,7 @@ export function SignupModal({ onClose, onSwitchToLogin }: SignupModalProps) {
       isOpen={true}
       onClose={onClose}
       title="Join the Community"
-      subtitle="Create your IndieDev Directory account"
+      subtitle="Create your Game Centralen account"
     >
       {error && (
         <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm">

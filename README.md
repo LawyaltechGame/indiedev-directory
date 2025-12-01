@@ -1,6 +1,6 @@
-# React + TypeScript + Vite
+# Game Centralen
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Game Centralen is your ultimate gaming hub for discovering indie game studios, free games, gaming news, and the latest in the gaming world. Built with React + TypeScript + Vite.
 
 Currently, two official plugins are available:
 
