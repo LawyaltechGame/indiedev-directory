@@ -82,7 +82,7 @@ export function Header({ navShrunk, onOpenLogin, onOpenSignup, onOpenDashboard, 
       } border-b border-white/8`}>
         <div className="h-20 flex items-center justify-between gap-4 px-6 max-w-7xl mx-auto">
           <a className="flex items-center gap-3 font-extrabold text-white no-underline" href="#hero" aria-label="Home">
-            <img src="/src/Images/Stylized Logo for Game Centralen with Unique Controller (1).png" alt="Game Centralen" className="w-12 h-12 rounded-[10px]" />
+            <img src="/logo.png" alt="Game Centralen" className="w-12 h-12 rounded-[10px]" />
             <span className="hidden sm:block text-xl tracking-wide" style={{ fontFamily: "'Orbitron', 'Rajdhani', sans-serif" }}>Game Centralen</span>
           </a>
           <div className="h-4 w-24 bg-white/10 rounded animate-pulse" />
@@ -97,7 +97,7 @@ export function Header({ navShrunk, onOpenLogin, onOpenSignup, onOpenDashboard, 
     } border-b border-white/8`}>
       <div className="h-20 flex items-center justify-between gap-2 lg:gap-4 px-4 lg:px-6 max-w-7xl mx-auto">
         <a className="flex items-center gap-2 lg:gap-3 font-bold text-white no-underline flex-shrink-0" href="#hero" aria-label="Home" onClick={(e) => handleNavClick(e, 'hero')}>
-          <img src="/src/Images/Stylized Logo for Game Centralen with Unique Controller (1).png" alt="Game Centralen" className="w-11 h-11 lg:w-12 lg:h-12 rounded-[10px]" />
+          <img src="/logo.png" alt="Game Centralen" className="w-11 h-11 lg:w-12 lg:h-12 rounded-[10px]" />
           <span className="hidden sm:block text-lg lg:text-xl tracking-wide" style={{ fontFamily: "'Orbitron', 'Rajdhani', sans-serif" }}>Game Centralen</span>
         </a>
         
