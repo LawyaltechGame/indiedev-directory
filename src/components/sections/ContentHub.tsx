@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { fetchBlogs, fetchNews, type WordPressPost } from '../../services/wordpress';
+import { fetchBlogs, fetchNews, fetchGuides, type WordPressPost } from '../../services/wordpress';
 
-type TabType = 'blogs' | 'news';
+type TabType = 'blogs' | 'news' | 'guides';
 
 export function ContentHub() {
   const navigate = useNavigate();
@@ -29,7 +29,14 @@ export function ContentHub() {
         setPosts([]);
         setPage(1);
         setHasMore(true);
-        const data = activeTab === 'blogs' ? await fetchBlogs(1, 12) : await fetchNews(1, 12);
+        let data: WordPressPost[];
+        if (activeTab === 'blogs') {
+          data = await fetchBlogs(1, 12);
+        } else if (activeTab === 'news') {
+          data = await fetchNews(1, 12);
+        } else {
+          data = await fetchGuides(1, 12);
+        }
         setPosts(data);
         setHasMore(data.length === 12);
         setLoading(false);
@@ -49,7 +56,14 @@ export function ContentHub() {
     try {
       setLoadingMore(true);
       const nextPage = page + 1;
-      const data = activeTab === 'blogs' ? await fetchBlogs(nextPage, 12) : await fetchNews(nextPage, 12);
+      let data: WordPressPost[];
+      if (activeTab === 'blogs') {
+        data = await fetchBlogs(nextPage, 12);
+      } else if (activeTab === 'news') {
+        data = await fetchNews(nextPage, 12);
+      } else {
+        data = await fetchGuides(nextPage, 12);
+      }
       
       if (data.length === 0) {
         setHasMore(false);
@@ -133,6 +147,18 @@ export function ContentHub() {
               <span>📰</span>
               <span>News</span>
             </button>
+
+            <button
+              onClick={() => handleTabChange('guides')}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 ${
+                activeTab === 'guides'
+                  ? 'bg-linear-to-b from-cyan-500 to-cyan-300 text-[#001018] shadow-[0_8px_22px_rgba(34,211,238,0.35)]'
+                  : 'bg-[rgba(20,28,42,0.6)] border border-white/8 text-cyan-100 hover:bg-[rgba(0,229,255,0.12)] hover:border-cyan-400/40'
+              }`}
+            >
+              <span>📚</span>
+              <span>Guides</span>
+            </button>
           </div>
         </div>
 
@@ -186,12 +212,14 @@ export function ContentHub() {
         {/* Empty State */}
         {!loading && !error && posts.length === 0 && (
           <div className="bg-[rgba(20,28,42,0.6)] border border-white/8 rounded-2xl p-12 text-center">
-            <div className="text-6xl mb-4">{activeTab === 'blogs' ? '📝' : '📰'}</div>
+            <div className="text-6xl mb-4">
+              {activeTab === 'blogs' ? '📝' : activeTab === 'news' ? '📰' : '📚'}
+            </div>
             <h2 className="text-2xl font-bold mb-3 text-cyan-100">
-              No {activeTab === 'blogs' ? 'Blogs' : 'News'} Yet
+              No {activeTab === 'blogs' ? 'Blogs' : activeTab === 'news' ? 'News' : 'Guides'} Yet
             </h2>
             <p className="text-cyan-200/70">
-              {activeTab === 'blogs' ? 'Blog posts' : 'News articles'} will appear here.
+              {activeTab === 'blogs' ? 'Blog posts' : activeTab === 'news' ? 'News articles' : 'Guides'} will appear here.
             </p>
           </div>
         )}
@@ -345,7 +373,7 @@ export function ContentHub() {
               onClick={loadMorePosts}
               className="px-8 py-4 bg-linear-to-b from-cyan-500 to-cyan-300 text-[#001018] font-bold rounded-xl transition-all duration-200 hover:from-cyan-400 hover:to-cyan-500 shadow-[0_8px_22px_rgba(34,211,238,0.35)] hover:shadow-[0_12px_28px_rgba(34,211,238,0.45)] hover:-translate-y-1"
             >
-              Load More {activeTab === 'blogs' ? 'Blogs' : 'News'}
+              Load More {activeTab === 'blogs' ? 'Blogs' : activeTab === 'news' ? 'News' : 'Guides'}
             </button>
           </div>
         )}

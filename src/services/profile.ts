@@ -7,8 +7,9 @@ export async function createProfileDocument(params: {
   tableId: string; // collection/table id
   userId: string;
   data: FormData;
+  createdByTeam?: boolean; // Flag to indicate if created by review team
 }) {
-  const { databaseId, tableId, userId, data } = params;
+  const { databaseId, tableId, userId, data, createdByTeam = false } = params;
 
   const createdAt = new Intl.DateTimeFormat('en-US', {
     month: 'short',
@@ -36,7 +37,8 @@ export async function createProfileDocument(params: {
     foundedYear: data.foundedYear || '',
     tags: data.tags || [],
     revenue: data.revenue || '',
-    status: 'pending', // pending, approved, rejected
+    status: createdByTeam ? 'approved' : 'pending', // Auto-approve if created by team
+    createdByTeam, // Track if created by team
     createdAt,
   } as const;
 

@@ -10,6 +10,7 @@ import { BlogPostDetail } from './components/sections/BlogPostDetail';
 import { NewsPostDetail } from './components/sections/NewsPostDetail';
 import { ContentHub } from './components/sections/ContentHub';
 import { ContentPostDetail } from './components/sections/ContentPostDetail';
+import { FreeGamesHub } from './components/sections/FreeGamesHub';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useScrollProgress } from './hooks/useScrollProgress';
 import { useCursorAura } from './hooks/useCursorAura';
@@ -308,6 +309,10 @@ function AppContent() {
         <Route
           path="/content/:slug"
           element={<ContentPostDetail />}
+        />
+        <Route
+          path="/free-games"
+          element={<FreeGamesHub />}
         />
         <Route
           path="/blogs"

@@ -150,6 +150,13 @@ export function Header({ navShrunk, onOpenLogin, onOpenSignup, onOpenDashboard, 
             Content
           </a>
           <a
+            href="/free-games"
+            onClick={(e) => { e.preventDefault(); navigate('/free-games'); setIsMenuOpen(false); }}
+            className="text-white text-sm xl:text-base font-bold no-underline transition-all duration-200 hover:text-cyan-300 whitespace-nowrap"
+          >
+            Free Games
+          </a>
+          <a
             href="/studios_directory"
             onClick={(e) => { e.preventDefault(); navigate('/studios_directory'); setIsMenuOpen(false); }}
             className="text-white text-sm xl:text-base font-bold no-underline transition-all duration-200 hover:text-cyan-300 whitespace-nowrap"
@@ -239,6 +246,13 @@ export function Header({ navShrunk, onOpenLogin, onOpenSignup, onOpenDashboard, 
               className="text-white font-extrabold no-underline transition-all duration-200 hover:text-cyan-300 py-2"
             >
               Content
+            </a>
+            <a
+              href="/free-games"
+              onClick={(e) => { e.preventDefault(); navigate('/free-games'); setIsMenuOpen(false); }}
+              className="text-white font-extrabold no-underline transition-all duration-200 hover:text-cyan-300 py-2"
+            >
+              Free Games
             </a>
             <a
               href="/studios_directory"
