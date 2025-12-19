@@ -15,7 +15,7 @@ export function FreeGamesHub() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('weekly');
-  const [platformFilter, setPlatformFilter] = useState<PlatformFilter>('all');
+  const [platformFilter, setPlatformFilter] = useState<PlatformFilter>('steam');
   const [expandedGameId, setExpandedGameId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -106,95 +106,62 @@ export function FreeGamesHub() {
                     : 'bg-[rgba(20,28,42,0.6)] border border-white/8 text-cyan-100 hover:bg-[rgba(168,85,247,0.12)] hover:border-purple-400/40'
                 }`}
               >
-                Steam
+                🎮 Steam
               </button>
 
               <button
-                onClick={() => setPlatformFilter('epic-games-store')}
+                onClick={() => setPlatformFilter('playstation')}
                 className={`px-4 py-2 rounded-xl font-bold transition-all duration-300 text-sm ${
-                  platformFilter === 'epic-games-store'
+                  platformFilter === 'playstation'
                     ? 'bg-linear-to-b from-purple-500 to-purple-300 text-[#001018] shadow-[0_8px_22px_rgba(168,85,247,0.35)]'
                     : 'bg-[rgba(20,28,42,0.6)] border border-white/8 text-cyan-100 hover:bg-[rgba(168,85,247,0.12)] hover:border-purple-400/40'
                 }`}
               >
-                Epic
+                🎮 PlayStation
               </button>
 
               <button
-                onClick={() => setPlatformFilter('ps5')}
+                onClick={() => setPlatformFilter('xbox')}
                 className={`px-4 py-2 rounded-xl font-bold transition-all duration-300 text-sm ${
-                  platformFilter === 'ps5'
+                  platformFilter === 'xbox'
                     ? 'bg-linear-to-b from-purple-500 to-purple-300 text-[#001018] shadow-[0_8px_22px_rgba(168,85,247,0.35)]'
                     : 'bg-[rgba(20,28,42,0.6)] border border-white/8 text-cyan-100 hover:bg-[rgba(168,85,247,0.12)] hover:border-purple-400/40'
                 }`}
               >
-                PS5
+                🎮 Xbox
               </button>
 
               <button
-                onClick={() => setPlatformFilter('ps4')}
+                onClick={() => setPlatformFilter('gog')}
                 className={`px-4 py-2 rounded-xl font-bold transition-all duration-300 text-sm ${
-                  platformFilter === 'ps4'
+                  platformFilter === 'gog'
                     ? 'bg-linear-to-b from-purple-500 to-purple-300 text-[#001018] shadow-[0_8px_22px_rgba(168,85,247,0.35)]'
                     : 'bg-[rgba(20,28,42,0.6)] border border-white/8 text-cyan-100 hover:bg-[rgba(168,85,247,0.12)] hover:border-purple-400/40'
                 }`}
               >
-                PS4
+                🎮 GOG
               </button>
 
               <button
-                onClick={() => setPlatformFilter('xbox-series-xs')}
+                onClick={() => setPlatformFilter('android')}
                 className={`px-4 py-2 rounded-xl font-bold transition-all duration-300 text-sm ${
-                  platformFilter === 'xbox-series-xs'
+                  platformFilter === 'android'
                     ? 'bg-linear-to-b from-purple-500 to-purple-300 text-[#001018] shadow-[0_8px_22px_rgba(168,85,247,0.35)]'
                     : 'bg-[rgba(20,28,42,0.6)] border border-white/8 text-cyan-100 hover:bg-[rgba(168,85,247,0.12)] hover:border-purple-400/40'
                 }`}
               >
-                Xbox S|X
+                🤖 Android
               </button>
 
               <button
-                onClick={() => setPlatformFilter('xbox-one')}
+                onClick={() => setPlatformFilter('ios')}
                 className={`px-4 py-2 rounded-xl font-bold transition-all duration-300 text-sm ${
-                  platformFilter === 'xbox-one'
+                  platformFilter === 'ios'
                     ? 'bg-linear-to-b from-purple-500 to-purple-300 text-[#001018] shadow-[0_8px_22px_rgba(168,85,247,0.35)]'
                     : 'bg-[rgba(20,28,42,0.6)] border border-white/8 text-cyan-100 hover:bg-[rgba(168,85,247,0.12)] hover:border-purple-400/40'
                 }`}
               >
-                Xbox One
-              </button>
-
-              <button
-                onClick={() => setPlatformFilter('xbox-360')}
-                className={`px-4 py-2 rounded-xl font-bold transition-all duration-300 text-sm ${
-                  platformFilter === 'xbox-360'
-                    ? 'bg-linear-to-b from-purple-500 to-purple-300 text-[#001018] shadow-[0_8px_22px_rgba(168,85,247,0.35)]'
-                    : 'bg-[rgba(20,28,42,0.6)] border border-white/8 text-cyan-100 hover:bg-[rgba(168,85,247,0.12)] hover:border-purple-400/40'
-                }`}
-              >
-                Xbox 360
-              </button>
-
-              <button
-                onClick={() => setPlatformFilter('switch')}
-                className={`px-4 py-2 rounded-xl font-bold transition-all duration-300 text-sm ${
-                  platformFilter === 'switch'
-                    ? 'bg-linear-to-b from-purple-500 to-purple-300 text-[#001018] shadow-[0_8px_22px_rgba(168,85,247,0.35)]'
-                    : 'bg-[rgba(20,28,42,0.6)] border border-white/8 text-cyan-100 hover:bg-[rgba(168,85,247,0.12)] hover:border-purple-400/40'
-                }`}
-              >
-                Switch
-              </button>
-
-              <button
-                onClick={() => setPlatformFilter('ubisoft')}
-                className={`px-4 py-2 rounded-xl font-bold transition-all duration-300 text-sm ${
-                  platformFilter === 'ubisoft'
-                    ? 'bg-linear-to-b from-purple-500 to-purple-300 text-[#001018] shadow-[0_8px_22px_rgba(168,85,247,0.35)]'
-                    : 'bg-[rgba(20,28,42,0.6)] border border-white/8 text-cyan-100 hover:bg-[rgba(168,85,247,0.12)] hover:border-purple-400/40'
-                }`}
-              >
-                Ubisoft
+                🍎 iOS
               </button>
             </div>
           </div>
@@ -259,6 +226,11 @@ export function FreeGamesHub() {
                         alt={game.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         loading="lazy"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.onerror = null; // Prevent infinite loop
+                          target.src = 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&h=450&fit=crop&q=80';
+                        }}
                       />
                       {/* Platform Badge */}
                       <div className="absolute top-3 right-3 px-3 py-1 bg-black/70 backdrop-blur-sm rounded-lg text-sm font-bold">

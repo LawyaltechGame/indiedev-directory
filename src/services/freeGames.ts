@@ -1,10 +1,16 @@
 // Free Games API Service
 // Fetching temporarily free games (normally paid games that are free for limited time)
-// Using GamerPower API via RapidAPI
+// Using GamerPower API via RapidAPI for PC/Console platforms
+// Using AppAgg RSS feeds for Android/iOS mobile deals
+
+import { fetchMobileDealsFromRSS, type RSSGame } from './rssFeedParser';
 
 const RAPIDAPI_KEY = '8b42a012aemsh4e3e8772f08343bp10444fjsn0b1c0e87f4b2';
 const RAPIDAPI_HOST = 'gamerpower.p.rapidapi.com';
 const API_BASE_URL = 'https://gamerpower.p.rapidapi.com/api';
+
+// Fallback image for games without thumbnails
+const FALLBACK_GAME_IMAGE = 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&h=450&fit=crop&q=80';
 
 export interface FreeGame {
   id: number;
@@ -36,7 +42,7 @@ export interface GameDetail extends FreeGame {
 }
 
 export type TimeFilter = 'weekly' | 'monthly';
-export type PlatformFilter = 'all' | 'steam' | 'epic-games-store' | 'ps5' | 'xbox-series-xs' | 'ubisoft' | 'switch' | 'xbox-one' | 'ps4' | 'xbox-360';
+export type PlatformFilter = 'all' | 'steam' | 'playstation' | 'xbox' | 'gog' | 'android' | 'ios';
 
 
 
@@ -104,7 +110,7 @@ export async function fetchAllFreeGames(): Promise<FreeGame[]> {
     return gameGiveaways.map((giveaway: any) => ({
       id: giveaway.id,
       title: giveaway.title,
-      thumbnail: giveaway.thumbnail || giveaway.image,
+      thumbnail: giveaway.thumbnail || giveaway.image || FALLBACK_GAME_IMAGE,
       short_description: giveaway.worth ? `Worth ${giveaway.worth} - ${giveaway.description || 'Free giveaway'}` : (giveaway.description || 'Free giveaway'),
       game_url: giveaway.open_giveaway_url || giveaway.gamerpower_url,
       genre: giveaway.type || 'Giveaway',
@@ -121,68 +127,98 @@ export async function fetchAllFreeGames(): Promise<FreeGame[]> {
 }
 
 /**
+ * Fetch mobile deals from AppAgg RSS feeds
+ */
+async function fetchMobileFreeGames(platform: 'android' | 'ios' | 'all'): Promise<FreeGame[]> {
+  try {
+    const deals = await fetchMobileDealsFromRSS(platform);
+    
+    // Transform RSS game deals to FreeGame interface
+    return deals.map((deal: RSSGame) => ({
+      id: Math.floor(Math.random() * 1000000),
+      title: deal.title,
+      thumbnail: deal.thumbnail || FALLBACK_GAME_IMAGE,
+      short_description: deal.description,
+      game_url: deal.url,
+      genre: deal.category,
+      platform: deal.platform,
+      publisher: deal.developer,
+      developer: deal.developer,
+      release_date: deal.pubDate ? new Date(deal.pubDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      freetogame_profile_url: deal.url,
+    }));
+  } catch (error) {
+    console.error('Error fetching mobile free games:', error);
+    return [];
+  }
+}
+
+/**
  * Fetch free games by platform
- * Uses GamerPower "Live giveaways by platform" endpoint
- * Focuses on major platforms: Steam, Epic Games, PlayStation, Xbox, Nintendo Switch
+ * Uses GamerPower API for PC/Console platforms
+ * Uses Appwrite Function for Android/iOS mobile deals
  */
 export async function fetchGamesByPlatform(platform: PlatformFilter): Promise<FreeGame[]> {
   try {
+    // Handle mobile platforms with Appwrite Function
+    if (platform === 'android' || platform === 'ios') {
+      return await fetchMobileFreeGames(platform);
+    }
+
     if (platform === 'all') {
-      return await fetchAllFreeGames();
+      // Fetch both PC/Console and mobile games
+      const [pcConsoleGames, mobileGames] = await Promise.all([
+        fetchAllFreeGames(),
+        fetchMobileFreeGames('all'),
+      ]);
+      return [...pcConsoleGames, ...mobileGames];
     }
 
-    // Map our platform filter to exact GamerPower platform names
-    const platformMap: Record<string, string> = {
-      steam: 'steam',
-      'epic-games-store': 'epic-games-store',
-      ps5: 'ps5',
-      ps4: 'ps4',
-      'xbox-series-xs': 'xbox-series-xs',
-      'xbox-one': 'xbox-one',
-      'xbox-360': 'xbox-360',
-      switch: 'switch',
-      ubisoft: 'ubisoft',
-    };
+    console.log(`🔍 Fetching games for platform: ${platform}`);
 
-    const mappedPlatform = platformMap[platform];
+    // Fetch all games first
+    const allGames = await fetchAllFreeGames();
     
-    if (!mappedPlatform) {
-      console.warn('Unknown platform:', platform);
-      return [];
+    // Filter games based on platform
+    let filteredGames: FreeGame[] = [];
+    
+    switch (platform) {
+      case 'steam':
+        filteredGames = allGames.filter(game => 
+          game.platform.toLowerCase().includes('steam') ||
+          game.platform.toLowerCase().includes('pc')
+        );
+        break;
+        
+      case 'playstation':
+        filteredGames = allGames.filter(game => 
+          game.platform.toLowerCase().includes('playstation') ||
+          game.platform.toLowerCase().includes('ps5') ||
+          game.platform.toLowerCase().includes('ps4') ||
+          game.platform.toLowerCase().includes('ps3')
+        );
+        break;
+        
+      case 'xbox':
+        filteredGames = allGames.filter(game => 
+          game.platform.toLowerCase().includes('xbox')
+        );
+        break;
+        
+      case 'gog':
+        filteredGames = allGames.filter(game => 
+          game.platform.toLowerCase().includes('gog') ||
+          game.platform.toLowerCase().includes('drm-free')
+        );
+        break;
+        
+      default:
+        filteredGames = allGames;
     }
-
-    console.log(`🔍 Fetching games for platform: ${platform} (API: ${mappedPlatform})`);
-
-    // Use the "Live giveaways by platform" endpoint
-    const response = await fetch(`${API_BASE_URL}/giveaways?platform=${mappedPlatform}`, {
-      method: 'GET',
-      headers: {
-        'X-RapidAPI-Key': RAPIDAPI_KEY,
-        'X-RapidAPI-Host': RAPIDAPI_HOST,
-      },
-    });
     
-    if (!response.ok) {
-      console.error(`❌ API failed for platform ${platform} with status:`, response.status);
-      return [];
-    }
+    console.log(`✅ Found ${filteredGames.length} games for ${platform}`);
     
-    const data = await response.json();
-    console.log(`✅ Found ${data.length} total giveaways for ${platform}`);
-    
-    // Log unique platforms in this response
-    const platformsInResponse = new Set<string>();
-    data.forEach((giveaway: any) => {
-      if (giveaway.platforms) {
-        platformsInResponse.add(giveaway.platforms);
-      }
-    });
-    console.log(`📊 Platforms in response:`, Array.from(platformsInResponse));
-    
-    // Filter to only show full game giveaways (not loot, DLC, beta)
-    const gameGiveaways = data.filter((giveaway: any) => 
-      giveaway.type === 'Game' || !giveaway.type
-    );
+    const gameGiveaways = filteredGames;
     
     console.log(`🎮 Game giveaways (after filtering): ${gameGiveaways.length}`);
     
@@ -212,7 +248,7 @@ export async function fetchGamesByPlatform(platform: PlatformFilter): Promise<Fr
     return gameGiveaways.map((giveaway: any) => ({
       id: giveaway.id,
       title: giveaway.title,
-      thumbnail: giveaway.thumbnail || giveaway.image,
+      thumbnail: giveaway.thumbnail || giveaway.image || FALLBACK_GAME_IMAGE,
       short_description: giveaway.worth ? `Worth ${giveaway.worth} - ${giveaway.description || 'Free giveaway'}` : (giveaway.description || 'Free giveaway'),
       game_url: giveaway.open_giveaway_url || giveaway.gamerpower_url,
       genre: giveaway.type || 'Giveaway',
@@ -303,7 +339,7 @@ export async function fetchGameDetails(gameId: number): Promise<GameDetail | nul
     return {
       id: giveaway.id,
       title: giveaway.title,
-      thumbnail: giveaway.thumbnail || giveaway.image,
+      thumbnail: giveaway.thumbnail || giveaway.image || FALLBACK_GAME_IMAGE,
       short_description: giveaway.description || giveaway.worth,
       description: giveaway.description || giveaway.instructions || '',
       game_url: giveaway.open_giveaway_url || giveaway.gamerpower_url,
@@ -341,6 +377,8 @@ export async function fetchGamesByGenre(genre: string): Promise<FreeGame[]> {
  */
 export function getPlatformIcon(platform: string): string {
   const platformLower = platform.toLowerCase();
+  if (platformLower.includes('android')) return '🤖';
+  if (platformLower.includes('ios') || platformLower.includes('iphone') || platformLower.includes('ipad')) return '🍎';
   if (platformLower.includes('windows') || platformLower.includes('pc')) return '🖥️';
   if (platformLower.includes('browser') || platformLower.includes('web')) return '🌐';
   if (platformLower.includes('playstation') || platformLower.includes('ps')) return '🎮';

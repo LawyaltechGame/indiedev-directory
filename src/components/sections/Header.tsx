@@ -80,12 +80,13 @@ export function Header({ navShrunk, onOpenLogin, onOpenSignup, onOpenDashboard, 
       <header className={`fixed top-1 left-0 right-0 z-50 transition-all duration-300 ${
         navShrunk ? 'bg-[rgba(7,11,18,0.7)] backdrop-blur-[14px]' : 'bg-[rgba(7,11,18,0.55)] backdrop-blur-md'
       } border-b border-white/8`}>
-        <div className="h-20 flex items-center justify-between gap-4 px-6 max-w-7xl mx-auto">
-          <a className="flex items-center gap-3 font-extrabold text-white no-underline" href="#hero" aria-label="Home">
-            <img src="/logo.png" alt="Game Centralen" className="w-12 h-12 rounded-[10px]" />
-            <span className="hidden sm:block text-xl tracking-wide" style={{ fontFamily: "'Orbitron', 'Rajdhani', sans-serif" }}>Game Centralen</span>
+        <div className="h-20 flex items-center gap-2 lg:gap-4 px-4 lg:px-6 max-w-7xl mx-auto w-full">
+          <a className="flex items-center gap-2 lg:gap-3 font-extrabold text-white no-underline flex-shrink-0" href="#hero" aria-label="Home">
+            <img src="/logo.png" alt="Game Centralen" className="w-20 h-16 lg:w-24 lg:h-20 rounded-[10px] object-contain" />
+            <span className="hidden sm:block text-lg lg:text-xl tracking-wide whitespace-nowrap" style={{ fontFamily: "'Orbitron', 'Rajdhani', sans-serif" }}>Game Centralen</span>
           </a>
-          <div className="h-4 w-24 bg-white/10 rounded animate-pulse" />
+          <div className="flex-1"></div>
+          <div className="h-4 w-24 bg-white/10 rounded animate-pulse flex-shrink-0" />
         </div>
       </header>
     );
@@ -95,15 +96,16 @@ export function Header({ navShrunk, onOpenLogin, onOpenSignup, onOpenDashboard, 
     <header className={`fixed top-1 left-0 right-0 z-50 transition-all duration-300 ${
       navShrunk ? 'bg-[rgba(7,11,18,0.7)] backdrop-blur-[14px]' : 'bg-[rgba(7,11,18,0.55)] backdrop-blur-md'
     } border-b border-white/8`}>
-      <div className="h-20 flex items-center justify-between gap-2 lg:gap-4 px-4 lg:px-6 max-w-7xl mx-auto">
+      <div className="h-20 flex items-center gap-2 lg:gap-4 px-4 lg:px-6 max-w-7xl mx-auto w-full">
+        {/* Logo - Extreme Left */}
         <a className="flex items-center gap-2 lg:gap-3 font-bold text-white no-underline flex-shrink-0" href="#hero" aria-label="Home" onClick={(e) => handleNavClick(e, 'hero')}>
-          <img src="/logo.png" alt="Game Centralen" className="w-11 h-11 lg:w-12 lg:h-12 rounded-[10px]" />
-          <span className="hidden sm:block text-lg lg:text-xl tracking-wide" style={{ fontFamily: "'Orbitron', 'Rajdhani', sans-serif" }}>Game Centralen</span>
+          <img src="/logo.png" alt="Game Centralen" className="w-20 h-16 lg:w-24 lg:h-20 rounded-[10px] object-contain" />
+          <span className="hidden sm:block text-lg lg:text-xl tracking-wide whitespace-nowrap" style={{ fontFamily: "'Orbitron', 'Rajdhani', sans-serif" }}>Game Centralen</span>
         </a>
         
         {/* Mobile menu button */}
         <button 
-          className="lg:hidden flex flex-col justify-center items-center w-10 h-10 rounded-lg bg-[rgba(9,14,22,0.55)] border border-white/8 flex-shrink-0"
+          className="lg:hidden flex flex-col justify-center items-center w-10 h-10 rounded-lg bg-[rgba(9,14,22,0.55)] border border-white/8 flex-shrink-0 ml-auto"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           aria-label="Toggle navigation menu"
         >
@@ -112,8 +114,8 @@ export function Header({ navShrunk, onOpenLogin, onOpenSignup, onOpenDashboard, 
           <span className={`block w-6 h-0.5 bg-white mt-1.5 transition-all duration-300 ${isMenuOpen ? '-rotate-45 -translate-y-1' : ''}`}></span>
         </button>
         
-        {/* Desktop Navigation */}
-        <nav className="hidden lg:flex items-center gap-4 xl:gap-6 flex-1 justify-center">
+        {/* Desktop Navigation - Center */}
+        <nav className="hidden lg:flex items-center gap-3 xl:gap-5 flex-1 justify-center">
           <a
             href="#hero"
             onClick={(e) => handleNavClick(e, 'hero')}
@@ -165,7 +167,7 @@ export function Header({ navShrunk, onOpenLogin, onOpenSignup, onOpenDashboard, 
           </a>
         </nav>
         
-        <div className="hidden lg:flex items-center gap-2 xl:gap-2.5 flex-shrink-0">
+        <div className="hidden lg:flex items-center gap-2 xl:gap-3 flex-shrink-0">
           {onOpenDashboard && isTeamMember && (
             <button
               className="h-10 px-3 xl:px-4 border border-cyan-500 bg-[rgba(9,14,22,0.55)] text-cyan-100 rounded-xl text-sm font-bold transition-all duration-200 hover:bg-[rgba(0,229,255,0.12)] hover:text-white hover:shadow-[0_0_10px_rgba(0,229,255,0.35)] whitespace-nowrap"
