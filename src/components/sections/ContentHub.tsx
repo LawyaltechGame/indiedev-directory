@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { fetchBlogs, fetchNews, fetchGuides, type WordPressPost } from '../../services/wordpress';
+import { fetchBlogs, fetchNews, fetchGuides, fetchTools, type WordPressPost } from '../../services/wordpress';
 
-type TabType = 'blogs' | 'news' | 'guides';
+type TabType = 'blogs' | 'news' | 'guides' | 'tools';
 
 export function ContentHub() {
   const navigate = useNavigate();
@@ -34,8 +34,10 @@ export function ContentHub() {
           data = await fetchBlogs(1, 12);
         } else if (activeTab === 'news') {
           data = await fetchNews(1, 12);
-        } else {
+        } else if (activeTab === 'guides') {
           data = await fetchGuides(1, 12);
+        } else {
+          data = await fetchTools(1, 12);
         }
         setPosts(data);
         setHasMore(data.length === 12);
@@ -61,8 +63,10 @@ export function ContentHub() {
         data = await fetchBlogs(nextPage, 12);
       } else if (activeTab === 'news') {
         data = await fetchNews(nextPage, 12);
-      } else {
+      } else if (activeTab === 'guides') {
         data = await fetchGuides(nextPage, 12);
+      } else {
+        data = await fetchTools(nextPage, 12);
       }
       
       if (data.length === 0) {
@@ -159,13 +163,25 @@ export function ContentHub() {
               <span>📚</span>
               <span>Guides</span>
             </button>
+
+            <button
+              onClick={() => handleTabChange('tools')}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 ${
+                activeTab === 'tools'
+                  ? 'bg-linear-to-b from-cyan-500 to-cyan-300 text-[#001018] shadow-[0_8px_22px_rgba(34,211,238,0.35)]'
+                  : 'bg-[rgba(20,28,42,0.6)] border border-white/8 text-cyan-100 hover:bg-[rgba(0,229,255,0.12)] hover:border-cyan-400/40'
+              }`}
+            >
+              <span>🛠️</span>
+              <span>Tools</span>
+            </button>
           </div>
         </div>
 
         {/* Loading State */}
         {loading && (
           <>
-            {activeTab === 'blogs' ? (
+            {activeTab === 'blogs' || activeTab === 'tools' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
                   <div
@@ -213,13 +229,13 @@ export function ContentHub() {
         {!loading && !error && posts.length === 0 && (
           <div className="bg-[rgba(20,28,42,0.6)] border border-white/8 rounded-2xl p-12 text-center">
             <div className="text-6xl mb-4">
-              {activeTab === 'blogs' ? '📝' : activeTab === 'news' ? '📰' : '📚'}
+              {activeTab === 'blogs' ? '📝' : activeTab === 'news' ? '📰' : activeTab === 'guides' ? '📚' : '🛠️'}
             </div>
             <h2 className="text-2xl font-bold mb-3 text-cyan-100">
-              No {activeTab === 'blogs' ? 'Blogs' : activeTab === 'news' ? 'News' : 'Guides'} Yet
+              No {activeTab === 'blogs' ? 'Blogs' : activeTab === 'news' ? 'News' : activeTab === 'guides' ? 'Guides' : 'Tools'} Yet
             </h2>
             <p className="text-cyan-200/70">
-              {activeTab === 'blogs' ? 'Blog posts' : activeTab === 'news' ? 'News articles' : 'Guides'} will appear here.
+              {activeTab === 'blogs' ? 'Blog posts' : activeTab === 'news' ? 'News articles' : activeTab === 'guides' ? 'Guides' : 'Tools'} will appear here.
             </p>
           </div>
         )}
@@ -227,7 +243,7 @@ export function ContentHub() {
         {/* Content Grid/List */}
         {!loading && !error && posts.length > 0 && (
           <>
-            {activeTab === 'blogs' ? (
+            {activeTab === 'blogs' || activeTab === 'tools' ? (
               // Blog Grid Layout
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {posts.map((post) => (
@@ -361,7 +377,7 @@ export function ContentHub() {
           <div className="flex justify-center items-center py-12">
             <div className="flex flex-col items-center gap-4">
               <div className="w-12 h-12 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin"></div>
-              <p className="text-cyan-300 font-semibold">Loading more {activeTab}...</p>
+              <p className="text-cyan-300 font-semibold">Loading more {activeTab === 'blogs' ? 'blogs' : activeTab === 'news' ? 'news' : activeTab === 'guides' ? 'guides' : 'tools'}...</p>
             </div>
           </div>
         )}
@@ -373,7 +389,7 @@ export function ContentHub() {
               onClick={loadMorePosts}
               className="px-8 py-4 bg-linear-to-b from-cyan-500 to-cyan-300 text-[#001018] font-bold rounded-xl transition-all duration-200 hover:from-cyan-400 hover:to-cyan-500 shadow-[0_8px_22px_rgba(34,211,238,0.35)] hover:shadow-[0_12px_28px_rgba(34,211,238,0.45)] hover:-translate-y-1"
             >
-              Load More {activeTab === 'blogs' ? 'Blogs' : activeTab === 'news' ? 'News' : 'Guides'}
+              Load More {activeTab === 'blogs' ? 'Blogs' : activeTab === 'news' ? 'News' : activeTab === 'guides' ? 'Guides' : 'Tools'}
             </button>
           </div>
         )}
@@ -386,7 +402,7 @@ export function ContentHub() {
                 🎉 You've reached the end!
               </p>
               <p className="text-cyan-200/40 text-sm mt-2">
-                No more {activeTab} to load
+                No more {activeTab === 'blogs' ? 'blogs' : activeTab === 'news' ? 'news' : activeTab === 'guides' ? 'guides' : 'tools'} to load
               </p>
             </div>
           </div>

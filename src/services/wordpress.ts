@@ -6,6 +6,7 @@ interface WordPressConfig {
   blogCategoryId?: number;
   newsCategoryId?: number;
   guidesCategoryId?: number;
+  toolsCategoryId?: number;
 }
 
 // WordPress site configuration
@@ -14,6 +15,7 @@ const config: WordPressConfig = {
   blogCategoryId: 1,
   newsCategoryId: 130,
   guidesCategoryId: 217,
+  toolsCategoryId: undefined, // Set this to your Tools category ID
 };
 
 export interface WordPressAuthor {
@@ -171,6 +173,49 @@ export async function fetchNews(page: number = 1, perPage: number = 10): Promise
     return data;
   } catch (error) {
     console.error('Error fetching news:', error);
+    // Return empty array instead of throwing to prevent infinite scroll errors
+    return [];
+  }
+}
+
+/**
+ * Fetch tools posts from WordPress
+ * @param page - Page number for pagination (default: 1)
+ * @param perPage - Number of posts per page (default: 10)
+ */
+export async function fetchTools(page: number = 1, perPage: number = 10): Promise<WordPressPost[]> {
+  if (!config.baseUrl) {
+    console.warn('WordPress base URL not configured');
+    return [];
+  }
+
+  try {
+    const params = new URLSearchParams({
+      _embed: 'true',
+      page: page.toString(),
+      per_page: perPage.toString(),
+    });
+
+    if (config.toolsCategoryId) {
+      params.append('categories', config.toolsCategoryId.toString());
+    }
+
+    const response = await fetch(`${config.baseUrl}/posts?${params.toString()}`);
+    
+    // If 400 error, it likely means no more posts (invalid page number)
+    if (response.status === 400) {
+      console.log('No more tools posts available');
+      return [];
+    }
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching tools:', error);
     // Return empty array instead of throwing to prevent infinite scroll errors
     return [];
   }
