@@ -39,7 +39,7 @@ export function Hero({ onSearch }: HeroProps) {
 
         {/* Right: Search bar with revolving icons - Hidden on mobile (< 768px) */}
         <div className="relative h-64 sm:h-80 lg:h-96 hidden md:flex items-center justify-center">
-          <div className="relative w-full max-w-lg">
+          <div className="relative w-full max-w-sm">
             <form
               className="relative z-20 flex flex-col sm:flex-row items-center bg-[rgba(13,21,36,0.95)] backdrop-blur-sm border border-white/8 rounded-2xl overflow-hidden w-full shadow-[0_2px_16px_rgba(0,0,0,0.25)] h-auto transition-all duration-300"
               onSubmit={onSubmit}
@@ -59,8 +59,8 @@ export function Hero({ onSearch }: HeroProps) {
                 Search
               </button>
             </form>
-            <div className="absolute -inset-20 -top-50 left-0 flex items-center justify-center pointer-events-none hidden lg:block z-10" aria-hidden>
-              <div className="relative w-[520px] h-[520px] animate-spin" style={{ animationDuration: '25s' }}>
+            <div className="absolute -inset-20 -top-60 -left-28 flex items-center justify-center pointer-events-none hidden lg:block z-10" aria-hidden>
+              <div className="relative w-[600px] h-[600px] animate-spin" style={{ animationDuration: '25s' }}>
                 {['🎮', '👾', '🕹️', '🎯', '🚀', '✨'].map((icon, i) => {
                   const angle = i * 60;
                   return (
@@ -68,7 +68,7 @@ export function Hero({ onSearch }: HeroProps) {
                       key={i}
                       className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-full flex items-center justify-center bg-[rgba(0,229,255,0.1)] border-2 border-cyan-400 shadow-[0_0_20px_rgba(0,229,255,0.28)] text-3xl"
                       style={{
-                        transform: `rotate(${angle}deg) translate(215px) rotate(-${angle}deg)`,
+                        transform: `rotate(${angle}deg) translate(250px) rotate(-${angle}deg)`,
                       }}
                     >
                       {icon}
