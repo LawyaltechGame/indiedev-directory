@@ -28,6 +28,7 @@ import { ProfileModal } from './components/sections/ProfileModal';
 import { LoginModal } from './components/auth/LoginModal';
 import { SignupModal } from './components/auth/SignupModal';
 import { ReviewDashboard } from './components/dashboard/ReviewDashboard';
+import { PageViewTracker } from './components/analytics/PageViewTracker';
 import type { FormData, ProfileStep } from './types';
 import { createProfileDocument } from './services/profile';
 
@@ -260,6 +261,9 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-bg text-white font-sans">
+      {/* Google Analytics Page View Tracker */}
+      <PageViewTracker />
+
       {/* SCROLL PROGRESS BAR */}
       <div className="fixed top-0 left-0 right-0 z-60 h-1 bg-cyan-500/20">
         <div 
