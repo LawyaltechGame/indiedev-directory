@@ -38,8 +38,8 @@ export function Hero({ onSearch }: HeroProps) {
         </div>
 
         {/* Right: Search bar with revolving icons - Hidden on mobile (< 768px) */}
-        <div className="relative h-64 sm:h-80 lg:h-96 hidden md:flex items-center justify-center">
-          <div className="relative w-full max-w-sm">
+        <div className="relative h-64 sm:h-80 lg:h-[28rem] hidden md:flex items-center justify-center">
+          <div className="relative w-full max-w-sm mt-10">
             <form
               className="relative z-20 flex flex-col sm:flex-row items-center bg-[rgba(13,21,36,0.95)] backdrop-blur-sm border border-white/8 rounded-2xl overflow-hidden w-full shadow-[0_2px_16px_rgba(0,0,0,0.25)] h-auto transition-all duration-300"
               onSubmit={onSubmit}
@@ -59,7 +59,7 @@ export function Hero({ onSearch }: HeroProps) {
                 Search
               </button>
             </form>
-            <div className="absolute -inset-20 -top-60 -left-28 flex items-center justify-center pointer-events-none hidden lg:block z-10" aria-hidden>
+            <div className="absolute -inset-20 -top-[15rem] -left-28 flex items-center justify-center pointer-events-none hidden lg:block z-10" aria-hidden>
               <div className="relative w-[600px] h-[600px] animate-spin" style={{ animationDuration: '25s' }}>
                 {['🎮', '👾', '🕹️', '🎯', '🚀', '✨'].map((icon, i) => {
                   const angle = i * 60;
