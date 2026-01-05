@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchBlogs, type WordPressPost } from '../../services/wordpress';
+import { extractFirstItalicLine } from '../../utils/blogUtils';
 
 export function BlogsPage() {
   const navigate = useNavigate();
@@ -118,10 +119,9 @@ export function BlogsPage() {
                     dangerouslySetInnerHTML={{ __html: post.title.rendered }}
                   />
                   
-                  <div
-                    className="text-sm text-cyan-200/70 mb-4 line-clamp-3"
-                    dangerouslySetInnerHTML={{ __html: post.excerpt.rendered }}
-                  />
+                  <p className="text-sm text-cyan-200/70 mb-4 italic line-clamp-2">
+                    {extractFirstItalicLine(post.content.rendered)}
+                  </p>
                   
                   <button
                     onClick={() => {

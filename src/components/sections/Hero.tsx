@@ -46,13 +46,12 @@ export function Hero({ onSearch }: HeroProps) {
               role="search"
             >
               <div className="flex items-center w-full p-2 sm:p-3 border-0">
-                <span className="pl-3 text-cyan-200 text-lg">🔎</span>  
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search studios, genres, tags"
+                  placeholder="Search Games, Studios, and more"
                   aria-label="Search"
-                  className="flex-1 px-3 py-4 bg-transparent text-white border-0 outline-none ring-0 focus:ring-0 shadow-none focus:shadow-none appearance-none placeholder:text-cyan-300/60 focus:placeholder:text-cyan-300/40 transition-colors duration-200"
+                  className="flex-1 pl-4 pr-3 py-4 bg-transparent text-white border-0 outline-none ring-0 focus:ring-0 shadow-none focus:shadow-none appearance-none placeholder:text-cyan-200 placeholder:opacity-90 focus:placeholder:text-cyan-200 focus:placeholder:opacity-80 text-xs sm:text-sm transition-colors duration-200"
                 />
               </div>
               <button className="w-full sm:w-auto h-12 sm:h-12 px-4 sm:px-6 sm:mr-2 bg-linear-to-b from-cyan-500 to-cyan-300 text-[#001018] font-extrabold rounded-xl sm:rounded-xl border-0 cursor-pointer transition-all duration-200 hover:from-cyan-400 hover:to-cyan-500 active:scale-[0.995] active:translate-y-px shadow-[0_8px_22px_rgba(34,211,238,0.35)] mt-2 sm:mt-0" type="submit">
