@@ -103,11 +103,11 @@ export function ContentPostDetail() {
         <article className="bg-[rgba(20,28,42,0.6)] border border-white/8 rounded-2xl overflow-hidden">
           {/* Featured Image */}
           {post._embedded?.['wp:featuredmedia']?.[0]?.source_url && (
-            <div className="w-full h-96 overflow-hidden">
+            <div className="w-full overflow-hidden">
               <img
                 src={post._embedded['wp:featuredmedia'][0].source_url}
                 alt={post._embedded['wp:featuredmedia'][0].alt_text || post.title.rendered}
-                className="w-full h-full object-cover"
+                className="w-full h-auto object-contain"
               />
             </div>
           )}
