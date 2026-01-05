@@ -86,11 +86,11 @@ export function BlogsPage() {
                 className="bg-[rgba(20,28,42,0.6)] border border-white/8 rounded-2xl overflow-hidden hover:border-cyan-400/40 transition-all duration-300 hover:shadow-[0_8px_32px_rgba(34,211,238,0.2)] group"
               >
                 {post._embedded?.['wp:featuredmedia']?.[0]?.source_url && (
-                  <div className="w-full h-48 overflow-hidden">
+                  <div className="w-full h-64 bg-[rgba(0,0,0,0.2)] overflow-hidden rounded-t-2xl">
                     <img
                       src={post._embedded['wp:featuredmedia'][0].source_url}
                       alt={post._embedded['wp:featuredmedia'][0].alt_text || post.title.rendered}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
                 )}

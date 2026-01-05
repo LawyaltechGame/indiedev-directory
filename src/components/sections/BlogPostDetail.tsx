@@ -22,7 +22,7 @@ export function BlogPostDetail() {
       try {
         setLoading(true);
         const response = await fetch(
-          `https://test.lawyaltech.org/wp-json/wp/v2/posts?slug=${slug}&_embed`
+          `https://test.lawyaltech.org/wp-json/wp/v2/posts?slug=${slug}&_embed&_fields=id,title,excerpt,content,date,link,author,categories,featured_media,_embedded`
         );
         
         if (!response.ok) {
@@ -101,15 +101,22 @@ export function BlogPostDetail() {
         {/* Article Header */}
         <article className="bg-[rgba(20,28,42,0.6)] border border-white/8 rounded-2xl overflow-hidden">
           {/* Featured Image */}
-          {post._embedded?.['wp:featuredmedia']?.[0]?.source_url && (
-            <div className="w-full h-96 overflow-hidden">
-              <img
-                src={post._embedded['wp:featuredmedia'][0].source_url}
-                alt={post._embedded['wp:featuredmedia'][0].alt_text || post.title.rendered}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
+          {post._embedded?.['wp:featuredmedia']?.[0]?.source_url && (() => {
+            const media = post._embedded['wp:featuredmedia'][0];
+            // Try to get full-size image, fallback to source_url
+            const imageUrl = media.media_details?.sizes?.full?.source_url || 
+                           media.media_details?.sizes?.large?.source_url || 
+                           media.source_url;
+            return (
+              <div className="w-full bg-[rgba(0,0,0,0.2)]">
+                <img
+                  src={imageUrl}
+                  alt={media.alt_text || post.title.rendered}
+                  className="w-full h-auto block"
+                />
+              </div>
+            );
+          })()}
 
           <div className="p-8 md:p-12">
             {/* Meta Info */}

@@ -256,13 +256,13 @@ export function ContentHub() {
                     }}
                   >
                     {post._embedded?.['wp:featuredmedia']?.[0]?.source_url && (
-                      <div className="w-full h-48 overflow-hidden">
+                      <div className="w-full h-64 bg-[rgba(0,0,0,0.2)] overflow-hidden rounded-t-2xl">
                         <img
                           src={post._embedded['wp:featuredmedia'][0].source_url}
                           alt={
                             post._embedded['wp:featuredmedia'][0].alt_text || post.title.rendered
                           }
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                         />
                       </div>
                     )}

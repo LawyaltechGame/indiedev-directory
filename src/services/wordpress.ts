@@ -44,6 +44,16 @@ export interface WordPressPost {
     'wp:featuredmedia'?: Array<{
       source_url: string;
       alt_text: string;
+      media_details?: {
+        sizes?: {
+          full?: {
+            source_url: string;
+          };
+          large?: {
+            source_url: string;
+          };
+        };
+      };
     }>;
     author?: WordPressAuthor[];
   };
