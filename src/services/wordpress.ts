@@ -10,13 +10,12 @@ interface WordPressConfig {
 }
 
 // WordPress site configuration
-// 🚨 IMPORTANT: You must replace '999' below with the actual ID of your 'Tools' category.
 const config: WordPressConfig = {
   baseUrl: 'https://test.lawyaltech.org/wp-json/wp/v2',
   blogCategoryId: 1,
   newsCategoryId: 130,
   guidesCategoryId: 217,
-  toolsCategoryId: 999, // <--- FIX: Placeholder for your Tools category ID
+  toolsCategoryId: 287, 
 };
 
 export interface WordPressAuthor {
@@ -207,7 +206,7 @@ export async function fetchTools(page: number = 1, perPage: number = 10): Promis
       per_page: perPage.toString(),
     });
 
-    // This ensures that if the ID is set, the request is filtered by category.
+    // This ensures only 'Tools' articles are fetched if the category ID is configured.
     if (config.toolsCategoryId) {
       params.append('categories', config.toolsCategoryId.toString());
     }
