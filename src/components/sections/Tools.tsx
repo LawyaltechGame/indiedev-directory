@@ -1,11 +1,29 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 
+// Define the structure for the tool meta data
+interface ToolMeta {
+  icon: string;
+  text: string;
+}
+
+// Define the structure for a single tool item, including the new 'link'
+interface ToolItem {
+  id: number;
+  name: string;
+  category: string;
+  avatar: string;
+  description: string;
+  meta: ToolMeta[];
+  link: string; // Added link property
+}
+
 interface ToolsProps {
   onCreateProfile?: () => void;
 }
 
-const TOOLS_DATA = [
+// Updated TOOLS_DATA with official page links
+const TOOLS_DATA: ToolItem[] = [
   {
     id: 1,
     name: 'Unity',
@@ -15,7 +33,8 @@ const TOOLS_DATA = [
     meta: [
       { icon: '💻', text: 'Platforms: All' },
       { icon: '⭐', text: 'Rating: 4.7' }
-    ]
+    ],
+    link: 'https://unity.com/' // Unity official link
   },
   {
     id: 2,
@@ -26,7 +45,8 @@ const TOOLS_DATA = [
     meta: [
       { icon: '💻', text: 'Platforms: All' },
       { icon: '⭐', text: 'Rating: 4.9' }
-    ]
+    ],
+    link: 'https://www.unrealengine.com/' // Unreal Engine official link
   },
   {
     id: 3,
@@ -37,7 +57,8 @@ const TOOLS_DATA = [
     meta: [
       { icon: '💻', text: 'Platforms: All' },
       { icon: '⭐', text: 'Rating: 4.8' }
-    ]
+    ],
+    link: 'https://godotengine.org/' // Godot official link
   },
   {
     id: 4,
@@ -48,7 +69,8 @@ const TOOLS_DATA = [
     meta: [
       { icon: '💻', text: 'Platforms: All' },
       { icon: '⭐', text: 'Rating: 4.9' }
-    ]
+    ],
+    link: 'https://www.blender.org/' // Blender official link
   },
   {
     id: 5,
@@ -59,9 +81,41 @@ const TOOLS_DATA = [
     meta: [
       { icon: '💻', text: 'Platforms: All' },
       { icon: '⭐', text: 'Rating: 4.6' }
-    ]
+    ],
+    link: 'https://www.fmod.com/' // FMOD official link
   }
 ];
+
+// Helper component to display a tool card.
+// We'll use a standard <a> tag around the card for the link
+const ToolCard = ({ tool }: { tool: ToolItem }) => (
+  <a 
+    href={tool.link} // Use the link property here
+    target="_blank" // Open link in a new tab
+    rel="noopener noreferrer" // Security best practice for target="_blank"
+    className="bg-[#07101b] border border-white/6 rounded-xl overflow-hidden block transition-all hover:border-cyan-400/50 hover:shadow-lg hover:shadow-cyan-500/10"
+    aria-label={`View official page for ${tool.name}`}
+  >
+    <article>
+      <div className="p-4 flex items-center gap-4">
+        <div className="w-11 h-11 rounded-lg bg-[#0f172a] text-white font-bold flex items-center justify-center">{tool.avatar}</div>
+        <div className="min-w-0">
+          <h3 className="text-lg font-bold text-white truncate">{tool.name}</h3>
+          <div className="text-sm text-cyan-300 mt-1">{tool.category}</div>
+        </div>
+      </div>
+      <div className="p-4 border-t border-white/6 text-cyan-100">
+        <p className="mb-3">{tool.description}</p>
+        <div className="flex flex-wrap gap-2">
+          {tool.meta.map((item, idx) => (
+            <span key={idx} className="px-3 py-1.5 bg-[#071826] border border-[#123044] rounded-md text-sm">{item.icon} {item.text}</span>
+          ))}
+        </div>
+      </div>
+    </article>
+  </a>
+);
+
 
 export default function Tools({ onCreateProfile }: ToolsProps) {
   const navigate = useNavigate();
@@ -173,23 +227,8 @@ export default function Tools({ onCreateProfile }: ToolsProps) {
 
             <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {TOOLS_DATA.map((tool) => (
-                <article key={tool.id} className="bg-[#07101b] border border-white/6 rounded-xl overflow-hidden">
-                  <div className="p-4 flex items-center gap-4">
-                    <div className="w-11 h-11 rounded-lg bg-[#0f172a] text-white font-bold flex items-center justify-center">{tool.avatar}</div>
-                    <div className="min-w-0">
-                      <h3 className="text-lg font-bold text-white truncate">{tool.name}</h3>
-                      <div className="text-sm text-cyan-300 mt-1">{tool.category}</div>
-                    </div>
-                  </div>
-                  <div className="p-4 border-t border-white/6 text-cyan-100">
-                    <p className="mb-3">{tool.description}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {tool.meta.map((item, idx) => (
-                        <span key={idx} className="px-3 py-1.5 bg-[#071826] border border-[#123044] rounded-md text-sm">{item.icon} {item.text}</span>
-                      ))}
-                    </div>
-                  </div>
-                </article>
+                // Replaced the original <article> tag with the new ToolCard component
+                <ToolCard key={tool.id} tool={tool} />
               ))}
             </div>
           </section>

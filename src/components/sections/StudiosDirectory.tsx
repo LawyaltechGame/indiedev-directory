@@ -136,7 +136,7 @@ export default function StudiosDirectory({ onCreateProfile }: StudiosDirectoryPr
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4">
               <button onClick={onCreateProfile} className="w-full sm:w-auto px-6 py-3 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold text-sm md:text-base">Create a Profile</button>
-              <a href="/studios_directory/resources" className="w-full sm:w-auto px-6 py-3 rounded-xl border border-white/8 text-cyan-100 text-sm md:text-base">Learn more</a>
+              {/* Commented out: <a href="/Home/WhyJoin" className="w-full sm:w-auto px-6 py-3 rounded-xl border border-white/8 text-cyan-100 text-sm md:text-base">Learn more</a> */}
             </div>
           </div>
 
@@ -150,59 +150,8 @@ export default function StudiosDirectory({ onCreateProfile }: StudiosDirectoryPr
             </ul>
           </div>
           
-          {/* Extra engagement content: stats, testimonials, trust badges, FAQ, extra CTA */}
-          <div className="max-w-6xl mx-auto mt-10 md:mt-14 px-4">
-            {/* Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4 mb-8">
-              <div className="p-3 md:p-4 rounded-lg bg-[#071622] border border-white/6 text-center">
-                <div className="text-2xl md:text-3xl font-extrabold text-white">1.2k+</div>
-                <div className="text-cyan-300 text-xs md:text-sm">Studios listed</div>
-              </div>
-              <div className="p-3 md:p-4 rounded-lg bg-[#071622] border border-white/6 text-center">
-                <div className="text-2xl md:text-3xl font-extrabold text-white">85%</div>
-                <div className="text-cyan-300 text-xs md:text-sm">Found partners within 6 months</div>
-              </div>
-              <div className="p-3 md:p-4 rounded-lg bg-[#071622] border border-white/6 text-center">
-                <div className="text-2xl md:text-3xl font-extrabold text-white">500k+</div>
-                <div className="text-cyan-300 text-xs md:text-sm">Monthly impressions</div>
-              </div>
-              <div className="p-3 md:p-4 rounded-lg bg-[#071622] border border-white/6 text-center">
-                <div className="text-2xl md:text-3xl font-extrabold text-white">Free</div>
-                <div className="text-cyan-300 text-xs md:text-sm">Basic listing stays free</div>
-              </div>
-            </div>
-
-            {/* Testimonials */}
-            <div className="mb-8 md:mb-10">
-              <h3 className="text-white font-bold text-xl md:text-2xl mb-4 text-center">What studios say</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-                <blockquote className="bg-[#071622] border border-white/6 rounded-xl p-4 text-cyan-200">
-                  <p className="text-white font-semibold mb-2 text-sm md:text-base">"Listing on StudioHub brought us our first publisher meeting—within 3 weeks."</p>
-                  <footer className="text-xs md:text-sm text-cyan-300">— Aurora Games, Helsinki</footer>
-                </blockquote>
-                <blockquote className="bg-[#071622] border border-white/6 rounded-xl p-4 text-cyan-200">
-                  <p className="text-white font-semibold mb-2 text-sm md:text-base">"We hired two contractors through StudioHub and shipped an update faster."</p>
-                  <footer className="text-xs md:text-sm text-cyan-300">— Bright Forge, Austin</footer>
-                </blockquote>
-                <blockquote className="bg-[#071622] border border-white/6 rounded-xl p-4 text-cyan-200">
-                  <p className="text-white font-semibold mb-2 text-sm md:text-base">"The tags and tools filters connected us with the exact talent we needed."</p>
-                  <footer className="text-xs md:text-sm text-cyan-300">— Velvet Fox, Lisbon</footer>
-                </blockquote>
-              </div>
-            </div>
-
-            {/* Trust badges / partners */}
-            <div className="mb-8 md:mb-10 text-center">
-              <h4 className="text-white font-bold mb-4 text-base md:text-lg">Trusted by</h4>
-              <div className="flex items-center justify-center gap-3 md:gap-6 flex-wrap">
-                <div className="px-3 md:px-4 py-2 rounded-lg bg-[#071622] border border-white/6 text-cyan-300 text-sm md:text-base">IndiePub</div>
-                <div className="px-3 md:px-4 py-2 rounded-lg bg-[#071622] border border-white/6 text-cyan-300 text-sm md:text-base">GameFund</div>
-                <div className="px-3 md:px-4 py-2 rounded-lg bg-[#071622] border border-white/6 text-cyan-300 text-sm md:text-base">PressKit</div>
-                <div className="px-3 md:px-4 py-2 rounded-lg bg-[#071622] border border-white/6 text-cyan-300 text-sm md:text-base">TalentPool</div>
-              </div>
-            </div>
-
-            {/* FAQ */}
+          <div className="max-w-4xl mx-auto mt-10 md:mt-14 px-4">
+            {/* FAQ section */}
             <div className="mb-10 md:mb-12 max-w-4xl mx-auto">
               <h3 className="text-white font-bold text-xl md:text-2xl mb-4 text-center">Frequently asked</h3>
               <div className="space-y-3">
@@ -221,13 +170,13 @@ export default function StudiosDirectory({ onCreateProfile }: StudiosDirectoryPr
               </div>
             </div>
 
-            {/* Final CTA */}
+            {/* Final CTA section */}
             <div className="bg-linear-to-b from-[#07101a]/10 to-[#061018]/10 border border-white/6 rounded-2xl p-6 md:p-8 text-center">
               <h3 className="text-xl md:text-2xl font-bold text-white mb-3">Ready to get discovered?</h3>
               <p className="text-cyan-300 mb-6 text-sm md:text-base">Create your StudioHub profile now, it only takes a few minutes and can unlock publishing, hiring, and partnership opportunities.</p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4">
                 <button onClick={onCreateProfile} className="w-full sm:w-auto px-6 py-3 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold text-sm md:text-base">Create my Profile</button>
-                <a href="/studios_directory/resources" className="w-full sm:w-auto px-6 py-3 rounded-xl border border-white/8 text-cyan-100 text-sm md:text-base">Browse resources</a>
+                {/* Commented out: <a href="/studios_directory/resources" className="w-full sm:w-auto px-6 py-3 rounded-xl border border-white/8 text-cyan-100 text-sm md:text-base">Browse resources</a> */}
               </div>
             </div>
           </div>
