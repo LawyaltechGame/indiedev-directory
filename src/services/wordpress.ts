@@ -1,59 +1,59 @@
 interface WordPressConfig {
-  baseUrl: string;
-  blogCategoryId?: number;
-  newsCategoryId?: number;
-  guidesCategoryId?: number;
-  toolsCategoryId?: number;
+  baseUrl: string;
+  blogCategoryId?: number;
+  newsCategoryId?: number;
+  guidesCategoryId?: number;
+  toolsCategoryId?: number;
 }
 
 // WordPress site configuration
 const config: WordPressConfig = {
-  baseUrl: 'https://test.lawyaltech.org/wp-json/wp/v2',
-  blogCategoryId: 1,
-  newsCategoryId: 130,
-  guidesCategoryId: 217,
-  toolsCategoryId: undefined, // Set this to your Tools category ID
+  baseUrl: 'https://test.lawyaltech.org/wp-json/wp/v2',
+  blogCategoryId: 1,
+  newsCategoryId: 130,
+  guidesCategoryId: 217,
+  toolsCategoryId: 287, 
 };
 
 export interface WordPressAuthor {
-  id: number;
-  name: string;
-  description: string;
-  avatar_urls: {
-    24: string;
-    48: string;
-    96: string;
-  };
-  link: string;
+  id: number;
+  name: string;
+  description: string;
+  avatar_urls: {
+    24: string;
+    48: string;
+    96: string;
+  };
+  link: string;
 }
 
 export interface WordPressPost {
-  id: number;
-  title: { rendered: string };
-  excerpt: { rendered: string };
-  content: { rendered: string };
-  date: string;
-  link: string;
-  author: number;
-  categories: number[];
-  featured_media?: number;
-  _embedded?: {
-    'wp:featuredmedia'?: Array<{
-      source_url: string;
-      alt_text: string;
-      media_details?: {
-        sizes?: {
-          full?: {
-            source_url: string;
-          };
-          large?: {
-            source_url: string;
-          };
-        };
-      };
-    }>;
-    author?: WordPressAuthor[];
-  };
+  id: number;
+  title: { rendered: string };
+  excerpt: { rendered: string };
+  content: { rendered: string };
+  date: string;
+  link: string;
+  author: number;
+  categories: number[];
+  featured_media?: number;
+  _embedded?: {
+    'wp:featuredmedia'?: Array<{
+      source_url: string;
+      alt_text: string;
+      media_details?: {
+        sizes?: {
+          full?: {
+            source_url: string;
+          };
+          large?: {
+            source_url: string;
+          };
+        };
+      };
+    }>;
+    author?: WordPressAuthor[];
+  };
 }
 
 /**
@@ -97,10 +97,10 @@ export async function fetchBlogs(page: number = 1, perPage: number = 10): Promis
 }
 
 /**
- * Fetch guides from WordPress
- * @param page - Page number for pagination (default: 1)
- * @param perPage - Number of posts per page (default: 10)
- */
+ * Fetch guides from WordPress
+ * @param page - Page number for pagination (default: 1)
+ * @param perPage - Number of posts per page (default: 10)
+ */
 export async function fetchGuides(page: number = 1, perPage: number = 10): Promise<WordPressPost[]> {
   if (!config.baseUrl) {
     console.warn('WordPress base URL not configured');
@@ -138,10 +138,10 @@ export async function fetchGuides(page: number = 1, perPage: number = 10): Promi
 }
 
 /**
- * Fetch news posts from WordPress
- * @param page - Page number for pagination (default: 1)
- * @param perPage - Number of posts per page (default: 10)
- */
+ * Fetch news posts from WordPress
+ * @param page - Page number for pagination (default: 1)
+ * @param perPage - Number of posts per page (default: 10)
+ */
 export async function fetchNews(page: number = 1, perPage: number = 10): Promise<WordPressPost[]> {
   if (!config.baseUrl) {
     console.warn('WordPress base URL not configured');
@@ -179,10 +179,10 @@ export async function fetchNews(page: number = 1, perPage: number = 10): Promise
 }
 
 /**
- * Fetch tools posts from WordPress
- * @param page - Page number for pagination (default: 1)
- * @param perPage - Number of posts per page (default: 10)
- */
+ * Fetch tools posts from WordPress
+ * @param page - Page number for pagination (default: 1)
+ * @param perPage - Number of posts per page (default: 10)
+ */
 export async function fetchTools(page: number = 1, perPage: number = 10): Promise<WordPressPost[]> {
   if (!config.baseUrl) {
     console.warn('WordPress base URL not configured');
@@ -222,16 +222,16 @@ export async function fetchTools(page: number = 1, perPage: number = 10): Promis
 }
 
 /**
- * Update WordPress configuration
- * Use this to set your WordPress site details
- */
+ * Update WordPress configuration
+ * Use this to set your WordPress site details
+ */
 export function configureWordPress(newConfig: Partial<WordPressConfig>) {
-  Object.assign(config, newConfig);
+  Object.assign(config, newConfig);
 }
 
 /**
- * Get current WordPress configuration
- */
+ * Get current WordPress configuration
+ */
 export function getWordPressConfig(): WordPressConfig {
   return { ...config };
 }

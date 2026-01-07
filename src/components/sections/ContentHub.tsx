@@ -181,7 +181,8 @@ export function ContentHub() {
         {/* Loading State */}
         {loading && (
           <>
-            {activeTab === 'blogs' || activeTab === 'tools' ? (
+            {/* Only use grid layout for blogs in loading state */}
+            {activeTab === 'blogs' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
                   <div
@@ -243,7 +244,8 @@ export function ContentHub() {
         {/* Content Grid/List */}
         {!loading && !error && posts.length > 0 && (
           <>
-            {activeTab === 'blogs' || activeTab === 'tools' ? (
+            {/* Only use grid layout for blogs */}
+            {activeTab === 'blogs' ? (
               // Blog Grid Layout
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {posts.map((post) => (
@@ -304,7 +306,7 @@ export function ContentHub() {
                 ))}
               </div>
             ) : (
-              // News List Layout
+              // List Layout (Used for News, Guides, and Tools)
               <div className="space-y-6">
                 {posts.map((post) => (
                   <article
@@ -330,8 +332,9 @@ export function ContentHub() {
 
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <span className="px-3 py-1 bg-cyan-500/20 text-cyan-300 text-xs font-bold rounded-full">
-                            NEWS
+                          <span className="px-3 py-1 bg-cyan-500/20 text-cyan-300 text-xs font-bold rounded-full uppercase">
+                            {/* Dynamically display the active tab label */}
+                            {activeTab}
                           </span>
                           <span className="text-xs text-cyan-300/60">
                             {new Date(post.date).toLocaleDateString('en-US', {
@@ -357,7 +360,7 @@ export function ContentHub() {
 
                         <div
                           className="text-sm text-cyan-200/70 mb-4 line-clamp-2"
-                          dangerouslySetInnerHTML={{ __html: post.excerpt.rendered }}
+                          dangeriouslySetInnerHTML={{ __html: post.excerpt.rendered }}
                         />
 
                         <div className="inline-flex items-center gap-2 text-cyan-300 hover:text-cyan-200 font-semibold transition-colors duration-200">
