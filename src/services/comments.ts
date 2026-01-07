@@ -14,10 +14,11 @@ export interface Comment {
   createdAt: string;
   updatedAt?: string;
   parentId?: string; // For nested replies
+  wpCommentId?: string; // WordPress comment ID for syncing
 }
 
 /**
- * Get all comments for a post
+ * Get all comments for a post (includes both Appwrite and synced WordPress comments)
  */
 export async function getComments(postId: string): Promise<Comment[]> {
   try {
@@ -150,5 +151,128 @@ export async function deleteComment(commentId: string): Promise<void> {
   } catch (error) {
     console.error('Error deleting comment:', error);
     throw error;
+  }
+}
+
+/**
+ * Delete a comment and all its replies recursively
+ */
+export async function deleteCommentAndReplies(commentId: string): Promise<void> {
+  try {
+    if (!DB_ID || !COMMENTS_COLLECTION_ID) {
+      throw new Error('Comments collection not configured');
+    }
+
+    // Get all replies to this comment
+    const replies = await getReplies(commentId);
+    
+    // Recursively delete all replies first
+    for (const reply of replies) {
+      await deleteCommentAndReplies(reply.$id);
+    }
+    
+    // Then delete the comment itself
+    await deleteComment(commentId);
+  } catch (error) {
+    console.error('Error deleting comment and replies:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all WordPress comments for a post from Appwrite
+ */
+export async function getWordPressCommentsFromAppwrite(postId: string): Promise<Comment[]> {
+  try {
+    if (!DB_ID || !COMMENTS_COLLECTION_ID) {
+      return [];
+    }
+
+    const response = await databases.listDocuments(DB_ID, COMMENTS_COLLECTION_ID, [
+      Query.equal('postId', postId),
+      Query.isNotNull('wpCommentId'), // Only get WordPress synced comments
+      Query.limit(500),
+    ]);
+
+    return response.documents as unknown as Comment[];
+  } catch (error: any) {
+    if (error?.code === 404 || error?.type === 'collection_not_found') {
+      return [];
+    }
+    console.error('Error getting WordPress comments from Appwrite:', error);
+    return [];
+  }
+}
+
+/**
+ * Sync WordPress comment to Appwrite (create if doesn't exist, update if exists)
+ */
+export async function syncWordPressComment(
+  wpCommentId: string,
+  postId: string,
+  userId: string,
+  userName: string,
+  content: string,
+  userAvatar?: string,
+  createdAt?: string,
+  parentId?: string
+): Promise<Comment | null> {
+  try {
+    if (!DB_ID || !COMMENTS_COLLECTION_ID) {
+      console.warn('Comments collection not configured');
+      return null;
+    }
+
+    // Check if WordPress comment already exists in Appwrite
+    const existingComments = await databases.listDocuments(DB_ID, COMMENTS_COLLECTION_ID, [
+      Query.equal('postId', postId),
+      Query.equal('wpCommentId', wpCommentId),
+      Query.limit(1),
+    ]);
+
+    const commentData: any = {
+      postId,
+      userId,
+      userName,
+      content,
+      wpCommentId, // Store WordPress comment ID for reference
+      createdAt: createdAt || new Date().toISOString(),
+    };
+
+    if (userAvatar) {
+      commentData.userAvatar = userAvatar;
+    }
+
+    if (parentId) {
+      commentData.parentId = parentId;
+    }
+
+    if (existingComments.documents.length > 0) {
+      // Update existing comment
+      const existing = existingComments.documents[0];
+      const updated = await databases.updateDocument(
+        DB_ID,
+        COMMENTS_COLLECTION_ID,
+        existing.$id,
+        commentData
+      );
+      return updated as unknown as Comment;
+    } else {
+      // Create new comment
+      const response = await databases.createDocument(
+        DB_ID,
+        COMMENTS_COLLECTION_ID,
+        ID.unique(),
+        commentData
+      );
+      return response as unknown as Comment;
+    }
+  } catch (error: any) {
+    if (error?.code === 404 || error?.type === 'collection_not_found') {
+      console.warn('Comments collection not found');
+      return null;
+    }
+    console.error('Error syncing WordPress comment:', error);
+    return null;
   }
 }

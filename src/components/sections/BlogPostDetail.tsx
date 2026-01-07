@@ -210,6 +210,7 @@ export function BlogPostDetail() {
             <CommentsSection
               postId={post.id.toString()}
               onAuthRequired={() => setShowAuthModal(true)}
+              isWordPressPost={true}
             />
           </div>
         </article>
