@@ -1,6 +1,3 @@
-// WordPress REST API Service
-// Configure your WordPress site URL and category IDs here
-
 interface WordPressConfig {
   baseUrl: string;
   blogCategoryId?: number;
@@ -60,46 +57,43 @@ export interface WordPressPost {
 }
 
 /**
- * Fetch blog posts from WordPress
- * @param page - Page number for pagination (default: 1)
- * @param perPage - Number of posts per page (default: 10)
- */
+ * @param page - Page number for pagination (default: 1)
+ * @param perPage - Number of posts per page (default: 10)
+ */
 export async function fetchBlogs(page: number = 1, perPage: number = 10): Promise<WordPressPost[]> {
-  if (!config.baseUrl) {
-    console.warn('WordPress base URL not configured');
-    return [];
-  }
+  if (!config.baseUrl) {
+    console.warn('WordPress base URL not configured');
+    return [];
+  }
 
-  try {
-    const params = new URLSearchParams({
-      _embed: 'true',
-      page: page.toString(),
-      per_page: perPage.toString(),
-    });
+  try {
+    const params = new URLSearchParams({
+      _embed: 'true',
+      page: page.toString(),
+      per_page: perPage.toString(),
+    });
 
-    if (config.blogCategoryId) {
-      params.append('categories', config.blogCategoryId.toString());
-    }
+    if (config.blogCategoryId) {
+      params.append('categories', config.blogCategoryId.toString());
+    }
 
-    const response = await fetch(`${config.baseUrl}/posts?${params.toString()}`);
-    
-    // If 400 error, it likely means no more posts (invalid page number)
-    if (response.status === 400) {
-      console.log('No more blog posts available');
-      return [];
-    }
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching blogs:', error);
-    // Return empty array instead of throwing to prevent infinite scroll errors
-    return [];
-  }
+    const response = await fetch(`${config.baseUrl}/posts?${params.toString()}`);
+    
+    if (response.status === 400) {
+      console.log('No more blog posts available');
+      return [];
+    }
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching blogs:', error);
+    return [];
+  }
 }
 
 /**
@@ -108,41 +102,39 @@ export async function fetchBlogs(page: number = 1, perPage: number = 10): Promis
  * @param perPage - Number of posts per page (default: 10)
  */
 export async function fetchGuides(page: number = 1, perPage: number = 10): Promise<WordPressPost[]> {
-  if (!config.baseUrl) {
-    console.warn('WordPress base URL not configured');
-    return [];
-  }
+  if (!config.baseUrl) {
+    console.warn('WordPress base URL not configured');
+    return [];
+  }
 
-  try {
-    const params = new URLSearchParams({
-      _embed: 'true',
-      page: page.toString(),
-      per_page: perPage.toString(),
-    });
+  try {
+    const params = new URLSearchParams({
+      _embed: 'true',
+      page: page.toString(),
+      per_page: perPage.toString(),
+    });
 
-    if (config.guidesCategoryId) {
-      params.append('categories', config.guidesCategoryId.toString());
-    }
+    if (config.guidesCategoryId) {
+      params.append('categories', config.guidesCategoryId.toString());
+    }
 
-    const response = await fetch(`${config.baseUrl}/posts?${params.toString()}`);
-    
-    // If 400 error, it likely means no more posts (invalid page number)
-    if (response.status === 400) {
-      console.log('No more guide posts available');
-      return [];
-    }
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching guides:', error);
-    // Return empty array instead of throwing to prevent infinite scroll errors
-    return [];
-  }
+    const response = await fetch(`${config.baseUrl}/posts?${params.toString()}`);
+    
+    if (response.status === 400) {
+      console.log('No more guide posts available');
+      return [];
+    }
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching guides:', error);
+    return [];
+  }
 }
 
 /**
@@ -151,41 +143,39 @@ export async function fetchGuides(page: number = 1, perPage: number = 10): Promi
  * @param perPage - Number of posts per page (default: 10)
  */
 export async function fetchNews(page: number = 1, perPage: number = 10): Promise<WordPressPost[]> {
-  if (!config.baseUrl) {
-    console.warn('WordPress base URL not configured');
-    return [];
-  }
+  if (!config.baseUrl) {
+    console.warn('WordPress base URL not configured');
+    return [];
+  }
 
-  try {
-    const params = new URLSearchParams({
-      _embed: 'true',
-      page: page.toString(),
-      per_page: perPage.toString(),
-    });
+  try {
+    const params = new URLSearchParams({
+      _embed: 'true',
+      page: page.toString(),
+      per_page: perPage.toString(),
+    });
 
-    if (config.newsCategoryId) {
-      params.append('categories', config.newsCategoryId.toString());
-    }
+    if (config.newsCategoryId) {
+      params.append('categories', config.newsCategoryId.toString());
+    }
 
-    const response = await fetch(`${config.baseUrl}/posts?${params.toString()}`);
-    
-    // If 400 error, it likely means no more posts (invalid page number)
-    if (response.status === 400) {
-      console.log('No more news posts available');
-      return [];
-    }
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching news:', error);
-    // Return empty array instead of throwing to prevent infinite scroll errors
-    return [];
-  }
+    const response = await fetch(`${config.baseUrl}/posts?${params.toString()}`);
+    
+    if (response.status === 400) {
+      console.log('No more news posts available');
+      return [];
+    }
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching news:', error);
+    return [];
+  }
 }
 
 /**
@@ -194,42 +184,41 @@ export async function fetchNews(page: number = 1, perPage: number = 10): Promise
  * @param perPage - Number of posts per page (default: 10)
  */
 export async function fetchTools(page: number = 1, perPage: number = 10): Promise<WordPressPost[]> {
-  if (!config.baseUrl) {
-    console.warn('WordPress base URL not configured');
-    return [];
-  }
+  if (!config.baseUrl) {
+    console.warn('WordPress base URL not configured');
+    return [];
+  }
 
-  try {
-    const params = new URLSearchParams({
-      _embed: 'true',
-      page: page.toString(),
-      per_page: perPage.toString(),
-    });
+  // If toolsCategoryId is not set, return empty array
+  if (!config.toolsCategoryId) {
+    return [];
+  }
 
-    // This ensures only 'Tools' articles are fetched if the category ID is configured.
-    if (config.toolsCategoryId) {
-      params.append('categories', config.toolsCategoryId.toString());
-    }
+  try {
+    const params = new URLSearchParams({
+      _embed: 'true',
+      page: page.toString(),
+      per_page: perPage.toString(),
+      categories: config.toolsCategoryId.toString(),
+    });
 
-    const response = await fetch(`${config.baseUrl}/posts?${params.toString()}`);
-    
-    // If 400 error, it likely means no more posts (invalid page number)
-    if (response.status === 400) {
-      console.log('No more tools posts available');
-      return [];
-    }
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching tools:', error);
-    // Return empty array instead of throwing to prevent infinite scroll errors
-    return [];
-  }
+    const response = await fetch(`${config.baseUrl}/posts?${params.toString()}`);
+    
+    if (response.status === 400) {
+      console.log('No more tools posts available');
+      return [];
+    }
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching tools:', error);
+    return [];
+  }
 }
 
 /**
@@ -244,5 +233,59 @@ export function configureWordPress(newConfig: Partial<WordPressConfig>) {
  * Get current WordPress configuration
  */
 export function getWordPressConfig(): WordPressConfig {
-  return { ...config };
+  return { ...config };
+}
+
+export interface WordPressComment {
+  id: number;
+  post: number;
+  parent: number;
+  author: number;
+  author_name: string;
+  author_url: string;
+  date: string;
+  date_gmt: string;
+  content: {
+    rendered: string;
+  };
+  link: string;
+  status: string;
+  type: string;
+  author_avatar_urls: {
+    24: string;
+    48: string;
+    96: string;
+  };
+}
+
+/**
+ * Fetch comments for a WordPress post
+ * @param postId - WordPress post ID
+ */
+export async function fetchWordPressComments(postId: number): Promise<WordPressComment[]> {
+  if (!config.baseUrl) {
+    console.warn('WordPress base URL not configured');
+    return [];
+  }
+
+  try {
+    const params = new URLSearchParams({
+      post: postId.toString(),
+      per_page: '100',
+      orderby: 'date',
+      order: 'desc',
+    });
+
+    const response = await fetch(`${config.baseUrl}/comments?${params.toString()}`);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data.filter((comment: WordPressComment) => comment.status === 'approved');
+  } catch (error) {
+    console.error('Error fetching WordPress comments:', error);
+    return [];
+  }
 }
