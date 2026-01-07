@@ -360,7 +360,7 @@ export function ContentHub() {
 
                         <div
                           className="text-sm text-cyan-200/70 mb-4 line-clamp-2"
-                          dangeriouslySetInnerHTML={{ __html: post.excerpt.rendered }}
+                          dangerouslySetInnerHTML={{ __html: post.excerpt.rendered }}
                         />
 
                         <div className="inline-flex items-center gap-2 text-cyan-300 hover:text-cyan-200 font-semibold transition-colors duration-200">

@@ -1,4 +1,4 @@
-import type { FormData, ProfileStep, Project, Recognition, SocialLinks } from '../../types';
+import type { FormData, ProfileStep } from '../../types';
 import { 
   GENRES, PLATFORMS, TEAM_SIZES, LOCATIONS, TOOLS, REVENUE_MODELS, TAGS,
   STUDIO_TYPES, TARGET_AUDIENCES, PRIMARY_EXPERTISE, GAME_ENGINES,
@@ -6,7 +6,6 @@ import {
   FUNDING_TYPES, LOOKING_FOR_OPTIONS, DISTRIBUTION_CHANNELS, RECOGNITION_TYPES,
   LANGUAGES, REGIONS_SERVED
 } from '../../constants';
-import { useState } from 'react';
 
 interface ProfileModalProps {
   showProfileModal: boolean;

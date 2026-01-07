@@ -62,9 +62,6 @@ export function CommentsSection({ postId, onAuthRequired, isWordPressPost = fals
           
           // Get all WordPress comments currently in Appwrite
           const existingWpCommentsInAppwrite = await getWordPressCommentsFromAppwrite(postId);
-          const existingWpCommentIds = new Set(
-            existingWpCommentsInAppwrite.map(c => c.wpCommentId).filter(Boolean)
-          );
           
           // Get all WordPress comment IDs that are currently approved
           const currentWpCommentIds = new Set(
