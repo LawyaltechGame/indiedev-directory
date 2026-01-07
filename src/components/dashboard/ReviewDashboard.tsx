@@ -7,18 +7,52 @@ import { Button } from '../ui/Button';
 interface Profile {
   $id: string;
   userId: string;
-  name: string;
-  tagline: string;
-  genre: string;
-  platform: string;
-  teamSize: string;
-  location: string;
+  name?: string;
+  tagline?: string;
+  genre?: string;
+  platform?: string;
+  teamSize?: string;
+  location?: string;
   description?: string;
   website?: string;
-  email: string;
+  email?: string;
   status: string;
   createdAt: string;
   createdByTeam?: boolean;
+  profileData?: any; // Full profile data
+  // Extended fields
+  studioType?: string;
+  headquartersCountry?: string;
+  city?: string;
+  languagesSupported?: string[];
+  regionsServed?: string[];
+  founders?: string[];
+  parentCompany?: string;
+  acquisitionStatus?: string;
+  acquiredBy?: string;
+  targetAudience?: string;
+  primaryExpertise?: string[];
+  gameEngines?: string[];
+  supportedPlatforms?: string[];
+  deploymentType?: string;
+  projects?: any[];
+  lookingFor?: string[];
+  openToPublishingDeals?: boolean;
+  publisherPartners?: string;
+  fundingType?: string;
+  latestFundingRound?: string;
+  totalFunding?: string;
+  distributionChannels?: string[];
+  storeLinks?: string[];
+  publicContactEmail?: string;
+  socialLinks?: any;
+  recognitions?: any[];
+  trailerVideoUrl?: string;
+  gameplayVideoUrl?: string;
+  tools?: string[];
+  tags?: string[];
+  revenue?: string;
+  foundedYear?: string;
 }
 
 interface ReviewDashboardProps {
@@ -39,6 +73,7 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
   const [sendingReject, setSendingReject] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [selectedProfileForDetails, setSelectedProfileForDetails] = useState<Profile | null>(null);
 
   const DB_ID = import.meta.env.VITE_APPWRITE_DATABASE_ID as string;
   const PROFILE_TABLE_ID = import.meta.env.VITE_APPWRITE_PROFILE_TABLE_ID as string;
@@ -53,7 +88,22 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
     try {
       setLoading(true);
       const data = await getAllProfiles(DB_ID, PROFILE_TABLE_ID);
-      setProfiles(data as any);
+      console.log('Fetched profiles:', data); // Debug log
+      // Ensure profiles are properly parsed
+      const parsedProfiles = Array.isArray(data) ? data.map((p: any) => {
+        // Double-check parsing if needed
+        if (p.profileData && typeof p.profileData === 'string') {
+          try {
+            const parsed = JSON.parse(p.profileData);
+            return { ...p, ...parsed, profileData: parsed };
+          } catch (e) {
+            console.error('Error parsing profile in ReviewDashboard:', e);
+            return p;
+          }
+        }
+        return p;
+      }) : [];
+      setProfiles(parsedProfiles as any);
     } catch (error) {
       console.error('Error fetching profiles:', error);
       alert('Failed to load profiles. Please check your database configuration.');
@@ -70,7 +120,22 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
         try {
           setLoading(true);
           const data = await getAllProfiles(DB_ID, PROFILE_TABLE_ID);
-          setProfiles(data as any);
+          console.log('Fetched profiles:', data); // Debug log
+          // Ensure profiles are properly parsed
+          const parsedProfiles = Array.isArray(data) ? data.map((p: any) => {
+            // Double-check parsing if needed
+            if (p.profileData && typeof p.profileData === 'string') {
+              try {
+                const parsed = JSON.parse(p.profileData);
+                return { ...p, ...parsed, profileData: parsed };
+              } catch (e) {
+                console.error('Error parsing profile in ReviewDashboard:', e);
+                return p;
+              }
+            }
+            return p;
+          }) : [];
+          setProfiles(parsedProfiles as any);
         } catch (error) {
           console.error('Error fetching profiles:', error);
           alert('Failed to load profiles. Please check your database configuration.');
@@ -138,7 +203,7 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
       // Send approval email only if profile was NOT created by team
       if (status === 'approved') {
         const profile = profiles.find(p => p.$id === documentId);
-        if (profile && !profile.createdByTeam) {
+        if (profile && !profile.createdByTeam && profile.email && profile.name) {
           await sendApprovalEmail({
             email: profile.email,
             name: profile.name
@@ -200,7 +265,7 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
       
       // Then send notification email (we'll implement this logic here)
       const profile = profiles.find(p => p.$id === documentId);
-      if (profile) {
+      if (profile && profile.email && profile.name) {
         // Send email using FormSubmit
         await sendRejectionEmail({
           email: profile.email, // Using profile email for now
@@ -439,8 +504,10 @@ The Game Centralen Team`);
                   <div className="flex-1">
                     <div className="flex items-start justify-between mb-4">
                       <div>
-                        <h3 className="text-2xl font-bold mb-1">{profile.name}</h3>
-                        <p className="text-cyan-200 mb-3">{profile.tagline}</p>
+                        <h3 className="text-2xl font-bold mb-1">{profile.name || 'Unnamed Studio'}</h3>
+                        {profile.tagline && (
+                          <p className="text-cyan-200 mb-3">{profile.tagline}</p>
+                        )}
                       </div>
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-bold ${
@@ -458,19 +525,19 @@ The Game Centralen Team`);
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                       <div className="bg-[rgba(0,229,255,0.08)] border border-cyan-500/15 rounded-lg p-3">
                         <span className="text-cyan-400 text-xs font-semibold block mb-1">Genre</span>
-                        <span className="font-semibold text-white">{profile.genre}</span>
+                        <span className="font-semibold text-white">{profile.genre || 'N/A'}</span>
                       </div>
                       <div className="bg-[rgba(0,229,255,0.08)] border border-cyan-500/15 rounded-lg p-3">
                         <span className="text-cyan-400 text-xs font-semibold block mb-1">Platform</span>
-                        <span className="font-semibold text-white">{profile.platform}</span>
+                        <span className="font-semibold text-white">{profile.platform || 'N/A'}</span>
                       </div>
                       <div className="bg-[rgba(0,229,255,0.08)] border border-cyan-500/15 rounded-lg p-3">
                         <span className="text-cyan-400 text-xs font-semibold block mb-1">Team Size</span>
-                        <span className="font-semibold text-white">{profile.teamSize}</span>
+                        <span className="font-semibold text-white">{profile.teamSize || 'N/A'}</span>
                       </div>
                       <div className="bg-[rgba(0,229,255,0.08)] border border-cyan-500/15 rounded-lg p-3">
                         <span className="text-cyan-400 text-xs font-semibold block mb-1">Location</span>
-                        <span className="font-semibold text-white">{profile.location}</span>
+                        <span className="font-semibold text-white">{profile.location || 'N/A'}</span>
                       </div>
                     </div>
 
@@ -481,19 +548,19 @@ The Game Centralen Team`);
                       </div>
                     )}
 
-                    <div className="flex flex-wrap gap-4 text-sm">
+                    <div className="flex flex-wrap gap-4 text-sm mb-4">
                       <div>
                         <span className="text-cyan-400">Email: </span>
-                        <span className="text-white">{profile.email}</span>
+                        <span className="text-white">{profile.email || 'N/A'}</span>
                       </div>
                       {profile.website && (
                         <div>
                           <span className="text-cyan-400">Website: </span>
                           <a
-                            href={profile.website}
+                            href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-cyan-300 hover:text-cyan-100"
+                            className="text-cyan-300 hover:text-cyan-100 underline"
                           >
                             {profile.website}
                           </a>
@@ -501,9 +568,27 @@ The Game Centralen Team`);
                       )}
                       <div>
                         <span className="text-cyan-400">Submitted: </span>
-                        <span className="text-white">{profile.createdAt}</span>
+                        <span className="text-white">
+                          {profile.createdAt 
+                            ? new Date(profile.createdAt).toLocaleString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: true
+                              })
+                            : 'N/A'}
+                        </span>
                       </div>
                     </div>
+                    
+                    <button
+                      onClick={() => setSelectedProfileForDetails(profile)}
+                      className="px-4 py-2 bg-cyan-500/20 text-cyan-300 rounded-lg hover:bg-cyan-500/30 border border-cyan-500/30 transition-all duration-200 text-sm font-semibold"
+                    >
+                      📋 View Full Details
+                    </button>
                   </div>
 
                   {/* Right: Actions */}
@@ -650,6 +735,586 @@ The Game Centralen Team`);
           onSubmit={handleCreateProfile}
           loading={creating}
         />
+      )}
+
+      {/* Full Details Modal */}
+      {selectedProfileForDetails && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-[rgba(20,28,42,0.95)] backdrop-blur-[20px] border border-white/8 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-[0_25px_50px_rgba(0,0,0,0.5)] relative">
+            <button
+              onClick={() => setSelectedProfileForDetails(null)}
+              className="absolute top-4 right-4 bg-white/10 border-0 text-white w-8 h-8 rounded-lg cursor-pointer text-xl transition-all duration-200 hover:bg-white/20"
+            >
+              ✕
+            </button>
+
+            <div className="p-6 md:p-8">
+              <h2 className="text-3xl font-bold mb-2 bg-linear-to-r from-cyan-100 to-cyan-300 bg-clip-text text-transparent">
+                {selectedProfileForDetails.name || 'Studio Profile'}
+              </h2>
+              {selectedProfileForDetails.tagline && (
+                <p className="text-cyan-200 mb-6">{selectedProfileForDetails.tagline}</p>
+              )}
+
+              <div className="space-y-6">
+                {/* Basic Information */}
+                <div className="border-b border-white/10 pb-4">
+                  <h3 className="text-xl font-bold text-cyan-300 mb-4">Basic Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Studio Name</span>
+                      <p className="text-white">{selectedProfileForDetails.name || <span className="text-gray-400 italic">Not provided</span>}</p>
+                    </div>
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Tagline</span>
+                      <p className="text-white">{selectedProfileForDetails.tagline || <span className="text-gray-400 italic">Not provided</span>}</p>
+                    </div>
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Genre</span>
+                      <p className="text-white">{selectedProfileForDetails.genre || <span className="text-gray-400 italic">Not provided</span>}</p>
+                    </div>
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Platform</span>
+                      <p className="text-white">{selectedProfileForDetails.platform || <span className="text-gray-400 italic">Not provided</span>}</p>
+                    </div>
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Team Size</span>
+                      <p className="text-white">{selectedProfileForDetails.teamSize || <span className="text-gray-400 italic">Not provided</span>}</p>
+                    </div>
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Location</span>
+                      <p className="text-white">{selectedProfileForDetails.location || <span className="text-gray-400 italic">Not provided</span>}</p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <span className="text-cyan-400 text-sm font-semibold">Description</span>
+                      <p className="text-white mt-1">
+                        {selectedProfileForDetails.description || <span className="text-gray-400 italic">Not provided</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Website</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.website ? (
+                          <a 
+                            href={selectedProfileForDetails.website.startsWith('http') ? selectedProfileForDetails.website : `https://${selectedProfileForDetails.website}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="text-cyan-300 hover:text-cyan-100 underline"
+                          >
+                            {selectedProfileForDetails.website}
+                          </a>
+                        ) : (
+                          <span className="text-gray-400 italic">Not provided</span>
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Email</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.email ? (
+                          <a 
+                            href={`mailto:${selectedProfileForDetails.email}`} 
+                            className="text-cyan-300 hover:text-cyan-100 underline"
+                          >
+                            {selectedProfileForDetails.email}
+                          </a>
+                        ) : (
+                          <span className="text-gray-400 italic">Not provided</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Studio Details */}
+                <div className="border-b border-white/10 pb-4">
+                  <h3 className="text-xl font-bold text-cyan-300 mb-4">Studio Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Studio Type</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.studioType && selectedProfileForDetails.studioType !== '' 
+                          ? selectedProfileForDetails.studioType 
+                          : <span className="text-gray-400 italic">Not provided</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Year Founded</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.foundedYear || <span className="text-gray-400 italic">Not provided</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Headquarters Country</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.headquartersCountry || <span className="text-gray-400 italic">Not provided</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">City</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.city || <span className="text-gray-400 italic">Not provided</span>}
+                      </p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <span className="text-cyan-400 text-sm font-semibold">Languages Supported</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.languagesSupported && selectedProfileForDetails.languagesSupported.length > 0 
+                          ? selectedProfileForDetails.languagesSupported.join(', ') 
+                          : <span className="text-gray-400 italic">Not provided</span>}
+                      </p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <span className="text-cyan-400 text-sm font-semibold">Regions Served</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.regionsServed && selectedProfileForDetails.regionsServed.length > 0 
+                          ? selectedProfileForDetails.regionsServed.join(', ') 
+                          : <span className="text-gray-400 italic">Not provided</span>}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ownership & Identity */}
+                <div className="border-b border-white/10 pb-4">
+                  <h3 className="text-xl font-bold text-cyan-300 mb-4">Ownership & Identity</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Founder(s)</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.founders && selectedProfileForDetails.founders.length > 0 
+                          ? selectedProfileForDetails.founders.join(', ') 
+                          : <span className="text-gray-400 italic">Not provided</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Parent Company</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.parentCompany || <span className="text-gray-400 italic">Not provided</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Acquisition Status</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.acquisitionStatus && selectedProfileForDetails.acquisitionStatus !== '' 
+                          ? selectedProfileForDetails.acquisitionStatus 
+                          : <span className="text-gray-400 italic">Not provided</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Acquired By</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.acquiredBy || <span className="text-gray-400 italic">Not provided</span>}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Team & Capabilities */}
+                <div className="border-b border-white/10 pb-4">
+                  <h3 className="text-xl font-bold text-cyan-300 mb-4">Team & Capabilities</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Target Audience</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.targetAudience && selectedProfileForDetails.targetAudience !== '' 
+                          ? selectedProfileForDetails.targetAudience 
+                          : <span className="text-gray-400 italic">Not provided</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Primary Expertise</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.primaryExpertise && selectedProfileForDetails.primaryExpertise.length > 0 
+                          ? selectedProfileForDetails.primaryExpertise.join(', ') 
+                          : <span className="text-gray-400 italic">Not provided</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Game Engines</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.gameEngines && selectedProfileForDetails.gameEngines.length > 0 
+                          ? selectedProfileForDetails.gameEngines.join(', ') 
+                          : <span className="text-gray-400 italic">Not provided</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Deployment Type</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.deploymentType && selectedProfileForDetails.deploymentType !== '' 
+                          ? selectedProfileForDetails.deploymentType 
+                          : <span className="text-gray-400 italic">Not provided</span>}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Platforms & Technology */}
+                <div className="border-b border-white/10 pb-4">
+                  <h3 className="text-xl font-bold text-cyan-300 mb-4">Platforms & Technology</h3>
+                  <div>
+                    <span className="text-cyan-400 text-sm font-semibold">Supported Platforms</span>
+                    <p className="text-white">
+                      {selectedProfileForDetails.supportedPlatforms && selectedProfileForDetails.supportedPlatforms.length > 0 
+                        ? selectedProfileForDetails.supportedPlatforms.join(', ') 
+                        : <span className="text-gray-400 italic">Not provided</span>}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Projects */}
+                <div className="border-b border-white/10 pb-4">
+                  <h3 className="text-xl font-bold text-cyan-300 mb-4">Projects / Portfolio</h3>
+                  {selectedProfileForDetails.projects && selectedProfileForDetails.projects.length > 0 ? (
+                    <div className="space-y-4">
+                      {selectedProfileForDetails.projects.map((project: any, index: number) => (
+                        <div key={index} className="bg-[rgba(0,229,255,0.08)] border border-cyan-500/15 rounded-lg p-4">
+                          <h4 className="font-bold text-white mb-2">{project.gameTitle || 'Untitled Project'}</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <span className="text-cyan-400">Status: </span>
+                              <span className="text-white">{project.projectStatus || 'N/A'}</span>
+                            </div>
+                            {project.platforms && project.platforms.length > 0 && (
+                              <div>
+                                <span className="text-cyan-400">Platforms: </span>
+                                <span className="text-white">{Array.isArray(project.platforms) ? project.platforms.join(', ') : project.platforms}</span>
+                              </div>
+                            )}
+                            {project.projectPageUrl && (
+                              <div className="md:col-span-2">
+                                <span className="text-cyan-400">Project Page URL: </span>
+                                <a 
+                                  href={project.projectPageUrl.startsWith('http') ? project.projectPageUrl : `https://${project.projectPageUrl}`} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="text-cyan-300 hover:text-cyan-100 underline"
+                                >
+                                  {project.projectPageUrl}
+                                </a>
+                              </div>
+                            )}
+                            {project.shortDescription && (
+                              <div className="md:col-span-2">
+                                <span className="text-cyan-400">Description: </span>
+                                <span className="text-white">{project.shortDescription}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-400 italic">No projects provided</p>
+                  )}
+                </div>
+
+                {/* Business & Collaboration */}
+                <div className="border-b border-white/10 pb-4">
+                  <h3 className="text-xl font-bold text-cyan-300 mb-4">Business & Collaboration</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Looking For</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.lookingFor && selectedProfileForDetails.lookingFor.length > 0 
+                          ? selectedProfileForDetails.lookingFor.join(', ') 
+                          : <span className="text-gray-400 italic">Not provided</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Open to Publishing Deals</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.openToPublishingDeals !== undefined 
+                          ? (selectedProfileForDetails.openToPublishingDeals ? 'Yes' : 'No')
+                          : <span className="text-gray-400 italic">Not provided</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Publisher / Partners</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.publisherPartners 
+                          ? selectedProfileForDetails.publisherPartners 
+                          : <span className="text-gray-400 italic">Not provided</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Funding Type</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.fundingType && selectedProfileForDetails.fundingType !== '' 
+                          ? selectedProfileForDetails.fundingType 
+                          : <span className="text-gray-400 italic">Not provided</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Latest Funding Round</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.latestFundingRound 
+                          ? selectedProfileForDetails.latestFundingRound 
+                          : <span className="text-gray-400 italic">Not provided</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Total Funding</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.totalFunding 
+                          ? selectedProfileForDetails.totalFunding 
+                          : <span className="text-gray-400 italic">Not provided</span>}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Distribution & Stores */}
+                <div className="border-b border-white/10 pb-4">
+                  <h3 className="text-xl font-bold text-cyan-300 mb-4">Distribution & Stores</h3>
+                  {selectedProfileForDetails.distributionChannels && selectedProfileForDetails.distributionChannels.length > 0 ? (
+                    <div className="mb-4">
+                      <span className="text-cyan-400 text-sm font-semibold">Distribution Channels</span>
+                      <p className="text-white">{selectedProfileForDetails.distributionChannels.join(', ')}</p>
+                    </div>
+                  ) : (
+                    <div className="mb-4">
+                      <span className="text-cyan-400 text-sm font-semibold">Distribution Channels</span>
+                      <p className="text-gray-400 italic">Not provided</p>
+                    </div>
+                  )}
+                  {selectedProfileForDetails.storeLinks && selectedProfileForDetails.storeLinks.length > 0 ? (
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Store Links</span>
+                      <div className="space-y-1 mt-1">
+                        {selectedProfileForDetails.storeLinks.map((link: string, index: number) => (
+                          <a 
+                            key={index} 
+                            href={link && link.startsWith('http') ? link : `https://${link}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="block text-cyan-300 hover:text-cyan-100 text-sm underline"
+                          >
+                            {link}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Store Links</span>
+                      <p className="text-gray-400 italic mt-1">Not provided</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Contact & Community */}
+                <div className="border-b border-white/10 pb-4">
+                  <h3 className="text-xl font-bold text-cyan-300 mb-4">Contact & Community</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Public Contact Email</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.publicContactEmail ? (
+                          <a 
+                            href={`mailto:${selectedProfileForDetails.publicContactEmail}`} 
+                            className="text-cyan-300 hover:text-cyan-100 underline"
+                          >
+                            {selectedProfileForDetails.publicContactEmail}
+                          </a>
+                        ) : (
+                          <span className="text-gray-400 italic">Not provided</span>
+                        )}
+                      </p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <span className="text-cyan-400 text-sm font-semibold">Social Links</span>
+                      {selectedProfileForDetails.socialLinks && typeof selectedProfileForDetails.socialLinks === 'object' && 
+                       (selectedProfileForDetails.socialLinks.twitter || selectedProfileForDetails.socialLinks.youtube || 
+                        selectedProfileForDetails.socialLinks.instagram || selectedProfileForDetails.socialLinks.facebook || 
+                        selectedProfileForDetails.socialLinks.discord || selectedProfileForDetails.socialLinks.linkedin) ? (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+                          {selectedProfileForDetails.socialLinks.twitter && (
+                            <a 
+                              href={selectedProfileForDetails.socialLinks.twitter.startsWith('http') ? selectedProfileForDetails.socialLinks.twitter : `https://${selectedProfileForDetails.socialLinks.twitter}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-cyan-300 hover:text-cyan-100 text-sm underline"
+                            >
+                              Twitter/X
+                            </a>
+                          )}
+                          {selectedProfileForDetails.socialLinks.youtube && (
+                            <a 
+                              href={selectedProfileForDetails.socialLinks.youtube.startsWith('http') ? selectedProfileForDetails.socialLinks.youtube : `https://${selectedProfileForDetails.socialLinks.youtube}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-cyan-300 hover:text-cyan-100 text-sm underline"
+                            >
+                              YouTube
+                            </a>
+                          )}
+                          {selectedProfileForDetails.socialLinks.instagram && (
+                            <a 
+                              href={selectedProfileForDetails.socialLinks.instagram.startsWith('http') ? selectedProfileForDetails.socialLinks.instagram : `https://${selectedProfileForDetails.socialLinks.instagram}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-cyan-300 hover:text-cyan-100 text-sm underline"
+                            >
+                              Instagram
+                            </a>
+                          )}
+                          {selectedProfileForDetails.socialLinks.facebook && (
+                            <a 
+                              href={selectedProfileForDetails.socialLinks.facebook.startsWith('http') ? selectedProfileForDetails.socialLinks.facebook : `https://${selectedProfileForDetails.socialLinks.facebook}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-cyan-300 hover:text-cyan-100 text-sm underline"
+                            >
+                              Facebook
+                            </a>
+                          )}
+                          {selectedProfileForDetails.socialLinks.discord && (
+                            <a 
+                              href={selectedProfileForDetails.socialLinks.discord.startsWith('http') ? selectedProfileForDetails.socialLinks.discord : `https://${selectedProfileForDetails.socialLinks.discord}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-cyan-300 hover:text-cyan-100 text-sm underline"
+                            >
+                              Discord
+                            </a>
+                          )}
+                          {selectedProfileForDetails.socialLinks.linkedin && (
+                            <a 
+                              href={selectedProfileForDetails.socialLinks.linkedin.startsWith('http') ? selectedProfileForDetails.socialLinks.linkedin : `https://${selectedProfileForDetails.socialLinks.linkedin}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-cyan-300 hover:text-cyan-100 text-sm underline"
+                            >
+                              LinkedIn
+                            </a>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-gray-400 italic mt-2">Not provided</p>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Trailer Video</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.trailerVideoUrl ? (
+                          <a 
+                            href={selectedProfileForDetails.trailerVideoUrl.startsWith('http') ? selectedProfileForDetails.trailerVideoUrl : `https://${selectedProfileForDetails.trailerVideoUrl}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="text-cyan-300 hover:text-cyan-100 underline"
+                          >
+                            {selectedProfileForDetails.trailerVideoUrl}
+                          </a>
+                        ) : (
+                          <span className="text-gray-400 italic">Not provided</span>
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Gameplay Video</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.gameplayVideoUrl ? (
+                          <a 
+                            href={selectedProfileForDetails.gameplayVideoUrl.startsWith('http') ? selectedProfileForDetails.gameplayVideoUrl : `https://${selectedProfileForDetails.gameplayVideoUrl}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="text-cyan-300 hover:text-cyan-100 underline"
+                          >
+                            {selectedProfileForDetails.gameplayVideoUrl}
+                          </a>
+                        ) : (
+                          <span className="text-gray-400 italic">Not provided</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recognition & Press */}
+                <div className="border-b border-white/10 pb-4">
+                  <h3 className="text-xl font-bold text-cyan-300 mb-4">Recognition & Press</h3>
+                  {selectedProfileForDetails.recognitions && selectedProfileForDetails.recognitions.length > 0 ? (
+                    <div className="space-y-4">
+                      {selectedProfileForDetails.recognitions.map((recognition: any, index: number) => (
+                        <div key={index} className="bg-[rgba(0,229,255,0.08)] border border-cyan-500/15 rounded-lg p-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                            <div>
+                              <span className="text-cyan-400">Type: </span>
+                              <span className="text-white">{recognition.recognitionType || 'N/A'}</span>
+                            </div>
+                            <div>
+                              <span className="text-cyan-400">Year: </span>
+                              <span className="text-white">{recognition.year || 'N/A'}</span>
+                            </div>
+                            <div className="md:col-span-2">
+                              <span className="text-cyan-400">Title: </span>
+                              <span className="text-white font-semibold">{recognition.title || 'N/A'}</span>
+                            </div>
+                            {recognition.source && (
+                              <div>
+                                <span className="text-cyan-400">Source: </span>
+                                <span className="text-white">{recognition.source}</span>
+                              </div>
+                            )}
+                            {recognition.description && (
+                              <div className="md:col-span-2">
+                                <span className="text-cyan-400">Description: </span>
+                                <span className="text-white">{recognition.description}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-400 italic">No recognitions or awards provided</p>
+                  )}
+                </div>
+
+                {/* Tools & Tags */}
+                <div className="border-b border-white/10 pb-4">
+                  <h3 className="text-xl font-bold text-cyan-300 mb-4">Additional Info</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Tools</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.tools && selectedProfileForDetails.tools.length > 0 
+                          ? (Array.isArray(selectedProfileForDetails.tools) ? selectedProfileForDetails.tools.join(', ') : selectedProfileForDetails.tools)
+                          : <span className="text-gray-400 italic">Not provided</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Tags</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.tags && selectedProfileForDetails.tags.length > 0 
+                          ? (Array.isArray(selectedProfileForDetails.tags) ? selectedProfileForDetails.tags.join(', ') : selectedProfileForDetails.tags)
+                          : <span className="text-gray-400 italic">Not provided</span>}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-cyan-400 text-sm font-semibold">Revenue Model</span>
+                      <p className="text-white">
+                        {selectedProfileForDetails.revenue && selectedProfileForDetails.revenue !== '' 
+                          ? selectedProfileForDetails.revenue 
+                          : <span className="text-gray-400 italic">Not provided</span>}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => setSelectedProfileForDetails(null)}
+                  className="px-6 py-2 bg-cyan-500/20 text-cyan-300 rounded-lg hover:bg-cyan-500/30 border border-cyan-500/30 transition-all duration-200"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

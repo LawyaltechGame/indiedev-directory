@@ -59,6 +59,35 @@ function AppContent() {
     tools: [],
     revenue: '',
     foundedYear: '',
+    // New fields with defaults
+    studioType: undefined,
+    headquartersCountry: '',
+    city: '',
+    languagesSupported: [],
+    regionsServed: [],
+    founders: [],
+    parentCompany: '',
+    acquisitionStatus: undefined,
+    acquiredBy: '',
+    targetAudience: undefined,
+    primaryExpertise: [],
+    gameEngines: [],
+    supportedPlatforms: [],
+    deploymentType: undefined,
+    projects: [],
+    lookingFor: [],
+    openToPublishingDeals: undefined,
+    publisherPartners: '',
+    fundingType: undefined,
+    latestFundingRound: '',
+    totalFunding: '',
+    distributionChannels: [],
+    storeLinks: [],
+    publicContactEmail: '',
+    socialLinks: {},
+    recognitions: [],
+    trailerVideoUrl: '',
+    gameplayVideoUrl: '',
   });
   const [submittedProfile, setSubmittedProfile] = useState<FormData | null>(null);
   const [emailStatus, setEmailStatus] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle');
@@ -134,30 +163,38 @@ function AppContent() {
     }
   }, []);
 
-  const handleFormChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const target = e.target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
-    const name = target.name;
+  const handleFormChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement> | { target: { name: string; value: any } }) => {
+    const target = e.target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | { name: string; value: any };
+    
+    // Handle custom events (for repeatable fields, complex objects)
+    if ('value' in target && typeof target.value !== 'string' && typeof target.value !== 'boolean') {
+      setFormData((prev) => ({ ...prev, [target.name]: target.value }));
+      return;
+    }
+
+    const name = (target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement).name;
 
     // Handle multi-select for tools
-    // Handle multi-select (native select) for tools
     if (name === 'tools' && target instanceof HTMLSelectElement && target.multiple) {
       const values = Array.from(target.selectedOptions).map((o) => o.value);
       setFormData((prev) => ({ ...prev, tools: values }));
       return;
     }
 
-    // Handle checkbox toggles for tools and tags (we render checkboxes in the modal)
-    if (target instanceof HTMLInputElement && target.type === 'checkbox' && (name === 'tools' || name === 'tags')) {
+    // Handle checkbox toggles for multi-select fields
+    const multiSelectFields = ['tools', 'tags', 'languagesSupported', 'regionsServed', 'primaryExpertise', 'gameEngines', 'supportedPlatforms', 'distributionChannels', 'lookingFor'];
+    if (target instanceof HTMLInputElement && target.type === 'checkbox' && multiSelectFields.includes(name)) {
       const val = target.value;
       setFormData((prev) => {
-        const cur = new Set(((name === 'tools') ? prev.tools : prev.tags) || []);
+        const currentArray = (prev as any)[name] || [];
+        const cur = new Set(currentArray);
         if (target.checked) cur.add(val); else cur.delete(val);
         return { ...prev, [name]: Array.from(cur) } as any;
       });
       return;
     }
 
-    const value = target.value;
+    const value = (target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement).value;
     setFormData((prev) => ({ ...prev, [name]: value }));
   }, []);
 
