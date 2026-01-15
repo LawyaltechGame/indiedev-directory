@@ -683,7 +683,6 @@ export async function addCelestialKnightStudios() {
   const CELESTIAL_KNIGHT_STUDIOS_LOGO_ID = '696620cf0001ea892949';
   
   let profileImageId: string | undefined = CELESTIAL_KNIGHT_STUDIOS_LOGO_ID;
-  let studioAlreadyHasLogo = false;
   let existingDoc: any = undefined;
   
   try {
@@ -712,7 +711,6 @@ export async function addCelestialKnightStudios() {
         : {};
       
       if (currentProfileData?.profileImageId) {
-        studioAlreadyHasLogo = true;
         profileImageId = currentProfileData.profileImageId;
         console.log('ℹ️ Celestial Knight Studios already has a logo, using existing:', profileImageId);
       }

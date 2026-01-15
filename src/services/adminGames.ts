@@ -333,9 +333,6 @@ export async function addDinnerWithAnOwl(logoImageId?: string) {
   // Use the existing uploaded logo file ID (updated with new logo)
   const DINNER_WITH_OWL_LOGO_ID = '69661a9d002b1779b767';
   
-  // Path to the game logo in public folder (fallback for first-time upload)
-  const LOGO_IMAGE_PATH = '/studio-images/Studio game images/Dinnerwithowl.png';
-  
   // If logoImageId is provided, use it; otherwise use the default uploaded file ID
   let finalLogoImageId: string | undefined = logoImageId || DINNER_WITH_OWL_LOGO_ID;
   
@@ -404,9 +401,6 @@ export async function addDinnerWithAnOwl(logoImageId?: string) {
 export async function addOwlObservatory(logoImageId?: string) {
   // Use the existing uploaded logo file ID (updated with new logo)
   const OWL_OBSERVATORY_LOGO_ID = '69661db500374bf76d20';
-  
-  // Path to the game logo in public folder (fallback for first-time upload)
-  const LOGO_IMAGE_PATH = '/studio-images/Studio game images/Owlobservatory.png';
   
   // If logoImageId is provided, use it; otherwise use the default uploaded file ID
   let finalLogoImageId: string | undefined = logoImageId || OWL_OBSERVATORY_LOGO_ID;
