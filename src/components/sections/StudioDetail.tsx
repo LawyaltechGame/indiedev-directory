@@ -114,6 +114,28 @@ export function StudioDetail() {
         
         const parsedProfile = parseProfileJSONFields(response);
         
+        // Extract profileImageId - check both root level (after parsing) and nested in profileData
+        // Also handle empty string case (should be treated as null)
+        let profileImageId = parsedProfile.profileImageId || 
+                            (parsedProfile.profileData && typeof parsedProfile.profileData === 'object' 
+                              ? parsedProfile.profileData.profileImageId 
+                              : null) ||
+                            null;
+        
+        // Treat empty string as null
+        if (profileImageId === '' || profileImageId === 'NULL' || profileImageId === null) {
+          profileImageId = null;
+        }
+        
+        // Debug logging for all studios
+        console.log(`StudioDetail - Studio: ${parsedProfile.name}`, {
+          profileImageId: profileImageId,
+          rootLevel: parsedProfile.profileImageId,
+          nested: parsedProfile.profileData?.profileImageId,
+          profileDataType: typeof parsedProfile.profileData,
+          rawResponse: response,
+        });
+        
         // Map database profile to StudioDetailData format
         const studioData: StudioDetailData = {
           name: parsedProfile.name || 'Unknown Studio',
@@ -121,7 +143,7 @@ export function StudioDetail() {
           description: parsedProfile.description || '',
           website: parsedProfile.website || '',
           email: parsedProfile.email || parsedProfile.publicContactEmail || '',
-          profileImageId: parsedProfile.profileImageId,
+          profileImageId: profileImageId,
           knownFor: parsedProfile.knownFor || '',
           projects: parsedProfile.projects || [],
           headquartersCountry: parsedProfile.headquartersCountry || '',
@@ -198,7 +220,7 @@ export function StudioDetail() {
       <div className="min-h-screen bg-bg text-white pt-28 pb-16 px-6">
         <div className="max-w-7xl mx-auto">
           <button
-            onClick={() => navigate('/studios_directory')}
+            onClick={() => navigate(-1)}
             className="mb-6 flex items-center gap-2 text-cyan-300 hover:text-cyan-200 transition-colors duration-200"
           >
             <span>←</span> Back to Directory
@@ -225,7 +247,7 @@ export function StudioDetail() {
       <div className="max-w-7xl mx-auto">
         {/* Back Button */}
         <button
-          onClick={() => navigate('/studios_directory')}
+          onClick={() => navigate(-1)}
           className="mb-8 group flex items-center gap-2 text-cyan-300 hover:text-cyan-200 transition-all duration-300 hover:gap-3"
         >
           <span className="transition-transform duration-300 group-hover:-translate-x-1">←</span>
@@ -242,12 +264,12 @@ export function StudioDetail() {
             <div className="flex flex-col md:flex-row gap-8 items-start">
               {/* Studio Logo - Enhanced */}
               {studio.profileImageId ? (
-                <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-3xl overflow-hidden bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center flex-shrink-0 border-2 border-cyan-500/30 p-3 shadow-lg shadow-cyan-500/20 group/logo hover:scale-105 transition-transform duration-300">
-                  <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent opacity-0 group-hover/logo:opacity-100 transition-opacity duration-300" />
+                <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-3xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center flex-shrink-0 border-2 border-cyan-500/30 p-3 shadow-lg shadow-cyan-500/20 group/logo hover:scale-105 transition-transform duration-300">
+                  <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent opacity-0 group-hover/logo:opacity-100 transition-opacity duration-300 rounded-3xl" />
                   <img
                     src={getStudioImageUrl(studio.profileImageId)}
                     alt={`${studio.name} logo`}
-                    className="relative w-full h-full object-contain z-10"
+                    className="relative w-auto h-auto max-w-full max-h-full object-contain z-10"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       const parent = target.parentElement;

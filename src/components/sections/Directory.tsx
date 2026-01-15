@@ -66,20 +66,87 @@ export function Directory({
           const name = profile.name || 'Unknown Studio';
           const existing = studiosByName.get(name);
           
+          // Extract profileImageId for comparison (handle both parsed and unparsed)
+          const getProfileImageId = (p: any) => {
+            if (p.profileImageId && p.profileImageId !== '' && p.profileImageId !== 'NULL') {
+              return p.profileImageId;
+            }
+            if (p.profileData && typeof p.profileData === 'object' && p.profileData.profileImageId) {
+              return p.profileData.profileImageId;
+            }
+            // Try parsing if profileData is a string
+            if (p.profileData && typeof p.profileData === 'string') {
+              try {
+                const parsed = JSON.parse(p.profileData);
+                return parsed.profileImageId || null;
+              } catch {
+                return null;
+              }
+            }
+            return null;
+          };
+          
           if (!existing) {
             studiosByName.set(name, profile);
           } else {
-            // Prefer the one with a logo, or the more recent one
-            const existingHasLogo = existing.profileImageId || (existing.profileData?.profileImageId);
-            const currentHasLogo = profile.profileImageId || (profile.profileData?.profileImageId);
+            const existingHasLogo = getProfileImageId(existing);
+            const currentHasLogo = getProfileImageId(profile);
+            
+            // Debug duplicates
+            if (name === 'BoringSuburbanDad') {
+              console.log(`🔍 Duplicate found for ${name}:`, {
+                existing: {
+                  id: existing.$id,
+                  profileImageId: existingHasLogo,
+                  createdAt: existing.$createdAt,
+                },
+                current: {
+                  id: profile.$id,
+                  profileImageId: currentHasLogo,
+                  createdAt: profile.$createdAt,
+                },
+              });
+            }
             
             if (currentHasLogo && !existingHasLogo) {
               studiosByName.set(name, profile);
               console.warn(`Duplicate studio found: "${name}". Keeping the one with a logo.`);
             } else if (!currentHasLogo && existingHasLogo) {
               // Keep existing (has logo)
+              if (name === 'BoringSuburbanDad') {
+                console.log(`✅ Keeping existing ${name} with logo: ${existingHasLogo}`);
+              }
+            } else if (currentHasLogo && existingHasLogo) {
+              // Both have logos - prefer the one that matches the expected ID or the more recent one
+              // For BoringSuburbanDad, prefer 6968aae1001bacf83a50 (the new correct one)
+              if (name === 'BoringSuburbanDad') {
+                const correctImageId = '6968aae1001bacf83a50';
+                if (existingHasLogo === correctImageId) {
+                  console.log(`✅ Keeping existing ${name} with correct logo ID: ${existingHasLogo}`);
+                  // Keep existing
+                } else if (currentHasLogo === correctImageId) {
+                  console.log(`✅ Switching to current ${name} with correct logo ID: ${currentHasLogo}`);
+                  studiosByName.set(name, profile);
+                } else {
+                  // Neither matches expected - keep more recent
+                  const existingDate = existing.$createdAt || existing.$id || '';
+                  const currentDate = profile.$createdAt || profile.$id || '';
+                  if (currentDate > existingDate) {
+                    studiosByName.set(name, profile);
+                    console.warn(`Duplicate studio found: "${name}". Keeping the more recent one.`);
+                  }
+                }
+              } else {
+                // For other studios, keep more recent
+                const existingDate = existing.$createdAt || existing.$id || '';
+                const currentDate = profile.$createdAt || profile.$id || '';
+                if (currentDate > existingDate) {
+                  studiosByName.set(name, profile);
+                  console.warn(`Duplicate studio found: "${name}". Keeping the more recent one.`);
+                }
+              }
             } else {
-              // Both have logos or neither has logo - keep the more recent one (by $createdAt or $id)
+              // Neither has logo - keep the more recent one
               const existingDate = existing.$createdAt || existing.$id || '';
               const currentDate = profile.$createdAt || profile.$id || '';
               if (currentDate > existingDate) {
@@ -93,19 +160,60 @@ export function Directory({
         const uniqueProfiles = Array.from(studiosByName.values());
         
         // Transform profiles to Studio format
-        const transformedStudios: Studio[] = uniqueProfiles.map((profile: any, index: number) => ({
-          id: profile.$id || profile.id || index + 1,
-          name: profile.name || 'Unknown Studio',
-          tagline: profile.tagline || '',
-          genre: profile.genre || '',
-          platform: profile.platform || '',
-          teamSize: profile.teamSize || '',
-          location: profile.location || '',
-          tools: profile.tools || '',
-          hue: (index * 37) % 360, // Generate hue for card colors (fallback)
-          profileImageId: profile.profileImageId || null, // Extract profileImageId from parsed profile
-          fullProfile: profile, // Store full profile data for the modal
-        }));
+        const transformedStudios: Studio[] = uniqueProfiles.map((profile: any, index: number) => {
+          // Extract profileImageId - check multiple sources
+          let profileImageId: string | null = null;
+          
+          // 1. Check root level (after parseProfileJSONFields flattens it)
+          if (profile.profileImageId && profile.profileImageId !== '' && profile.profileImageId !== 'NULL') {
+            profileImageId = profile.profileImageId;
+          }
+          // 2. Check nested in profileData object
+          else if (profile.profileData && typeof profile.profileData === 'object' && profile.profileData.profileImageId) {
+            profileImageId = profile.profileData.profileImageId;
+          }
+          // 3. Try parsing profileData if it's a string
+          else if (profile.profileData && typeof profile.profileData === 'string') {
+            try {
+              const parsed = JSON.parse(profile.profileData);
+              if (parsed.profileImageId && parsed.profileImageId !== '' && parsed.profileImageId !== 'NULL') {
+                profileImageId = parsed.profileImageId;
+              }
+            } catch (e) {
+              // Ignore parse errors
+            }
+          }
+          
+          // Treat empty string as null
+          if (profileImageId === '' || profileImageId === 'NULL') {
+            profileImageId = null;
+          }
+          
+          // Debug logging for BoringSuburbanDad
+          if (profile.name === 'BoringSuburbanDad') {
+            console.log(`🔍 Extracting profileImageId for ${profile.name}:`, {
+              finalProfileImageId: profileImageId,
+              rootLevel: profile.profileImageId,
+              nestedObject: profile.profileData?.profileImageId,
+              profileDataType: typeof profile.profileData,
+              documentId: profile.$id,
+            });
+          }
+          
+          return {
+            id: profile.$id || profile.id || index + 1,
+            name: profile.name || 'Unknown Studio',
+            tagline: profile.tagline || '',
+            genre: profile.genre || '',
+            platform: profile.platform || '',
+            teamSize: profile.teamSize || '',
+            location: profile.location || '',
+            tools: profile.tools || '',
+            hue: (index * 37) % 360, // Generate hue for card colors (fallback)
+            profileImageId: profileImageId, // Extract profileImageId from parsed profile
+            fullProfile: profile, // Store full profile data for the modal
+          };
+        });
 
         setStudios(transformedStudios as any);
       } catch (error) {

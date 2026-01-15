@@ -37,6 +37,11 @@ import './utils/addAvalancheStudio'; // Initialize admin studio functions
 import './utils/addBoringSuburbanDad'; // Initialize BoringSuburbanDad studio
 import './utils/addCelestialKnightStudios'; // Initialize Celestial Knight Studios
 import './utils/addGames'; // Initialize admin game functions
+import './utils/fixStudioImages'; // Utility to fix studio images
+import './utils/debugStudio'; // Debug utility for studios
+import './utils/reuploadStudioImage'; // Utility to re-upload studio images
+import './utils/updateStudioImageId'; // Utility to update studio image ID
+import './utils/findAndFixDuplicates'; // Utility to find and fix duplicate studios
 
 function AppContent() {
   const { scrollProgress, navShrunk, showScrollTop } = useScrollProgress();

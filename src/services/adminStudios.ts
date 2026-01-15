@@ -57,7 +57,7 @@ async function uploadImageFromUrl(imageUrl: string, fileName: string): Promise<s
 /**
  * Upload image from local file path (for development)
  */
-async function uploadImageFromLocalPath(imagePath: string, fileName: string): Promise<string> {
+export async function uploadImageFromLocalPath(imagePath: string, fileName: string): Promise<string> {
   try {
     // In browser, we need to fetch from public folder or src folder
     const response = await fetch(imagePath);
@@ -179,16 +179,18 @@ export async function addAdminStudio(studioData: {
           : {};
         
         const existingLogoId = currentProfileData?.profileImageId;
+        // Treat empty string as no logo
+        const hasLogo = existingLogoId && existingLogoId !== '' && existingLogoId !== 'NULL';
         
         // If studio already has a logo, don't upload anything - just return
-        if (existingLogoId) {
-          console.log(`ℹ️ Studio "${studioData.name}" already exists with logo. Skipping upload.`);
+        if (hasLogo) {
+          console.log(`ℹ️ Studio "${studioData.name}" already exists with logo: ${existingLogoId}. Skipping upload.`);
           return { success: false, message: 'Studio already exists' };
         }
         
         // Studio exists but no logo - only update if explicitly provided logoImageId
         // Don't upload from path/url/file on reload - only use provided ID
-        if (studioData.profileImageId && studioData.profileImageId !== existingLogoId) {
+        if (studioData.profileImageId && studioData.profileImageId !== existingLogoId && studioData.profileImageId !== '') {
           const updatedProfileData = {
             ...currentProfileData,
             profileImageId: studioData.profileImageId,
@@ -537,10 +539,10 @@ export async function addAvalancheStudios() {
 export async function addBoringSuburbanDad() {
   // Path to the profile photo - try public folder first, then src folder
   // Note: For browser access, image should be in public folder
-  // If image is in src/Images, it needs to be moved to public/studio-images/ or imported differently
-  const PROFILE_IMAGE_PATH = '/studio-images/BoringSuburbanDad-Profilephoto.png';
+  // Use the manually uploaded logo file ID
+  const BORING_SUBURBAN_DAD_LOGO_ID = '6968aae1001bacf83a50';
   
-  let profileImageId: string | undefined;
+  let profileImageId: string | undefined = BORING_SUBURBAN_DAD_LOGO_ID;
   let studioAlreadyHasLogo = false;
   let existingDoc: any = undefined;
   
@@ -569,27 +571,24 @@ export async function addBoringSuburbanDad() {
             : existingDoc.profileData)
         : {};
       
-      if (currentProfileData?.profileImageId) {
+      if (currentProfileData?.profileImageId && currentProfileData.profileImageId !== '') {
         studioAlreadyHasLogo = true;
         profileImageId = currentProfileData.profileImageId;
         console.log('ℹ️ BoringSuburbanDad already has a logo, using existing:', profileImageId);
+      } else {
+        // Studio exists but doesn't have a valid logo - use the provided ID
+        profileImageId = BORING_SUBURBAN_DAD_LOGO_ID;
+        console.log('ℹ️ BoringSuburbanDad exists but has no logo, using provided ID:', profileImageId);
       }
+    } else {
+      // Studio doesn't exist, use the provided ID
+      profileImageId = BORING_SUBURBAN_DAD_LOGO_ID;
+      console.log('ℹ️ Using provided BoringSuburbanDad logo ID:', profileImageId);
     }
   } catch (error) {
     console.warn('⚠️ Could not check existing studio:', error);
-  }
-  
-  // If studio doesn't have a logo yet, upload it (only on first creation)
-  // But don't pass profileImagePath to prevent re-uploads on reload
-  // Only upload if studio doesn't exist at all
-  if (!studioAlreadyHasLogo && !existingDoc) {
-    try {
-      profileImageId = await uploadImageFromLocalPath(PROFILE_IMAGE_PATH, 'BoringSuburbanDad-logo');
-      console.log('✅ BoringSuburbanDad logo uploaded:', profileImageId);
-    } catch (error) {
-      console.warn('⚠️ Could not upload BoringSuburbanDad logo:', error);
-      console.log('ℹ️ You can manually upload the logo later and update the profileImageId');
-    }
+    // Fallback to provided ID
+    profileImageId = BORING_SUBURBAN_DAD_LOGO_ID;
   }
 
   const result = await addAdminStudio({
@@ -663,9 +662,9 @@ export async function addBoringSuburbanDad() {
         projectPageUrl: 'https://store.steampowered.com/app/1567470/Dinner_with_an_Owl_Soundtrack/?curator_clanid=44809782',
       },
     ],
-    // Only pass profileImagePath if studio doesn't exist (first creation)
-    // Otherwise pass profileImageId to prevent re-uploads on reload
-    ...(existingDoc && profileImageId 
+    // Always pass profileImageId if we have it (will update existing studio if needed)
+    // Only pass profileImagePath if studio doesn't exist and we don't have an ID yet
+    ...(profileImageId 
       ? { profileImageId } 
       : !existingDoc 
         ? { profileImagePath: PROFILE_IMAGE_PATH }

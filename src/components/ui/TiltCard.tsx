@@ -37,20 +37,24 @@ export const TiltCard = memo(function TiltCard({ studio, delay = 0, onViewProfil
   return (
     <article
       ref={cardRef}
-      className="w-full h-[420px] md:h-[460px] transition-all duration-300 bg-gradient-to-br from-[rgba(20,28,42,0.8)] to-[rgba(20,28,42,0.6)] backdrop-blur-[10px] border border-white/10 rounded-3xl overflow-hidden shadow-[0_14px_36px_rgba(0,0,0,0.35)] relative transform-gpu animate-fade-up hover:-translate-y-2 hover:shadow-[0_28px_64px_rgba(34,211,238,0.28)] hover:border-cyan-500/50 hover:scale-[1.02] group flex flex-col"
+      className="w-full min-h-[460px] md:min-h-[500px] transition-all duration-300 bg-gradient-to-br from-[rgba(20,28,42,0.8)] to-[rgba(20,28,42,0.6)] backdrop-blur-[10px] border border-white/10 rounded-3xl overflow-hidden shadow-[0_14px_36px_rgba(0,0,0,0.35)] relative transform-gpu animate-fade-up hover:-translate-y-2 hover:shadow-[0_28px_64px_rgba(34,211,238,0.28)] hover:border-cyan-500/50 hover:scale-[1.02] group flex flex-col"
       style={{ animationDelay: `${delay}s` }}
       onMouseMove={onMove}
       onMouseLeave={onLeave}
     >
       {/* Studio Logo/Image Section - Fixed Height */}
-      <div className="relative h-36 md:h-40 w-full bg-gradient-to-br from-[rgba(0,0,0,0.3)] to-[rgba(0,0,0,0.1)] overflow-hidden flex-shrink-0">
+      <div className="relative h-36 md:h-40 w-full bg-gradient-to-br from-[rgba(0,0,0,0.3)] to-[rgba(0,0,0,0.1)] flex-shrink-0">
         {studio.profileImageId ? (
           <div className="relative w-full h-full flex items-center justify-center p-4 md:p-6 bg-gradient-to-br from-cyan-500/10 to-blue-500/10">
             <img
               src={getStudioImageUrl(studio.profileImageId)}
               alt={`${studio.name} logo`}
-              className="max-w-full max-h-full object-contain drop-shadow-lg group-hover:scale-105 transition-transform duration-300"
+              className="w-auto h-auto max-w-full max-h-full object-contain drop-shadow-lg group-hover:scale-105 transition-transform duration-300"
               onError={(e) => {
+                console.error(`❌ Failed to load image for ${studio.name}`, {
+                  profileImageId: studio.profileImageId,
+                  imageUrl: getStudioImageUrl(studio.profileImageId),
+                });
                 const target = e.target as HTMLImageElement;
                 const parent = target.parentElement;
                 if (parent) {
@@ -58,6 +62,12 @@ export const TiltCard = memo(function TiltCard({ studio, delay = 0, onViewProfil
                   parent.style.background = `linear-gradient(135deg, hsla(${studio.hue} 80% 55% / .45), rgba(34,211,238,.55))`;
                   parent.innerHTML = `<div class="text-4xl md:text-5xl font-black text-white/80">${studio.name.charAt(0)}</div>`;
                 }
+              }}
+              onLoad={() => {
+                console.log(`✅ Successfully loaded image for ${studio.name}`, {
+                  profileImageId: studio.profileImageId,
+                  imageUrl: getStudioImageUrl(studio.profileImageId),
+                });
               }}
             />
           </div>
@@ -84,8 +94,8 @@ export const TiltCard = memo(function TiltCard({ studio, delay = 0, onViewProfil
           {studio.name}
         </h3>
         
-        {/* Tagline - Fixed height */}
-        <p className="text-cyan-200/80 mb-3 text-sm md:text-base line-clamp-2 h-10 md:h-12 leading-relaxed">
+        {/* Tagline - Allow more lines with tighter spacing */}
+        <p className="text-cyan-200/80 mb-3 text-xs md:text-sm line-clamp-4 leading-snug">
           {studio.tagline || 'No description available'}
         </p>
         

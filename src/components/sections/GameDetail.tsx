@@ -262,12 +262,12 @@ export function GameDetail() {
             <div className="flex flex-col md:flex-row gap-8 items-start">
               {/* Game Logo */}
               {game.logoImageId ? (
-                <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-3xl overflow-hidden bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center flex-shrink-0 border-2 border-cyan-500/30 p-3 shadow-lg shadow-cyan-500/20 group/logo hover:scale-105 transition-transform duration-300">
-                  <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent opacity-0 group-hover/logo:opacity-100 transition-opacity duration-300" />
+                <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-3xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center flex-shrink-0 border-2 border-cyan-500/30 p-3 shadow-lg shadow-cyan-500/20 group/logo hover:scale-105 transition-transform duration-300">
+                  <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent opacity-0 group-hover/logo:opacity-100 transition-opacity duration-300 rounded-3xl" />
                   <img
                     src={getStudioImageUrl(game.logoImageId)}
                     alt={`${game.name} logo`}
-                    className="relative w-full h-full object-contain z-10"
+                    className="relative w-auto h-auto max-w-full max-h-full object-contain z-10"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       const parent = target.parentElement;
