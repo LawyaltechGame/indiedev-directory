@@ -46,7 +46,13 @@ export async function findAndFixDuplicates(studioName: string) {
 
     if (duplicates.length > 1) {
       // Find the one with the correct/newest image ID
-      const correctImageId = '6968aae1001bacf83a50';
+      const getCorrectImageId = (studioName: string): string | null => {
+        if (studioName === 'BoringSuburbanDad') return '6968aae1001bacf83a50';
+        if (studioName === 'Avalanche Studios') return '6968ab5b0025fcdc0d8c';
+        return null;
+      };
+      
+      const correctImageId = getCorrectImageId(studioName);
       
       const withCorrectImage = duplicates.find((doc: any) => {
         try {

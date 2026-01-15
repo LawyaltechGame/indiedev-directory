@@ -8,6 +8,11 @@ import { parseProfileJSONFields } from '../services/profile';
 const DB_ID = import.meta.env.VITE_APPWRITE_DATABASE_ID as string;
 const PROFILE_TABLE_ID = import.meta.env.VITE_APPWRITE_PROFILE_TABLE_ID as string;
 
+/**
+ * Utility to update studio profileImageId
+ * Run: window.updateStudioImageId('Avalanche Studios', 'NEW_FILE_ID_HERE')
+ * Or: window.updateStudioImageId('BoringSuburbanDad', '6968aae1001bacf83a50')
+ */
 export async function updateStudioImageId(studioName: string, imageId: string) {
   try {
     if (!DB_ID || !PROFILE_TABLE_ID) {

@@ -386,8 +386,8 @@ async function updateStudioImage(studioName: string, imageFileId: string): Promi
 }
 
 export async function addAvalancheStudios() {
-  // Use the existing uploaded logo file ID
-  const AVALANCHE_STUDIOS_LOGO_ID = '695e37a300182b435e34';
+  // Use the manually uploaded logo file ID
+  const AVALANCHE_STUDIOS_LOGO_ID = '6968ab5b0025fcdc0d8c';
   
   // First, check if studio already exists and has a logo
   let profileImageId: string | undefined = AVALANCHE_STUDIOS_LOGO_ID;

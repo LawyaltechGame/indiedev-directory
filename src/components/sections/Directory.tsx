@@ -118,9 +118,16 @@ export function Directory({
               }
             } else if (currentHasLogo && existingHasLogo) {
               // Both have logos - prefer the one that matches the expected ID or the more recent one
-              // For BoringSuburbanDad, prefer 6968aae1001bacf83a50 (the new correct one)
-              if (name === 'BoringSuburbanDad') {
-                const correctImageId = '6968aae1001bacf83a50';
+              // For specific studios, prefer the correct image ID
+              const getCorrectImageId = (studioName: string): string | null => {
+                if (studioName === 'BoringSuburbanDad') return '6968aae1001bacf83a50';
+                if (studioName === 'Avalanche Studios') return '6968ab5b0025fcdc0d8c';
+                return null;
+              };
+              
+              const correctImageId = getCorrectImageId(name);
+              
+              if (correctImageId) {
                 if (existingHasLogo === correctImageId) {
                   console.log(`✅ Keeping existing ${name} with correct logo ID: ${existingHasLogo}`);
                   // Keep existing
