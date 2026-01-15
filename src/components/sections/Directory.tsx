@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Select } from '../ui/Select';
 import { TiltCard } from '../ui/TiltCard';
 import { ProfileDetailModal } from './ProfileDetailModal';
@@ -37,6 +38,7 @@ export function Directory({
   settags,
   searchQuery = '',
 }: DirectoryProps) {
+  const navigate = useNavigate();
   const [studios, setStudios] = useState<Studio[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedProfile, setSelectedProfile] = useState<any | null>(null);
@@ -57,8 +59,41 @@ export function Directory({
         setIsLoading(true);
         const profiles = await getApprovedProfiles(DB_ID, PROFILE_TABLE_ID);
         
+        // Deduplicate studios by name (keep the most recent one with a logo, or most recent if no logo)
+        const studiosByName = new Map<string, any>();
+        
+        profiles.forEach((profile: any) => {
+          const name = profile.name || 'Unknown Studio';
+          const existing = studiosByName.get(name);
+          
+          if (!existing) {
+            studiosByName.set(name, profile);
+          } else {
+            // Prefer the one with a logo, or the more recent one
+            const existingHasLogo = existing.profileImageId || (existing.profileData?.profileImageId);
+            const currentHasLogo = profile.profileImageId || (profile.profileData?.profileImageId);
+            
+            if (currentHasLogo && !existingHasLogo) {
+              studiosByName.set(name, profile);
+              console.warn(`Duplicate studio found: "${name}". Keeping the one with a logo.`);
+            } else if (!currentHasLogo && existingHasLogo) {
+              // Keep existing (has logo)
+            } else {
+              // Both have logos or neither has logo - keep the more recent one (by $createdAt or $id)
+              const existingDate = existing.$createdAt || existing.$id || '';
+              const currentDate = profile.$createdAt || profile.$id || '';
+              if (currentDate > existingDate) {
+                studiosByName.set(name, profile);
+                console.warn(`Duplicate studio found: "${name}". Keeping the more recent one.`);
+              }
+            }
+          }
+        });
+        
+        const uniqueProfiles = Array.from(studiosByName.values());
+        
         // Transform profiles to Studio format
-        const transformedStudios: Studio[] = profiles.map((profile: any, index: number) => ({
+        const transformedStudios: Studio[] = uniqueProfiles.map((profile: any, index: number) => ({
           id: profile.$id || profile.id || index + 1,
           name: profile.name || 'Unknown Studio',
           tagline: profile.tagline || '',
@@ -67,7 +102,8 @@ export function Directory({
           teamSize: profile.teamSize || '',
           location: profile.location || '',
           tools: profile.tools || '',
-          hue: (index * 37) % 360, // Generate hue for card colors
+          hue: (index * 37) % 360, // Generate hue for card colors (fallback)
+          profileImageId: profile.profileImageId || null, // Extract profileImageId from parsed profile
           fullProfile: profile, // Store full profile data for the modal
         }));
 
@@ -202,15 +238,15 @@ export function Directory({
           </div>
         ) : (
           <>
-            <div className="grid justify-center gap-4 sm:gap-6 md:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid justify-center gap-4 sm:gap-6 md:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 items-stretch">
               {filtered.map((s, i) => (
                 <TiltCard 
                   key={s.id} 
                   studio={s} 
                   delay={i * 0.04}
                   onViewProfile={() => {
-                    setSelectedProfile((s as any).fullProfile);
-                    setIsModalOpen(true);
+                    const profileId = (s as any).fullProfile?.$id || s.id;
+                    navigate(`/studio/${profileId}`);
                   }}
                 />
               ))}

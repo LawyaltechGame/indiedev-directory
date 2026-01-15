@@ -506,7 +506,7 @@ The Game Centralen Team`);
                       <div>
                         <h3 className="text-2xl font-bold mb-1">{profile.name || 'Unnamed Studio'}</h3>
                         {profile.tagline && (
-                          <p className="text-cyan-200 mb-3">{profile.tagline}</p>
+                        <p className="text-cyan-200 mb-3">{profile.tagline}</p>
                         )}
                       </div>
                       <span

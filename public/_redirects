@@ -1,4 +1,7 @@
 # Netlify redirects file
 # This ensures all routes are handled by React Router
+# Status 200 means serve the page directly (not redirect)
 
+# Serve all routes through index.html (SPA routing)
+# This prevents redirects and allows Google to index pages properly
 /*    /index.html   200

@@ -180,19 +180,19 @@ export function ProfileModal({
                         <option key={type} value={type}>{type}</option>
                       ))}
                     </select>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
+              </div>
+              <div className="flex flex-col gap-1.5">
                     <label className="font-semibold text-white text-sm">Year Founded</label>
-                    <input
-                      type="number"
-                      name="foundedYear"
-                      value={formData.foundedYear || ''}
-                      onChange={onFormChange}
-                      placeholder="e.g. 2018"
-                      min={1900}
-                      max={new Date().getFullYear()}
-                      className="bg-[rgba(10,16,28,0.65)] border border-white/8 text-cyan-100 rounded-lg p-2.5 font-inherit text-sm transition-all duration-200 focus:outline-none focus:border-cyan-400 focus:shadow-[0_0_0_2px_rgba(34,211,238,0.2)]"
-                    />
+                <input
+                  type="number"
+                  name="foundedYear"
+                  value={formData.foundedYear || ''}
+                  onChange={onFormChange}
+                  placeholder="e.g. 2018"
+                  min={1900}
+                  max={new Date().getFullYear()}
+                  className="bg-[rgba(10,16,28,0.65)] border border-white/8 text-cyan-100 rounded-lg p-2.5 font-inherit text-sm transition-all duration-200 focus:outline-none focus:border-cyan-400 focus:shadow-[0_0_0_2px_rgba(34,211,238,0.2)]"
+                />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="font-semibold text-white text-sm">Headquarters Country</label>

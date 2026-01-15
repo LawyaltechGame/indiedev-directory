@@ -32,20 +32,20 @@ export async function createProfileDocument(params: {
     // ONE BIG JSON column with ALL profile data
     profileData: JSON.stringify({
       // Basic Profile Info
-      name: data.name,
-      tagline: data.tagline,
+    name: data.name,
+    tagline: data.tagline,
       description: data.description || '',
       website: data.website || '',
       
       // Classification & Location
-      genre: data.genre,
-      platform: data.platform,
-      teamSize: data.teamSize,
-      location: data.location,
+    genre: data.genre,
+    platform: data.platform,
+    teamSize: data.teamSize,
+    location: data.location,
       
       // Contact Information
-      email: data.email,
-      authEmail: data.authEmail, // User's authentication email
+    email: data.email,
+    authEmail: data.authEmail, // User's authentication email
       publicContactEmail: data.publicContactEmail || '',
       
       // Business & Revenue
@@ -53,8 +53,8 @@ export async function createProfileDocument(params: {
       foundedYear: data.foundedYear || '',
       
       // Tags & Tools
-      tools: data.tools || [],
-      tags: data.tags || [],
+    tools: data.tools || [],
+    tags: data.tags || [],
       
       // Extended Studio Details
       studioType: data.studioType || '',
@@ -108,7 +108,7 @@ export async function createProfileDocument(params: {
 }
 
 // Helper function to parse JSON columns from Appwrite and flatten for backward compatibility
-function parseProfileJSONFields(profile: any) {
+export function parseProfileJSONFields(profile: any) {
   if (!profile) return profile;
   
   const parsed = { ...profile };

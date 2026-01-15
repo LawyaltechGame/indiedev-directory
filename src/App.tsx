@@ -11,6 +11,8 @@ import { NewsPostDetail } from './components/sections/NewsPostDetail';
 import { ContentHub } from './components/sections/ContentHub';
 import { ContentPostDetail } from './components/sections/ContentPostDetail';
 import { FreeGamesHub } from './components/sections/FreeGamesHub';
+import { StudioDetail } from './components/sections/StudioDetail';
+import { GameDetail } from './components/sections/GameDetail';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useScrollProgress } from './hooks/useScrollProgress';
 import { useCursorAura } from './hooks/useCursorAura';
@@ -31,6 +33,10 @@ import { ReviewDashboard } from './components/dashboard/ReviewDashboard';
 import { PageViewTracker } from './components/analytics/PageViewTracker';
 import type { FormData, ProfileStep } from './types';
 import { createProfileDocument } from './services/profile';
+import './utils/addAvalancheStudio'; // Initialize admin studio functions
+import './utils/addBoringSuburbanDad'; // Initialize BoringSuburbanDad studio
+import './utils/addCelestialKnightStudios'; // Initialize Celestial Knight Studios
+import './utils/addGames'; // Initialize admin game functions
 
 function AppContent() {
   const { scrollProgress, navShrunk, showScrollTop } = useScrollProgress();
@@ -342,6 +348,14 @@ function AppContent() {
         <Route
           path="/studios_directory/resources"
           element={<Resources onCreateProfile={handleCreateProfile} />}
+        />
+        <Route
+          path="/studio/:id"
+          element={<StudioDetail />}
+        />
+        <Route
+          path="/game/:id"
+          element={<GameDetail />}
         />
         <Route
           path="/content"

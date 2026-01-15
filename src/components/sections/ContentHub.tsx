@@ -258,13 +258,19 @@ export function ContentHub() {
                     }}
                   >
                     {post._embedded?.['wp:featuredmedia']?.[0]?.source_url && (
-                      <div className="w-full h-64 bg-[rgba(0,0,0,0.2)] overflow-hidden rounded-t-2xl">
+                      <div className="w-full bg-[rgba(0,0,0,0.2)] overflow-hidden rounded-t-2xl relative">
                         <img
                           src={post._embedded['wp:featuredmedia'][0].source_url}
                           alt={
                             post._embedded['wp:featuredmedia'][0].alt_text || post.title.rendered
                           }
-                          className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                          className="w-full h-auto block"
+                          loading="lazy"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.onerror = null;
+                            target.src = 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&h=450&fit=crop&q=80';
+                          }}
                         />
                       </div>
                     )}

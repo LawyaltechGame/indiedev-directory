@@ -380,7 +380,7 @@ export function CommentsSection({ postId, onAuthRequired, isWordPressPost = fals
                   <div 
                     className={`avatar-fallback w-10 h-10 rounded-full bg-linear-to-br from-cyan-400 to-cyan-300 flex items-center justify-center text-[#001018] font-bold ${comment.userAvatar ? 'hidden' : ''}`}
                   >
-                    {comment.userName.charAt(0).toUpperCase()}
+                  {comment.userName.charAt(0).toUpperCase()}
                   </div>
                 </div>
 
@@ -497,7 +497,7 @@ export function CommentsSection({ postId, onAuthRequired, isWordPressPost = fals
                             <div 
                               className={`avatar-fallback w-8 h-8 rounded-full bg-linear-to-br from-cyan-400 to-cyan-300 flex items-center justify-center text-[#001018] font-bold text-sm ${reply.userAvatar ? 'hidden' : ''}`}
                             >
-                              {reply.userName.charAt(0).toUpperCase()}
+                            {reply.userName.charAt(0).toUpperCase()}
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">

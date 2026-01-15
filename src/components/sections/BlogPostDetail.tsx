@@ -108,13 +108,19 @@ export function BlogPostDetail() {
                            media.media_details?.sizes?.large?.source_url || 
                            media.source_url;
             return (
-              <div className="w-full bg-[rgba(0,0,0,0.2)]">
+              <div className="w-full bg-[rgba(0,0,0,0.2)] relative overflow-hidden">
                 <img
                   src={imageUrl}
                   alt={media.alt_text || post.title.rendered}
                   className="w-full h-auto block"
-                />
-              </div>
+                  loading="eager"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.onerror = null;
+                    target.src = 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1200&h=675&fit=crop&q=80';
+                  }}
+              />
+            </div>
             );
           })()}
 

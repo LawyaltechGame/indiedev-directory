@@ -7,6 +7,7 @@ export interface Studio {
   teamSize: string;
   location: string;
   hue: number;
+  profileImageId?: string | null; // Studio profile photo from Appwrite Storage
   tools?: string[];
   revenue?: string;
   foundedYear?: string;

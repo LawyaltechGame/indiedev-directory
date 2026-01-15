@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router-dom';
+
 interface StudioProfile {
   $id: string;
   name: string;
@@ -29,6 +31,7 @@ export function StudioProfileCard({
   onCompare,
   isCompared = false,
 }: StudioProfileCardProps) {
+  const navigate = useNavigate();
   // Generate a consistent color based on the studio name
   const hue = profile.name
     .split('')
@@ -97,7 +100,13 @@ export function StudioProfileCard({
       {/* Card Footer - 4 Buttons */}
       <div className="p-4 border-t border-white/6 grid grid-cols-2 gap-2">
         <button
-          onClick={() => onViewProfile?.(profile)}
+          onClick={() => {
+            if (onViewProfile) {
+              onViewProfile(profile);
+            } else {
+              navigate(`/studio/${profile.$id}`);
+            }
+          }}
           className="px-3 py-2.5 rounded-lg bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold text-sm hover:shadow-lg hover:shadow-cyan-500/40 transition-all"
         >
           View Profile →
