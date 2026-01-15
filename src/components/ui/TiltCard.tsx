@@ -51,9 +51,10 @@ export const TiltCard = memo(function TiltCard({ studio, delay = 0, onViewProfil
               alt={`${studio.name} logo`}
               className="w-auto h-auto max-w-full max-h-full object-contain drop-shadow-lg group-hover:scale-105 transition-transform duration-300"
               onError={(e) => {
+                const imageId = studio.profileImageId!; // Safe because we're inside the conditional
                 console.error(`❌ Failed to load image for ${studio.name}`, {
-                  profileImageId: studio.profileImageId,
-                  imageUrl: getStudioImageUrl(studio.profileImageId),
+                  profileImageId: imageId,
+                  imageUrl: getStudioImageUrl(imageId),
                 });
                 const target = e.target as HTMLImageElement;
                 const parent = target.parentElement;
@@ -64,9 +65,10 @@ export const TiltCard = memo(function TiltCard({ studio, delay = 0, onViewProfil
                 }
               }}
               onLoad={() => {
+                const imageId = studio.profileImageId!; // Safe because we're inside the conditional
                 console.log(`✅ Successfully loaded image for ${studio.name}`, {
-                  profileImageId: studio.profileImageId,
-                  imageUrl: getStudioImageUrl(studio.profileImageId),
+                  profileImageId: imageId,
+                  imageUrl: getStudioImageUrl(imageId),
                 });
               }}
             />

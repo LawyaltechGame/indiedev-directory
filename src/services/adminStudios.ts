@@ -543,7 +543,6 @@ export async function addBoringSuburbanDad() {
   const BORING_SUBURBAN_DAD_LOGO_ID = '6968aae1001bacf83a50';
   
   let profileImageId: string | undefined = BORING_SUBURBAN_DAD_LOGO_ID;
-  let studioAlreadyHasLogo = false;
   let existingDoc: any = undefined;
   
   try {
@@ -663,12 +662,7 @@ export async function addBoringSuburbanDad() {
       },
     ],
     // Always pass profileImageId if we have it (will update existing studio if needed)
-    // Only pass profileImagePath if studio doesn't exist and we don't have an ID yet
-    ...(profileImageId 
-      ? { profileImageId } 
-      : !existingDoc 
-        ? { profileImagePath: PROFILE_IMAGE_PATH }
-        : {}),
+    ...(profileImageId ? { profileImageId } : {}),
   });
 
   return result;
