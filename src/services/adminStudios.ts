@@ -571,7 +571,6 @@ export async function addBoringSuburbanDad() {
         : {};
       
       if (currentProfileData?.profileImageId && currentProfileData.profileImageId !== '') {
-        studioAlreadyHasLogo = true;
         profileImageId = currentProfileData.profileImageId;
         console.log('ℹ️ BoringSuburbanDad already has a logo, using existing:', profileImageId);
       } else {
