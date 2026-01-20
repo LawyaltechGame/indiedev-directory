@@ -68,6 +68,31 @@ export function ProfileModal({
                   className="bg-[rgba(10,16,28,0.65)] border border-white/8 text-cyan-100 rounded-lg p-2.5 font-inherit text-sm transition-all duration-200 focus:outline-none focus:border-cyan-400 focus:shadow-[0_0_0_2px_rgba(34,211,238,0.2)]"
                 />
               </div>
+              
+              {/* Studio Profile Image Upload */}
+              <div className="flex flex-col gap-1.5">
+                <label className="font-semibold text-white text-sm">Studio Profile Image</label>
+                <input
+                  type="file"
+                  name="profileImageFile"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      onFormChange({
+                        target: { name: 'profileImageFile', value: file }
+                      } as any);
+                    }
+                  }}
+                  className="bg-[rgba(10,16,28,0.65)] border border-white/8 text-cyan-100 rounded-lg p-2.5 font-inherit text-sm transition-all duration-200 focus:outline-none focus:border-cyan-400 focus:shadow-[0_0_0_2px_rgba(34,211,238,0.2)] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-cyan-500/20 file:text-cyan-300 hover:file:bg-cyan-500/30"
+                />
+                <p className="text-xs text-cyan-300/70">Upload your studio logo or profile photo (PNG, JPG, max 5MB)</p>
+                {formData.profileImageFile && (
+                  <div className="mt-2 p-2 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
+                    <p className="text-xs text-cyan-200">Selected: {formData.profileImageFile.name}</p>
+                  </div>
+                )}
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1.5">
                   <label className="font-semibold text-white text-sm">Genre *</label>
@@ -616,6 +641,354 @@ export function ProfileModal({
                             className="bg-[rgba(10,16,28,0.65)] border border-white/8 text-cyan-100 rounded-lg p-2 text-sm"
                           />
                         </div>
+                        <div className="md:col-span-2 flex flex-col gap-1.5">
+                          <label className="font-semibold text-white text-xs">Game Logo</label>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const newProjects = [...(formData.projects || [])];
+                                newProjects[index] = { ...project, logoImageFile: file };
+                                onFormChange({
+                                  target: { name: 'projects', value: newProjects }
+                                } as any);
+                              }
+                            }}
+                            className="bg-[rgba(10,16,28,0.65)] border border-white/8 text-cyan-100 rounded-lg p-2 text-sm file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-cyan-500/20 file:text-cyan-300 hover:file:bg-cyan-500/30"
+                          />
+                          <p className="text-xs text-cyan-300/70">Upload game logo (PNG, JPG, max 5MB)</p>
+                          {project.logoImageFile && (
+                            <div className="mt-1 p-2 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
+                              <p className="text-xs text-cyan-200">Selected: {project.logoImageFile.name}</p>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Extended Game Details */}
+                        <div className="md:col-span-2 border-t border-white/10 pt-3 mt-2">
+                          <h5 className="font-semibold text-cyan-300 text-xs mb-3">Extended Game Details</h5>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="flex flex-col gap-1.5">
+                              <label className="font-semibold text-white text-xs">Developed By</label>
+                              <input
+                                type="text"
+                                value={project.developedBy || ''}
+                                onChange={(e) => {
+                                  const newProjects = [...(formData.projects || [])];
+                                  newProjects[index] = { ...project, developedBy: e.target.value };
+                                  onFormChange({
+                                    target: { name: 'projects', value: newProjects }
+                                  } as any);
+                                }}
+                                placeholder="Developer name (defaults to studio name)"
+                                className="bg-[rgba(10,16,28,0.65)] border border-white/8 text-cyan-100 rounded-lg p-2 text-sm"
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                              <label className="font-semibold text-white text-xs">Publisher</label>
+                              <input
+                                type="text"
+                                value={project.publisher || ''}
+                                onChange={(e) => {
+                                  const newProjects = [...(formData.projects || [])];
+                                  newProjects[index] = { ...project, publisher: e.target.value };
+                                  onFormChange({
+                                    target: { name: 'projects', value: newProjects }
+                                  } as any);
+                                }}
+                                placeholder="Publisher name"
+                                className="bg-[rgba(10,16,28,0.65)] border border-white/8 text-cyan-100 rounded-lg p-2 text-sm"
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                              <label className="font-semibold text-white text-xs">Release Date</label>
+                              <input
+                                type="text"
+                                value={project.releaseDate || ''}
+                                onChange={(e) => {
+                                  const newProjects = [...(formData.projects || [])];
+                                  newProjects[index] = { ...project, releaseDate: e.target.value };
+                                  onFormChange({
+                                    target: { name: 'projects', value: newProjects }
+                                  } as any);
+                                }}
+                                placeholder="e.g., May 28, 2025 or TBA"
+                                className="bg-[rgba(10,16,28,0.65)] border border-white/8 text-cyan-100 rounded-lg p-2 text-sm"
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                              <label className="font-semibold text-white text-xs">Engine</label>
+                              <input
+                                type="text"
+                                value={project.engine || ''}
+                                onChange={(e) => {
+                                  const newProjects = [...(formData.projects || [])];
+                                  newProjects[index] = { ...project, engine: e.target.value };
+                                  onFormChange({
+                                    target: { name: 'projects', value: newProjects }
+                                  } as any);
+                                }}
+                                placeholder="e.g., Unreal Engine, Unity, Proprietary"
+                                className="bg-[rgba(10,16,28,0.65)] border border-white/8 text-cyan-100 rounded-lg p-2 text-sm"
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                              <label className="font-semibold text-white text-xs">Genre</label>
+                              <select
+                                value={project.genre || ''}
+                                onChange={(e) => {
+                                  const newProjects = [...(formData.projects || [])];
+                                  newProjects[index] = { ...project, genre: e.target.value };
+                                  onFormChange({
+                                    target: { name: 'projects', value: newProjects }
+                                  } as any);
+                                }}
+                                className="bg-[rgba(10,16,28,0.65)] border border-white/8 text-cyan-100 rounded-lg p-2 text-sm"
+                              >
+                                <option value="">Select genre...</option>
+                                {GENRES.map((g) => (
+                                  <option key={g} value={g}>{g}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                              <label className="font-semibold text-white text-xs">Monetization</label>
+                              <input
+                                type="text"
+                                value={project.monetization || ''}
+                                onChange={(e) => {
+                                  const newProjects = [...(formData.projects || [])];
+                                  newProjects[index] = { ...project, monetization: e.target.value };
+                                  onFormChange({
+                                    target: { name: 'projects', value: newProjects }
+                                  } as any);
+                                }}
+                                placeholder="e.g., Paid game on steam (Early Access)"
+                                className="bg-[rgba(10,16,28,0.65)] border border-white/8 text-cyan-100 rounded-lg p-2 text-sm"
+                              />
+                            </div>
+                          </div>
+                          
+                          <div className="mt-3 flex flex-col gap-1.5">
+                            <label className="font-semibold text-white text-xs">Full Game Description</label>
+                            <textarea
+                              value={project.description || ''}
+                              onChange={(e) => {
+                                const newProjects = [...(formData.projects || [])];
+                                newProjects[index] = { ...project, description: e.target.value };
+                                onFormChange({
+                                  target: { name: 'projects', value: newProjects }
+                                } as any);
+                              }}
+                              placeholder="Full detailed description of the game..."
+                              rows={4}
+                              className="bg-[rgba(10,16,28,0.65)] border border-white/8 text-cyan-100 rounded-lg p-2 text-sm"
+                            />
+                          </div>
+                          
+                          {/* Key Features */}
+                          <div className="mt-3">
+                            <label className="font-semibold text-white text-xs block mb-2">Key Features</label>
+                            <div className="space-y-2">
+                              {(project.keyFeatures || []).map((feature, fIndex) => (
+                                <div key={fIndex} className="bg-[rgba(10,16,28,0.4)] border border-white/8 rounded-lg p-3 space-y-2">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-xs text-cyan-300">Feature {fIndex + 1}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const newProjects = [...(formData.projects || [])];
+                                        const newFeatures = (project.keyFeatures || []).filter((_, i) => i !== fIndex);
+                                        newProjects[index] = { ...project, keyFeatures: newFeatures };
+                                        onFormChange({
+                                          target: { name: 'projects', value: newProjects }
+                                        } as any);
+                                      }}
+                                      className="px-2 py-1 bg-red-500/20 text-red-300 rounded text-xs hover:bg-red-500/30"
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                  <input
+                                    type="text"
+                                    value={feature.feature || ''}
+                                    onChange={(e) => {
+                                      const newProjects = [...(formData.projects || [])];
+                                      const newFeatures = [...(project.keyFeatures || [])];
+                                      newFeatures[fIndex] = { ...feature, feature: e.target.value };
+                                      newProjects[index] = { ...project, keyFeatures: newFeatures };
+                                      onFormChange({
+                                        target: { name: 'projects', value: newProjects }
+                                      } as any);
+                                    }}
+                                    placeholder="Feature name"
+                                    className="w-full bg-[rgba(10,16,28,0.65)] border border-white/8 text-cyan-100 rounded-lg p-2 text-xs"
+                                  />
+                                  <textarea
+                                    value={feature.description || ''}
+                                    onChange={(e) => {
+                                      const newProjects = [...(formData.projects || [])];
+                                      const newFeatures = [...(project.keyFeatures || [])];
+                                      newFeatures[fIndex] = { ...feature, description: e.target.value };
+                                      newProjects[index] = { ...project, keyFeatures: newFeatures };
+                                      onFormChange({
+                                        target: { name: 'projects', value: newProjects }
+                                      } as any);
+                                    }}
+                                    placeholder="Feature description"
+                                    rows={2}
+                                    className="w-full bg-[rgba(10,16,28,0.65)] border border-white/8 text-cyan-100 rounded-lg p-2 text-xs"
+                                  />
+                                </div>
+                              ))}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newProjects = [...(formData.projects || [])];
+                                  const newFeatures = [...(project.keyFeatures || []), { feature: '', description: '' }];
+                                  newProjects[index] = { ...project, keyFeatures: newFeatures };
+                                  onFormChange({
+                                    target: { name: 'projects', value: newProjects }
+                                  } as any);
+                                }}
+                                className="w-full px-3 py-2 bg-cyan-500/20 text-cyan-300 rounded-lg hover:bg-cyan-500/30 text-xs"
+                              >
+                                + Add Key Feature
+                              </button>
+                            </div>
+                          </div>
+                          
+                          {/* Recognitions */}
+                          <div className="mt-3">
+                            <label className="font-semibold text-white text-xs block mb-2">Recognition / Press</label>
+                            <div className="space-y-2">
+                              {(project.recognitions || []).map((recognition, rIndex) => (
+                                <div key={rIndex} className="bg-[rgba(10,16,28,0.4)] border border-white/8 rounded-lg p-3 space-y-2">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-xs text-cyan-300">Recognition {rIndex + 1}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const newProjects = [...(formData.projects || [])];
+                                        const newRecognitions = (project.recognitions || []).filter((_, i) => i !== rIndex);
+                                        newProjects[index] = { ...project, recognitions: newRecognitions };
+                                        onFormChange({
+                                          target: { name: 'projects', value: newProjects }
+                                        } as any);
+                                      }}
+                                      className="px-2 py-1 bg-red-500/20 text-red-300 rounded text-xs hover:bg-red-500/30"
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    <select
+                                      value={recognition.type || ''}
+                                      onChange={(e) => {
+                                        const newProjects = [...(formData.projects || [])];
+                                        const newRecognitions = [...(project.recognitions || [])];
+                                        newRecognitions[rIndex] = { ...recognition, type: e.target.value };
+                                        newProjects[index] = { ...project, recognitions: newRecognitions };
+                                        onFormChange({
+                                          target: { name: 'projects', value: newProjects }
+                                        } as any);
+                                      }}
+                                      className="bg-[rgba(10,16,28,0.65)] border border-white/8 text-cyan-100 rounded-lg p-2 text-xs"
+                                    >
+                                      <option value="">Select type...</option>
+                                      {RECOGNITION_TYPES.map((type) => (
+                                        <option key={type} value={type}>{type}</option>
+                                      ))}
+                                    </select>
+                                    <input
+                                      type="text"
+                                      value={recognition.source || ''}
+                                      onChange={(e) => {
+                                        const newProjects = [...(formData.projects || [])];
+                                        const newRecognitions = [...(project.recognitions || [])];
+                                        newRecognitions[rIndex] = { ...recognition, source: e.target.value };
+                                        newProjects[index] = { ...project, recognitions: newRecognitions };
+                                        onFormChange({
+                                          target: { name: 'projects', value: newProjects }
+                                        } as any);
+                                      }}
+                                      placeholder="Source (e.g., Coffee Stain, Inverse)"
+                                      className="bg-[rgba(10,16,28,0.65)] border border-white/8 text-cyan-100 rounded-lg p-2 text-xs"
+                                    />
+                                  </div>
+                                  <input
+                                    type="text"
+                                    value={recognition.title || ''}
+                                    onChange={(e) => {
+                                      const newProjects = [...(formData.projects || [])];
+                                      const newRecognitions = [...(project.recognitions || [])];
+                                      newRecognitions[rIndex] = { ...recognition, title: e.target.value };
+                                      newProjects[index] = { ...project, recognitions: newRecognitions };
+                                      onFormChange({
+                                        target: { name: 'projects', value: newProjects }
+                                      } as any);
+                                    }}
+                                    placeholder="Title/Description (e.g., Launch covered by coffee stains studios news hub)"
+                                    className="w-full bg-[rgba(10,16,28,0.65)] border border-white/8 text-cyan-100 rounded-lg p-2 text-xs"
+                                  />
+                                </div>
+                              ))}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newProjects = [...(formData.projects || [])];
+                                  const newRecognitions = [...(project.recognitions || []), { type: '', title: '', source: '' }];
+                                  newProjects[index] = { ...project, recognitions: newRecognitions };
+                                  onFormChange({
+                                    target: { name: 'projects', value: newProjects }
+                                  } as any);
+                                }}
+                                className="w-full px-3 py-2 bg-cyan-500/20 text-cyan-300 rounded-lg hover:bg-cyan-500/30 text-xs"
+                              >
+                                + Add Recognition
+                              </button>
+                            </div>
+                          </div>
+                          
+                          {/* Game Videos */}
+                          <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="flex flex-col gap-1.5">
+                              <label className="font-semibold text-white text-xs">Trailer Video URL</label>
+                              <input
+                                type="url"
+                                value={project.trailerVideoUrl || ''}
+                                onChange={(e) => {
+                                  const newProjects = [...(formData.projects || [])];
+                                  newProjects[index] = { ...project, trailerVideoUrl: e.target.value };
+                                  onFormChange({
+                                    target: { name: 'projects', value: newProjects }
+                                  } as any);
+                                }}
+                                placeholder="https://youtube.com/watch?v=..."
+                                className="bg-[rgba(10,16,28,0.65)] border border-white/8 text-cyan-100 rounded-lg p-2 text-sm"
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                              <label className="font-semibold text-white text-xs">Gameplay Video URL</label>
+                              <input
+                                type="url"
+                                value={project.gameplayVideoUrl || ''}
+                                onChange={(e) => {
+                                  const newProjects = [...(formData.projects || [])];
+                                  newProjects[index] = { ...project, gameplayVideoUrl: e.target.value };
+                                  onFormChange({
+                                    target: { name: 'projects', value: newProjects }
+                                  } as any);
+                                }}
+                                placeholder="https://youtube.com/watch?v=..."
+                                className="bg-[rgba(10,16,28,0.65)] border border-white/8 text-cyan-100 rounded-lg p-2 text-sm"
+                              />
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -627,7 +1000,19 @@ export function ProfileModal({
                         projectStatus: 'In Development' as const,
                         platforms: [],
                         projectPageUrl: '',
-                        shortDescription: ''
+                        shortDescription: '',
+                        // Extended game details - initialize all new fields
+                        developedBy: '',
+                        publisher: '',
+                        releaseDate: '',
+                        engine: '',
+                        genre: '',
+                        monetization: '',
+                        description: '',
+                        keyFeatures: [],
+                        recognitions: [],
+                        trailerVideoUrl: '',
+                        gameplayVideoUrl: '',
                       }];
                       onFormChange({
                         target: { name: 'projects', value: newProjects }

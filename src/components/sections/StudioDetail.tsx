@@ -351,31 +351,25 @@ export function StudioDetail() {
                       className="group/project bg-gradient-to-br from-[rgba(0,0,0,0.3)] to-[rgba(0,0,0,0.1)] border border-white/10 rounded-2xl p-6 hover:border-cyan-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/10 hover:-translate-y-1"
                     >
                       <div className="flex items-start justify-between mb-4">
-                        {(['Just Cause 3', 'Mad Max', 'Dinner with an Owl ("Dessert Edition")', 'Owl Observatory - Dinner with an Owl Prequel', 'Shadow Survival'].includes(project.gameTitle)) ? (
-                          <button
-                            onClick={() => {
-                              // Handle special cases for game slugs to match database names
-                              // Check for Owl Observatory FIRST since its title contains "Dinner with an Owl"
-                              let gameSlug: string;
-                              if (project.gameTitle.includes('Owl Observatory')) {
-                                gameSlug = 'owl-observatory';
-                              } else if (project.gameTitle.includes('Dinner with an Owl')) {
-                                gameSlug = 'dinner-with-an-owl-dessert-edition';
-                              } else {
-                                // Use generateSlug for other games
-                                gameSlug = generateSlug(project.gameTitle);
-                              }
-                              navigate(`/game/${encodeURIComponent(gameSlug)}`);
-                            }}
-                            className="text-xl font-bold text-cyan-100 group-hover/project:text-white hover:text-cyan-200 transition-colors cursor-pointer text-left"
-                          >
-                            {project.gameTitle}
-                          </button>
-                        ) : (
-                          <h3 className="text-xl font-bold text-cyan-100 group-hover/project:text-white transition-colors">
-                            {project.gameTitle}
-                          </h3>
-                        )}
+                        <button
+                          onClick={() => {
+                            // Generate slug for navigation - all games are clickable now
+                            let gameSlug: string;
+                            // Handle special cases for known games
+                            if (project.gameTitle.includes('Owl Observatory')) {
+                              gameSlug = 'owl-observatory';
+                            } else if (project.gameTitle.includes('Dinner with an Owl')) {
+                              gameSlug = 'dinner-with-an-owl-dessert-edition';
+                            } else {
+                              // Use generateSlug for all other games
+                              gameSlug = generateSlug(project.gameTitle);
+                            }
+                            navigate(`/game/${encodeURIComponent(gameSlug)}`);
+                          }}
+                          className="text-xl font-bold text-cyan-100 group-hover/project:text-white hover:text-cyan-200 transition-colors cursor-pointer text-left"
+                        >
+                          {project.gameTitle}
+                        </button>
                         <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold shadow-lg ${
                           project.status === 'Released' 
                             ? 'bg-gradient-to-r from-green-500/30 to-emerald-500/30 text-green-300 border border-green-500/30' 

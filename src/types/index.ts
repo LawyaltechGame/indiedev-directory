@@ -14,13 +14,35 @@ export interface Studio {
   tags?: string[];
 }
 
-// Project/Portfolio item
+// Project/Portfolio item (Game Details)
 export interface Project {
   gameTitle: string;
   projectStatus: 'Released' | 'In Development' | 'Announced';
   platforms: string[];
-  projectPageUrl: string;
+  projectPageUrl?: string;
   shortDescription?: string;
+  logoImageFile?: File; // Game logo file to upload
+  logoImageId?: string; // Game logo file ID after upload
+  
+  // Extended Game Details
+  developedBy?: string; // Developer name (can be different from studio)
+  publisher?: string; // Publisher name
+  releaseDate?: string; // Specific release date (e.g., "May 28, 2025")
+  engine?: string; // Game engine used
+  genre?: string; // Game genre (per game, not studio)
+  monetization?: string; // Monetization model (e.g., "Paid game on steam (Early Access)")
+  description?: string; // Full game description
+  keyFeatures?: Array<{
+    feature: string;
+    description: string;
+  }>;
+  recognitions?: Array<{
+    type: string; // e.g., "Launch Coverage", "Press Mention", "Creator Coverage"
+    title: string; // e.g., "Launch covered by coffee stains studios news hub"
+    source?: string; // e.g., "Coffee Stain", "Inverse", "Noisy Pixel"
+  }>;
+  trailerVideoUrl?: string; // YouTube/Vimeo trailer URL for this game
+  gameplayVideoUrl?: string; // YouTube/Vimeo gameplay URL for this game
 }
 
 // Recognition/Award item
@@ -103,9 +125,13 @@ export interface FormData {
   // Recognition & Press (Repeatable)
   recognitions?: Recognition[];
   
-  // Media (NO PHOTOS)
+  // Media
   trailerVideoUrl?: string;
   gameplayVideoUrl?: string;
+  
+  // Image uploads (files, not stored in formData directly)
+  profileImageFile?: File; // Studio profile image file to upload
+  profileImageId?: string; // Studio profile image file ID after upload (stored in database)
 }
 
 export type ProfileStep = 'create' | 'review' | 'list';

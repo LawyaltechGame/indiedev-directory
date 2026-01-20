@@ -26,6 +26,8 @@ interface GameDetailData {
     source?: string;
   }>;
   logoImageId?: string;
+  trailerVideoUrl?: string;
+  gameplayVideoUrl?: string;
 }
 
 export function GameDetail() {
@@ -178,14 +180,25 @@ export function GameDetail() {
           status: gameData?.status || '',
           releaseDate: gameData?.releaseDate || '',
           platforms: gameData?.platforms || [],
-          engine: gameData?.engine,
+          engine: gameData?.engine || '',
           genre: gameData?.genre || '',
           monetization: gameData?.monetization || '',
           description: gameData?.description || '',
           keyFeatures: gameData?.keyFeatures || [],
           recognitions: gameData?.recognitions || [],
           logoImageId: gameData?.logoImageId,
+          trailerVideoUrl: gameData?.trailerVideoUrl || '',
+          gameplayVideoUrl: gameData?.gameplayVideoUrl || '',
         };
+        
+        console.log('✅ Game loaded:', {
+          name: gameDetail.name,
+          hasDescription: !!gameDetail.description,
+          keyFeaturesCount: gameDetail.keyFeatures?.length || 0,
+          recognitionsCount: gameDetail.recognitions?.length || 0,
+          hasTrailer: !!gameDetail.trailerVideoUrl,
+          hasGameplay: !!gameDetail.gameplayVideoUrl,
+        });
         
         setGame(gameDetail);
         setLoading(false);
@@ -216,6 +229,14 @@ export function GameDetail() {
     );
   }
 
+  // Helper function to extract YouTube video ID from URL
+  const extractYouTubeId = (url: string) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return match && match[2].length === 11 ? match[2] : null;
+  };
+
   if (error || !game) {
     return (
       <div className="min-h-screen bg-bg text-white pt-28 pb-16 px-6">
@@ -234,6 +255,9 @@ export function GameDetail() {
       </div>
     );
   }
+
+  const trailerYoutubeId = game.trailerVideoUrl ? extractYouTubeId(game.trailerVideoUrl) : null;
+  const gameplayYoutubeId = game.gameplayVideoUrl ? extractYouTubeId(game.gameplayVideoUrl) : null;
 
   return (
     <>
@@ -322,6 +346,50 @@ export function GameDetail() {
                   <h2 className="text-3xl font-bold text-transparent bg-gradient-to-r from-cyan-100 to-blue-200 bg-clip-text">Description</h2>
                 </div>
                 <p className="text-cyan-200/90 leading-relaxed text-lg">{game.description}</p>
+              </div>
+            )}
+
+            {/* Media Gallery - Trailer Video */}
+            {trailerYoutubeId && (
+              <div className="group bg-gradient-to-br from-[rgba(20,28,42,0.7)] to-[rgba(20,28,42,0.5)] border border-white/10 rounded-3xl p-8 md:p-10 shadow-xl hover:shadow-2xl hover:shadow-red-500/10 transition-all duration-500">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-1 h-8 bg-gradient-to-b from-red-400 to-orange-400 rounded-full" />
+                  <h2 className="text-3xl font-bold text-transparent bg-gradient-to-r from-red-100 to-orange-200 bg-clip-text">Trailer</h2>
+                </div>
+                <div className="aspect-video rounded-2xl overflow-hidden border-2 border-white/10 shadow-2xl group-hover:border-red-500/30 transition-all duration-500">
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    src={`https://www.youtube.com/embed/${trailerYoutubeId}`}
+                    title={`${game.name} Trailer`}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-full"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Media Gallery - Gameplay Video */}
+            {gameplayYoutubeId && (
+              <div className="group bg-gradient-to-br from-[rgba(20,28,42,0.7)] to-[rgba(20,28,42,0.5)] border border-white/10 rounded-3xl p-8 md:p-10 shadow-xl hover:shadow-2xl hover:shadow-purple-500/10 transition-all duration-500">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-1 h-8 bg-gradient-to-b from-purple-400 to-pink-400 rounded-full" />
+                  <h2 className="text-3xl font-bold text-transparent bg-gradient-to-r from-purple-100 to-pink-200 bg-clip-text">Gameplay</h2>
+                </div>
+                <div className="aspect-video rounded-2xl overflow-hidden border-2 border-white/10 shadow-2xl group-hover:border-purple-500/30 transition-all duration-500">
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    src={`https://www.youtube.com/embed/${gameplayYoutubeId}`}
+                    title={`${game.name} Gameplay`}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-full"
+                  />
+                </div>
               </div>
             )}
 

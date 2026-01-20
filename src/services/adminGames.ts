@@ -96,6 +96,8 @@ export async function addAdminGame(gameData: {
   logoImageFile?: File;
   logoImageUrl?: string;
   logoImagePath?: string; // Local path for development
+  trailerVideoUrl?: string;
+  gameplayVideoUrl?: string;
 }): Promise<{ success: boolean; id?: string; message: string; updated?: boolean }> {
   try {
     if (!DB_ID || !GAMES_TABLE_ID) {
@@ -203,13 +205,15 @@ export async function addAdminGame(gameData: {
         status: gameData.status,
         releaseDate: gameData.releaseDate,
         platforms: gameData.platforms,
-        engine: gameData.engine,
+        engine: gameData.engine || '',
         genre: gameData.genre,
         monetization: gameData.monetization,
         description: gameData.description,
         keyFeatures: gameData.keyFeatures || [],
         recognitions: gameData.recognitions || [],
         logoImageId: imageFileId,
+        trailerVideoUrl: gameData.trailerVideoUrl || '',
+        gameplayVideoUrl: gameData.gameplayVideoUrl || '',
       }),
     } as const;
 
