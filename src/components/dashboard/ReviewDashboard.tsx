@@ -258,7 +258,6 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
         }
         
         try {
-          setCreating(true);
           const GAMES_TABLE_ID = import.meta.env.VITE_APPWRITE_GAMES_TABLE_ID as string;
 
           // Upload studio profile image if provided
@@ -355,8 +354,6 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
         } catch (e: any) {
           console.error('❌ Error creating profile:', e);
           alert(e?.message || 'Failed to submit profile.');
-        } finally {
-          setCreating(false);
         }
       } else {
         alert('Please fill in all required fields');
