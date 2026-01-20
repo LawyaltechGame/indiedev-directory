@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useState, useCallback, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useSearchParams } from 'react-router-dom';
 import StudiosDirectory from './components/sections/StudiosDirectory';
 import Publishers from './components/sections/Publishers';
 import Tools from './components/sections/Tools';
@@ -29,6 +29,8 @@ import { Footer } from './components/sections/Footer';
 import { ProfileModal } from './components/sections/ProfileModal';
 import { LoginModal } from './components/auth/LoginModal';
 import { SignupModal } from './components/auth/SignupModal';
+import { ForgotPasswordModal } from './components/auth/ForgotPasswordModal';
+import { ResetPasswordModal } from './components/auth/ResetPasswordModal';
 import { ReviewDashboard } from './components/dashboard/ReviewDashboard';
 import { PageViewTracker } from './components/analytics/PageViewTracker';
 import type { FormData, ProfileStep } from './types';
@@ -53,10 +55,15 @@ function AppContent() {
   const { user } = useAuth();
   const { isTeamMember } = useTeamMember();
   useCursorAura();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showSignupModal, setShowSignupModal] = useState(false);
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+  const [resetUserId, setResetUserId] = useState<string>('');
+  const [resetSecret, setResetSecret] = useState<string>('');
   const [showAuthRequiredModal, setShowAuthRequiredModal] = useState(false);
   const [showApprovalNotice, setShowApprovalNotice] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
@@ -414,6 +421,28 @@ function AppContent() {
     setShowProfileModal(true);
   }, [user]);
 
+  // Check for password reset URL parameters
+  useEffect(() => {
+    const userId = searchParams.get('userId');
+    const secret = searchParams.get('secret');
+    
+    if (userId && secret) {
+      setResetUserId(userId);
+      setResetSecret(secret);
+      setShowResetPasswordModal(true);
+      // Clean up URL parameters
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  const handleResetPasswordSuccess = useCallback(() => {
+    setShowResetPasswordModal(false);
+    setResetUserId('');
+    setResetSecret('');
+    setShowLoginModal(true);
+    alert('Password reset successfully! Please sign in with your new password.');
+  }, []);
+
   // If dashboard is shown, render only the dashboard
   if (showDashboard) {
     return <ReviewDashboard onClose={() => setShowDashboard(false)} />;
@@ -578,6 +607,10 @@ function AppContent() {
             setShowLoginModal(false);
             setShowSignupModal(true);
           }}
+          onSwitchToForgotPassword={() => {
+            setShowLoginModal(false);
+            setShowForgotPasswordModal(true);
+          }}
         />
       )}
 
@@ -588,6 +621,30 @@ function AppContent() {
             setShowSignupModal(false);
             setShowLoginModal(true);
           }}
+        />
+      )}
+
+      {showForgotPasswordModal && (
+        <ForgotPasswordModal
+          onClose={() => setShowForgotPasswordModal(false)}
+          onBackToLogin={() => {
+            setShowForgotPasswordModal(false);
+            setShowLoginModal(true);
+          }}
+        />
+      )}
+
+      {showResetPasswordModal && resetUserId && resetSecret && (
+        <ResetPasswordModal
+          isOpen={showResetPasswordModal}
+          onClose={() => {
+            setShowResetPasswordModal(false);
+            setResetUserId('');
+            setResetSecret('');
+          }}
+          userId={resetUserId}
+          secret={resetSecret}
+          onSuccess={handleResetPasswordSuccess}
         />
       )}
 

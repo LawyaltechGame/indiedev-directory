@@ -13,6 +13,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   loginWithOAuth: (provider: OAuthProvider) => Promise<void>;
+  requestPasswordReset: (email: string, redirectUrl: string) => Promise<void>;
+  resetPassword: (userId: string, secret: string, newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -76,6 +78,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const requestPasswordReset = useCallback(async (email: string, redirectUrl: string) => {
+    try {
+      await account.createRecovery(email, redirectUrl);
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to send password reset email');
+    }
+  }, []);
+
+  const resetPassword = useCallback(async (userId: string, secret: string, newPassword: string) => {
+    try {
+      await account.updateRecovery(userId, secret, newPassword);
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to reset password');
+    }
+  }, []);
+
   const value = useMemo(() => ({
     user,
     loading,
@@ -83,7 +101,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     logout,
     loginWithOAuth,
-  }), [user, loading, register, login, logout, loginWithOAuth]);
+    requestPasswordReset,
+    resetPassword,
+  }), [user, loading, register, login, logout, loginWithOAuth, requestPasswordReset, resetPassword]);
 
   return (
     <AuthContext.Provider value={value}>
