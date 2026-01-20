@@ -165,7 +165,7 @@ function AppContent() {
   const STUDIO_IMAGES_BUCKET_ID = import.meta.env.VITE_APPWRITE_STUDIO_IMAGES_BUCKET_ID as string;
   
   // Helper function to upload image to Appwrite Storage
-  const uploadImageToStorage = async (imageFile: File, fileName: string): Promise<string> => {
+  const uploadImageToStorage = async (imageFile: File, _fileName: string): Promise<string> => {
     try {
       if (!STUDIO_IMAGES_BUCKET_ID) {
         throw new Error('Studio images bucket not configured');

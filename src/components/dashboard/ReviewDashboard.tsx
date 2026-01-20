@@ -79,7 +79,6 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
   const [rejectReason, setRejectReason] = useState('');
   const [sendingReject, setSendingReject] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [creating, setCreating] = useState(false);
   const [selectedProfileForDetails, setSelectedProfileForDetails] = useState<Profile | null>(null);
   const [profileStep, setProfileStep] = useState<ProfileStep>('create');
   const [formData, setFormData] = useState<FormData>({
@@ -185,7 +184,7 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
   }, [user, isTeamMember, teamLoading, DB_ID, PROFILE_TABLE_ID]);
 
   // Helper function to upload image to Appwrite Storage
-  const uploadImageToStorage = async (imageFile: File, fileName: string): Promise<string> => {
+  const uploadImageToStorage = async (imageFile: File, _fileName: string): Promise<string> => {
     try {
       const STUDIO_IMAGES_BUCKET_ID = import.meta.env.VITE_APPWRITE_STUDIO_IMAGES_BUCKET_ID as string;
       if (!STUDIO_IMAGES_BUCKET_ID) {
@@ -204,7 +203,7 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
       );
 
       return file.$id;
-    } catch (error) {
+        } catch (error) {
       console.error('Error uploading image to storage:', error);
       throw error;
     }
@@ -1055,21 +1054,21 @@ The Game Centralen Team`);
                       </p>
                     </div>
                   </div>
-                </div>
+        </div>
 
                 {/* Studio Details */}
                 <div className="border-b border-white/10 pb-4">
                   <h3 className="text-xl font-bold text-cyan-300 mb-4">Studio Details</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
                       <span className="text-cyan-400 text-sm font-semibold">Studio Type</span>
                       <p className="text-white">
                         {selectedProfileForDetails.studioType && selectedProfileForDetails.studioType !== '' 
                           ? selectedProfileForDetails.studioType 
                           : <span className="text-gray-400 italic">Not provided</span>}
                       </p>
-                    </div>
-                    <div>
+            </div>
+            <div>
                       <span className="text-cyan-400 text-sm font-semibold">Year Founded</span>
                       <p className="text-white">
                         {selectedProfileForDetails.foundedYear || <span className="text-gray-400 italic">Not provided</span>}
@@ -1103,14 +1102,14 @@ The Game Centralen Team`);
                           : <span className="text-gray-400 italic">Not provided</span>}
                       </p>
                     </div>
-                  </div>
-                </div>
+            </div>
+          </div>
 
                 {/* Ownership & Identity */}
                 <div className="border-b border-white/10 pb-4">
                   <h3 className="text-xl font-bold text-cyan-300 mb-4">Ownership & Identity</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+          <div>
                       <span className="text-cyan-400 text-sm font-semibold">Founder(s)</span>
                       <p className="text-white">
                         {selectedProfileForDetails.founders && selectedProfileForDetails.founders.length > 0 
@@ -1139,13 +1138,13 @@ The Game Centralen Team`);
                       </p>
                     </div>
                   </div>
-                </div>
+          </div>
 
                 {/* Team & Capabilities */}
                 <div className="border-b border-white/10 pb-4">
                   <h3 className="text-xl font-bold text-cyan-300 mb-4">Team & Capabilities</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
                       <span className="text-cyan-400 text-sm font-semibold">Target Audience</span>
                       <p className="text-white">
                         {selectedProfileForDetails.targetAudience && selectedProfileForDetails.targetAudience !== '' 
@@ -1178,12 +1177,12 @@ The Game Centralen Team`);
                       </p>
                     </div>
                   </div>
-                </div>
+            </div>
 
                 {/* Platforms & Technology */}
                 <div className="border-b border-white/10 pb-4">
                   <h3 className="text-xl font-bold text-cyan-300 mb-4">Platforms & Technology</h3>
-                  <div>
+            <div>
                     <span className="text-cyan-400 text-sm font-semibold">Supported Platforms</span>
                     <p className="text-white">
                       {selectedProfileForDetails.supportedPlatforms && selectedProfileForDetails.supportedPlatforms.length > 0 
@@ -1223,7 +1222,7 @@ The Game Centralen Team`);
                                 >
                                   {project.projectPageUrl}
                                 </a>
-                              </div>
+            </div>
                             )}
                             {project.shortDescription && (
                               <div className="md:col-span-2">
@@ -1238,13 +1237,13 @@ The Game Centralen Team`);
                   ) : (
                     <p className="text-gray-400 italic">No projects provided</p>
                   )}
-                </div>
+          </div>
 
                 {/* Business & Collaboration */}
                 <div className="border-b border-white/10 pb-4">
                   <h3 className="text-xl font-bold text-cyan-300 mb-4">Business & Collaboration</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
                       <span className="text-cyan-400 text-sm font-semibold">Looking For</span>
                       <p className="text-white">
                         {selectedProfileForDetails.lookingFor && selectedProfileForDetails.lookingFor.length > 0 
@@ -1293,7 +1292,7 @@ The Game Centralen Team`);
                       </p>
                     </div>
                   </div>
-                </div>
+            </div>
 
                 {/* Distribution & Stores */}
                 <div className="border-b border-white/10 pb-4">
@@ -1310,7 +1309,7 @@ The Game Centralen Team`);
                     </div>
                   )}
                   {selectedProfileForDetails.storeLinks && selectedProfileForDetails.storeLinks.length > 0 ? (
-                    <div>
+            <div>
                       <span className="text-cyan-400 text-sm font-semibold">Store Links</span>
                       <div className="space-y-1 mt-1">
                         {selectedProfileForDetails.storeLinks.map((link: string, index: number) => (
@@ -1324,7 +1323,7 @@ The Game Centralen Team`);
                             {link}
                           </a>
                         ))}
-                      </div>
+            </div>
                     </div>
                   ) : (
                     <div>
@@ -1332,13 +1331,13 @@ The Game Centralen Team`);
                       <p className="text-gray-400 italic mt-1">Not provided</p>
                     </div>
                   )}
-                </div>
+          </div>
 
                 {/* Contact & Community */}
                 <div className="border-b border-white/10 pb-4">
                   <h3 className="text-xl font-bold text-cyan-300 mb-4">Contact & Community</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
                       <span className="text-cyan-400 text-sm font-semibold">Public Contact Email</span>
                       <p className="text-white">
                         {selectedProfileForDetails.publicContactEmail ? (
@@ -1352,7 +1351,7 @@ The Game Centralen Team`);
                           <span className="text-gray-400 italic">Not provided</span>
                         )}
                       </p>
-                    </div>
+            </div>
                     <div className="md:col-span-2">
                       <span className="text-cyan-400 text-sm font-semibold">Social Links</span>
                       {selectedProfileForDetails.socialLinks && typeof selectedProfileForDetails.socialLinks === 'object' && 
@@ -1425,7 +1424,7 @@ The Game Centralen Team`);
                         <p className="text-gray-400 italic mt-2">Not provided</p>
                       )}
                     </div>
-                    <div>
+            <div>
                       <span className="text-cyan-400 text-sm font-semibold">Trailer Video</span>
                       <p className="text-white">
                         {selectedProfileForDetails.trailerVideoUrl ? (
@@ -1459,8 +1458,8 @@ The Game Centralen Team`);
                         )}
                       </p>
                     </div>
-                  </div>
-                </div>
+            </div>
+          </div>
 
                 {/* Recognition & Press */}
                 <div className="border-b border-white/10 pb-4">
@@ -1470,7 +1469,7 @@ The Game Centralen Team`);
                       {selectedProfileForDetails.recognitions.map((recognition: any, index: number) => (
                         <div key={index} className="bg-[rgba(0,229,255,0.08)] border border-cyan-500/15 rounded-lg p-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                            <div>
+          <div>
                               <span className="text-cyan-400">Type: </span>
                               <span className="text-white">{recognition.recognitionType || 'N/A'}</span>
                             </div>
@@ -1501,13 +1500,13 @@ The Game Centralen Team`);
                   ) : (
                     <p className="text-gray-400 italic">No recognitions or awards provided</p>
                   )}
-                </div>
+          </div>
 
                 {/* Tools & Tags */}
                 <div className="border-b border-white/10 pb-4">
                   <h3 className="text-xl font-bold text-cyan-300 mb-4">Additional Info</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+          <div>
                       <span className="text-cyan-400 text-sm font-semibold">Tools</span>
                       <p className="text-white">
                         {selectedProfileForDetails.tools && selectedProfileForDetails.tools.length > 0 
@@ -1533,7 +1532,7 @@ The Game Centralen Team`);
                     </div>
                   </div>
                 </div>
-              </div>
+          </div>
 
               <div className="mt-6 flex justify-end">
                 <button
@@ -1542,8 +1541,8 @@ The Game Centralen Team`);
                 >
                   Close
                 </button>
-              </div>
-            </div>
+          </div>
+      </div>
           </div>
         </div>
       )}
