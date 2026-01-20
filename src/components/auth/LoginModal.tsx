@@ -69,7 +69,7 @@ export function LoginModal({ onClose, onSwitchToSignup, onSwitchToForgotPassword
             <button
               type="button"
               onClick={onSwitchToForgotPassword}
-              className="text-sm text-cyan-400 hover:text-cyan-300 transition-colors"
+              className="text-sm font-medium text-cyan-400 hover:text-cyan-300 transition-colors underline underline-offset-2"
             >
               Forgot Password?
             </button>
