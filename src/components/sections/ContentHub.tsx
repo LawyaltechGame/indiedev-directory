@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { fetchBlogs, fetchNews, fetchGuides, fetchTools, type WordPressPost } from '../../services/wordpress';
+import { fetchBlogs, fetchNews, fetchGuides, fetchTools, fetchAllPosts, getPostCategoryTag, type WordPressPost } from '../../services/wordpress';
 
-type TabType = 'blogs' | 'news' | 'guides' | 'tools';
+type TabType = 'all' | 'blogs' | 'news' | 'guides' | 'tools';
 
 export function ContentHub() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState<TabType>((searchParams.get('tab') as TabType) || 'blogs');
+  const [activeTab, setActiveTab] = useState<TabType>((searchParams.get('tab') as TabType) || 'all');
   const [posts, setPosts] = useState<WordPressPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +30,9 @@ export function ContentHub() {
         setPage(1);
         setHasMore(true);
         let data: WordPressPost[];
-        if (activeTab === 'blogs') {
+        if (activeTab === 'all') {
+          data = await fetchAllPosts(1, 12);
+        } else if (activeTab === 'blogs') {
           data = await fetchBlogs(1, 12);
         } else if (activeTab === 'news') {
           data = await fetchNews(1, 12);
@@ -59,7 +61,9 @@ export function ContentHub() {
       setLoadingMore(true);
       const nextPage = page + 1;
       let data: WordPressPost[];
-      if (activeTab === 'blogs') {
+      if (activeTab === 'all') {
+        data = await fetchAllPosts(nextPage, 12);
+      } else if (activeTab === 'blogs') {
         data = await fetchBlogs(nextPage, 12);
       } else if (activeTab === 'news') {
         data = await fetchNews(nextPage, 12);
@@ -129,6 +133,17 @@ export function ContentHub() {
           {/* Tab Buttons */}
           <div className="flex flex-wrap gap-3">
             <button
+              onClick={() => handleTabChange('all')}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 ${
+                activeTab === 'all'
+                  ? 'bg-linear-to-b from-cyan-500 to-cyan-300 text-[#001018] shadow-[0_8px_22px_rgba(34,211,238,0.35)]'
+                  : 'bg-[rgba(20,28,42,0.6)] border border-white/8 text-cyan-100 hover:bg-[rgba(0,229,255,0.12)] hover:border-cyan-400/40'
+              }`}
+            >
+              <span>All</span>
+            </button>
+
+            <button
               onClick={() => handleTabChange('blogs')}
               className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all duration-300 ${
                 activeTab === 'blogs'
@@ -181,8 +196,8 @@ export function ContentHub() {
         {/* Loading State */}
         {loading && (
           <>
-            {/* Only use grid layout for blogs in loading state */}
-            {activeTab === 'blogs' ? (
+            {/* Use grid layout for blogs and all tabs in loading state */}
+            {activeTab === 'blogs' || activeTab === 'all' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
                   <div
@@ -230,13 +245,13 @@ export function ContentHub() {
         {!loading && !error && posts.length === 0 && (
           <div className="bg-[rgba(20,28,42,0.6)] border border-white/8 rounded-2xl p-12 text-center">
             <div className="text-6xl mb-4">
-              {activeTab === 'blogs' ? '📝' : activeTab === 'news' ? '📰' : activeTab === 'guides' ? '📚' : '🛠️'}
+              {activeTab === 'all' ? '📚' : activeTab === 'blogs' ? '📝' : activeTab === 'news' ? '📰' : activeTab === 'guides' ? '📚' : '🛠️'}
             </div>
             <h2 className="text-2xl font-bold mb-3 text-cyan-100">
-              No {activeTab === 'blogs' ? 'Blogs' : activeTab === 'news' ? 'News' : activeTab === 'guides' ? 'Guides' : 'Tools'} Yet
+              No {activeTab === 'all' ? 'Content' : activeTab === 'blogs' ? 'Blogs' : activeTab === 'news' ? 'News' : activeTab === 'guides' ? 'Guides' : 'Tools'} Yet
             </h2>
             <p className="text-cyan-200/70">
-              {activeTab === 'blogs' ? 'Blog posts' : activeTab === 'news' ? 'News articles' : activeTab === 'guides' ? 'Guides' : 'Tools'} will appear here.
+              {activeTab === 'all' ? 'Content' : activeTab === 'blogs' ? 'Blog posts' : activeTab === 'news' ? 'News articles' : activeTab === 'guides' ? 'Guides' : 'Tools'} will appear here.
             </p>
           </div>
         )}
@@ -244,103 +259,43 @@ export function ContentHub() {
         {/* Content Grid/List */}
         {!loading && !error && posts.length > 0 && (
           <>
-            {/* Only use grid layout for blogs */}
-            {activeTab === 'blogs' ? (
+            {/* Use grid layout for blogs and all tabs */}
+            {activeTab === 'blogs' || activeTab === 'all' ? (
               // Blog Grid Layout
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {posts.map((post) => (
-                  <article
-                    key={post.id}
-                    className="bg-[rgba(20,28,42,0.6)] border border-white/8 rounded-2xl overflow-hidden hover:border-cyan-400/40 transition-all duration-300 hover:shadow-[0_8px_32px_rgba(34,211,238,0.2)] group cursor-pointer"
-                    onClick={() => {
-                      const slug = post.link.split('/').filter(Boolean).pop();
-                      navigate(`/content/${slug}`);
-                    }}
-                  >
-                    {post._embedded?.['wp:featuredmedia']?.[0]?.source_url && (
-                      <div className="w-full bg-[rgba(0,0,0,0.2)] overflow-hidden rounded-t-2xl relative">
-                        <img
-                          src={post._embedded['wp:featuredmedia'][0].source_url}
-                          alt={
-                            post._embedded['wp:featuredmedia'][0].alt_text || post.title.rendered
-                          }
-                          className="w-full h-auto block"
-                          loading="lazy"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.onerror = null;
-                            target.src = 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&h=450&fit=crop&q=80';
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    <div className="p-6">
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-xs text-cyan-300/60">
-                          {new Date(post.date).toLocaleDateString('en-US', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
-                        </span>
-                        {post._embedded?.author?.[0] && (
-                          <>
-                            <span className="text-cyan-300/40">•</span>
-                            <span className="text-xs text-cyan-300 font-semibold">
-                              By {post._embedded.author[0].name}
-                            </span>
-                          </>
-                        )}
-                      </div>
-
-                      <h2
-                        className="text-xl font-bold mb-3 text-cyan-100 group-hover:text-cyan-300 transition-colors duration-200"
-                        dangerouslySetInnerHTML={{ __html: post.title.rendered }}
-                      />
-
-                      <div
-                        className="text-sm text-cyan-200/70 mb-4 line-clamp-3"
-                        dangerouslySetInnerHTML={{ __html: post.excerpt.rendered }}
-                      />
-
-                      <div className="inline-flex items-center gap-2 text-cyan-300 hover:text-cyan-200 font-semibold transition-colors duration-200">
-                        Read More <span>→</span>
-                      </div>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              // List Layout (Used for News, Guides, and Tools)
-              <div className="space-y-6">
-                {posts.map((post) => (
-                  <article
-                    key={post.id}
-                    className="bg-[rgba(20,28,42,0.6)] border border-white/8 rounded-2xl overflow-hidden hover:border-cyan-400/40 transition-all duration-300 hover:shadow-[0_8px_32px_rgba(34,211,238,0.2)] group cursor-pointer"
-                    onClick={() => {
-                      const slug = post.link.split('/').filter(Boolean).pop();
-                      navigate(`/content/${slug}`);
-                    }}
-                  >
-                    <div className="flex flex-col md:flex-row gap-6 p-6">
+                {posts.map((post) => {
+                  const categoryTag = getPostCategoryTag(post);
+                  return (
+                    <article
+                      key={post.id}
+                      className="bg-[rgba(20,28,42,0.6)] border border-white/8 rounded-2xl overflow-hidden hover:border-cyan-400/40 transition-all duration-300 hover:shadow-[0_8px_32px_rgba(34,211,238,0.2)] group cursor-pointer"
+                      onClick={() => {
+                        const slug = post.link.split('/').filter(Boolean).pop();
+                        navigate(`/content/${slug}`);
+                      }}
+                    >
                       {post._embedded?.['wp:featuredmedia']?.[0]?.source_url && (
-                        <div className="w-full md:w-64 h-40 flex-shrink-0 overflow-hidden rounded-xl">
+                        <div className="w-full bg-[rgba(0,0,0,0.2)] overflow-hidden rounded-t-2xl relative">
                           <img
                             src={post._embedded['wp:featuredmedia'][0].source_url}
                             alt={
                               post._embedded['wp:featuredmedia'][0].alt_text || post.title.rendered
                             }
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            className="w-full h-auto block"
+                            loading="lazy"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.onerror = null;
+                              target.src = 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&h=450&fit=crop&q=80';
+                            }}
                           />
                         </div>
                       )}
 
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
+                      <div className="p-6">
+                        <div className="flex items-center gap-2 mb-3 flex-wrap">
                           <span className="px-3 py-1 bg-cyan-500/20 text-cyan-300 text-xs font-bold rounded-full uppercase">
-                            {/* Dynamically display the active tab label */}
-                            {activeTab}
+                            {categoryTag}
                           </span>
                           <span className="text-xs text-cyan-300/60">
                             {new Date(post.date).toLocaleDateString('en-US', {
@@ -360,6 +315,73 @@ export function ContentHub() {
                         </div>
 
                         <h2
+                          className="text-xl font-bold mb-3 text-cyan-100 group-hover:text-cyan-300 transition-colors duration-200"
+                          dangerouslySetInnerHTML={{ __html: post.title.rendered }}
+                        />
+
+                        <div
+                          className="text-sm text-cyan-200/70 mb-4 line-clamp-3"
+                          dangerouslySetInnerHTML={{ __html: post.excerpt.rendered }}
+                        />
+
+                        <div className="inline-flex items-center gap-2 text-cyan-300 hover:text-cyan-200 font-semibold transition-colors duration-200">
+                          Read More <span>→</span>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            ) : (
+              // List Layout (Used for News, Guides, and Tools)
+              <div className="space-y-6">
+                {posts.map((post) => {
+                  const categoryTag = getPostCategoryTag(post);
+                  return (
+                    <article
+                      key={post.id}
+                      className="bg-[rgba(20,28,42,0.6)] border border-white/8 rounded-2xl overflow-hidden hover:border-cyan-400/40 transition-all duration-300 hover:shadow-[0_8px_32px_rgba(34,211,238,0.2)] group cursor-pointer"
+                      onClick={() => {
+                        const slug = post.link.split('/').filter(Boolean).pop();
+                        navigate(`/content/${slug}`);
+                      }}
+                    >
+                      <div className="flex flex-col md:flex-row gap-6 p-6">
+                        {post._embedded?.['wp:featuredmedia']?.[0]?.source_url && (
+                          <div className="w-full md:w-64 h-40 flex-shrink-0 overflow-hidden rounded-xl">
+                            <img
+                              src={post._embedded['wp:featuredmedia'][0].source_url}
+                              alt={
+                                post._embedded['wp:featuredmedia'][0].alt_text || post.title.rendered
+                              }
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                          </div>
+                        )}
+
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2 flex-wrap">
+                            <span className="px-3 py-1 bg-cyan-500/20 text-cyan-300 text-xs font-bold rounded-full uppercase">
+                              {categoryTag}
+                            </span>
+                            <span className="text-xs text-cyan-300/60">
+                              {new Date(post.date).toLocaleDateString('en-US', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                              })}
+                            </span>
+                            {post._embedded?.author?.[0] && (
+                              <>
+                                <span className="text-cyan-300/40">•</span>
+                                <span className="text-xs text-cyan-300 font-semibold">
+                                  By {post._embedded.author[0].name}
+                                </span>
+                              </>
+                            )}
+                          </div>
+
+                        <h2
                           className="text-2xl font-bold mb-3 text-cyan-100 group-hover:text-cyan-300 transition-colors duration-200"
                           dangerouslySetInnerHTML={{ __html: post.title.rendered }}
                         />
@@ -375,7 +397,8 @@ export function ContentHub() {
                       </div>
                     </div>
                   </article>
-                ))}
+                  );
+                })}
               </div>
             )}
           </>
@@ -386,7 +409,7 @@ export function ContentHub() {
           <div className="flex justify-center items-center py-12">
             <div className="flex flex-col items-center gap-4">
               <div className="w-12 h-12 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin"></div>
-              <p className="text-cyan-300 font-semibold">Loading more {activeTab === 'blogs' ? 'blogs' : activeTab === 'news' ? 'news' : activeTab === 'guides' ? 'guides' : 'tools'}...</p>
+              <p className="text-cyan-300 font-semibold">Loading more {activeTab === 'all' ? 'content' : activeTab === 'blogs' ? 'blogs' : activeTab === 'news' ? 'news' : activeTab === 'guides' ? 'guides' : 'tools'}...</p>
             </div>
           </div>
         )}
@@ -398,7 +421,7 @@ export function ContentHub() {
               onClick={loadMorePosts}
               className="px-8 py-4 bg-linear-to-b from-cyan-500 to-cyan-300 text-[#001018] font-bold rounded-xl transition-all duration-200 hover:from-cyan-400 hover:to-cyan-500 shadow-[0_8px_22px_rgba(34,211,238,0.35)] hover:shadow-[0_12px_28px_rgba(34,211,238,0.45)] hover:-translate-y-1"
             >
-              Load More {activeTab === 'blogs' ? 'Blogs' : activeTab === 'news' ? 'News' : activeTab === 'guides' ? 'Guides' : 'Tools'}
+              Load More {activeTab === 'all' ? 'Content' : activeTab === 'blogs' ? 'Blogs' : activeTab === 'news' ? 'News' : activeTab === 'guides' ? 'Guides' : 'Tools'}
             </button>
           </div>
         )}
@@ -411,7 +434,7 @@ export function ContentHub() {
                 🎉 You've reached the end!
               </p>
               <p className="text-cyan-200/40 text-sm mt-2">
-                No more {activeTab === 'blogs' ? 'blogs' : activeTab === 'news' ? 'news' : activeTab === 'guides' ? 'guides' : 'tools'} to load
+                No more {activeTab === 'all' ? 'content' : activeTab === 'blogs' ? 'blogs' : activeTab === 'news' ? 'news' : activeTab === 'guides' ? 'guides' : 'tools'} to load
               </p>
             </div>
           </div>
