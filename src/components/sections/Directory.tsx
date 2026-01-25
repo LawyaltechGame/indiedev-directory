@@ -57,7 +57,9 @@ export function Directory({
 
       try {
         setIsLoading(true);
+        console.log('🔍 Fetching approved profiles (anonymous access)...');
         const profiles = await getApprovedProfiles(DB_ID, PROFILE_TABLE_ID);
+        console.log(`✅ Successfully fetched ${profiles.length} approved profile(s)`);
         
         // Deduplicate studios by name (keep the most recent one with a logo, or most recent if no logo)
         const studiosByName = new Map<string, any>();
@@ -208,23 +210,37 @@ export function Directory({
           }
           
           return {
-            id: profile.$id || profile.id || index + 1,
-            name: profile.name || 'Unknown Studio',
-            tagline: profile.tagline || '',
-            genre: profile.genre || '',
-            platform: profile.platform || '',
-            teamSize: profile.teamSize || '',
-            location: profile.location || '',
-            tools: profile.tools || '',
+          id: profile.$id || profile.id || index + 1,
+          name: profile.name || 'Unknown Studio',
+          tagline: profile.tagline || '',
+          genre: profile.genre || '',
+          platform: profile.platform || '',
+          teamSize: profile.teamSize || '',
+          location: profile.location || '',
+          tools: profile.tools || '',
             hue: (index * 37) % 360, // Generate hue for card colors (fallback)
             profileImageId: profileImageId, // Extract profileImageId from parsed profile
-            fullProfile: profile, // Store full profile data for the modal
+          fullProfile: profile, // Store full profile data for the modal
           };
         });
 
         setStudios(transformedStudios as any);
-      } catch (error) {
-        console.error('Error fetching approved profiles:', error);
+      } catch (error: any) {
+        console.error('❌ Error fetching approved profiles:', error);
+        // Log detailed error information for debugging
+        if (error?.code === 401 || error?.message?.includes('Unauthorized')) {
+          console.error('🔒 Permission Error: The database table may not allow anonymous reads.');
+          console.error('💡 Solution: In Appwrite Console, set the profiles table Read permission to "Any"');
+        } else if (error?.code === 404) {
+          console.error('🔍 Not Found: The database or table may not exist or be accessible.');
+        } else {
+          console.error('📋 Full error details:', {
+            code: error?.code,
+            message: error?.message,
+            type: error?.type,
+            response: error?.response,
+          });
+        }
         setStudios([]);
       } finally {
         setIsLoading(false);
@@ -349,6 +365,14 @@ export function Directory({
               >
                 Clear All Filters
               </button>
+            )}
+            {studios.length === 0 && (
+              <div className="mt-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl text-left max-w-2xl mx-auto">
+                <p className="text-yellow-200/80 text-sm">
+                  <strong>Note:</strong> If you're seeing this message but studios should be visible, check the browser console for permission errors. 
+                  The Appwrite database table may need Read permissions set to "Any" to allow anonymous users to view studios.
+                </p>
+              </div>
             )}
           </div>
         ) : (

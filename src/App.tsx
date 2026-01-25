@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useState, useCallback, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useSearchParams } from 'react-router-dom';
 import StudiosDirectory from './components/sections/StudiosDirectory';
 import Publishers from './components/sections/Publishers';
 import Tools from './components/sections/Tools';
@@ -29,10 +29,17 @@ import { Footer } from './components/sections/Footer';
 import { ProfileModal } from './components/sections/ProfileModal';
 import { LoginModal } from './components/auth/LoginModal';
 import { SignupModal } from './components/auth/SignupModal';
+import { ForgotPasswordModal } from './components/auth/ForgotPasswordModal';
+import { ResetPasswordModal } from './components/auth/ResetPasswordModal';
 import { ReviewDashboard } from './components/dashboard/ReviewDashboard';
 import { PageViewTracker } from './components/analytics/PageViewTracker';
 import type { FormData, ProfileStep } from './types';
 import { createProfileDocument } from './services/profile';
+import { Storage } from 'appwrite';
+import { ID } from './config/appwrite';
+import client from './config/appwrite';
+import { compressImage } from './services/studioImages';
+import { addAdminGame } from './services/adminGames';
 import './utils/addAvalancheStudio'; // Initialize admin studio functions
 import './utils/addBoringSuburbanDad'; // Initialize BoringSuburbanDad studio
 import './utils/addCelestialKnightStudios'; // Initialize Celestial Knight Studios
@@ -48,10 +55,15 @@ function AppContent() {
   const { user } = useAuth();
   const { isTeamMember } = useTeamMember();
   useCursorAura();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showSignupModal, setShowSignupModal] = useState(false);
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+  const [resetUserId, setResetUserId] = useState<string>('');
+  const [resetSecret, setResetSecret] = useState<string>('');
   const [showAuthRequiredModal, setShowAuthRequiredModal] = useState(false);
   const [showApprovalNotice, setShowApprovalNotice] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
@@ -156,6 +168,33 @@ function AppContent() {
 
   const DB_ID = import.meta.env.VITE_APPWRITE_DATABASE_ID as string;
   const PROFILE_TABLE_ID = import.meta.env.VITE_APPWRITE_PROFILE_TABLE_ID as string;
+  const GAMES_TABLE_ID = import.meta.env.VITE_APPWRITE_GAMES_TABLE_ID as string;
+  const STUDIO_IMAGES_BUCKET_ID = import.meta.env.VITE_APPWRITE_STUDIO_IMAGES_BUCKET_ID as string;
+  
+  // Helper function to upload image to Appwrite Storage
+  const uploadImageToStorage = async (imageFile: File, _fileName: string): Promise<string> => {
+    try {
+      if (!STUDIO_IMAGES_BUCKET_ID) {
+        throw new Error('Studio images bucket not configured');
+      }
+
+      // Compress image
+      const compressedFile = await compressImage(imageFile, 800, 0.85);
+
+      // Upload to Appwrite Storage
+      const storage = new Storage(client);
+      const file = await storage.createFile(
+        STUDIO_IMAGES_BUCKET_ID,
+        ID.unique(),
+        compressedFile
+      );
+
+      return file.$id;
+    } catch (error) {
+      console.error('Error uploading image to storage:', error);
+      throw error;
+    }
+  };
 
   // Filter states
   const [genre, setGenre] = useState('');
@@ -237,21 +276,101 @@ function AppContent() {
             user: user
           });
 
-          await createProfileDocument({
+          // Upload studio profile image if provided
+          let profileImageId: string | undefined = undefined;
+          if (formData.profileImageFile) {
+            try {
+              profileImageId = await uploadImageToStorage(formData.profileImageFile, `${formData.name}-profile`);
+              console.log('✅ Studio profile image uploaded:', profileImageId);
+            } catch (error) {
+              console.error('❌ Failed to upload studio profile image:', error);
+              // Continue without image - don't block profile creation
+            }
+          }
+
+          // Create profile document with image ID
+          const profileData = {
+            ...formData,
+            authEmail: (user as any).email, // Add authenticated user's email
+            profileImageId, // Add uploaded image ID
+          };
+
+          // Remove file objects before storing (they can't be serialized)
+          delete (profileData as any).profileImageFile;
+          
+          // Clean up file objects from projects
+          if (profileData.projects) {
+            profileData.projects = profileData.projects.map((project: any) => {
+              const { logoImageFile, ...projectWithoutFile } = project;
+              return projectWithoutFile;
+            });
+          }
+
+          const profileResult = await createProfileDocument({
             databaseId: DB_ID,
             tableId: PROFILE_TABLE_ID,
             userId: (user as any).$id || (user as any).id,
-            data: {
-              ...formData,
-              authEmail: (user as any).email // Add authenticated user's email
-            },
+            data: profileData,
           });
+
+          console.log('✅ Profile created:', profileResult);
+
+          // Create game documents for each project
+          if (formData.projects && formData.projects.length > 0 && GAMES_TABLE_ID) {
+            const gamePromises = formData.projects.map(async (project) => {
+              // Upload game logo if provided
+              let logoImageId: string | undefined = undefined;
+              if (project.logoImageFile) {
+                try {
+                  logoImageId = await uploadImageToStorage(project.logoImageFile, `${project.gameTitle}-logo`);
+                  console.log(`✅ Game logo uploaded for ${project.gameTitle}:`, logoImageId);
+                } catch (error) {
+                  console.error(`❌ Failed to upload game logo for ${project.gameTitle}:`, error);
+                  // Continue without logo
+                }
+              }
+
+              // Map project status to game status
+              const gameStatus = project.projectStatus === 'Released' ? 'Released' 
+                : project.projectStatus === 'In Development' ? 'In Development (TBA)'
+                : 'Announced';
+
+              // Create game document with all fields
+              try {
+                await addAdminGame({
+                  name: project.gameTitle,
+                  developedBy: project.developedBy || formData.name, // Use project's developedBy or fallback to studio name
+                  publisher: project.publisher || formData.name, // Use project's publisher or fallback to studio name
+                  status: gameStatus,
+                  releaseDate: project.releaseDate || (project.projectStatus === 'Released' ? 'Released' : 'TBA'),
+                  platforms: project.platforms || [],
+                  engine: project.engine,
+                  genre: project.genre || formData.genre || 'Unknown',
+                  monetization: project.monetization || formData.revenue || 'Not specified',
+                  description: project.description || project.shortDescription || `Game developed by ${formData.name}`,
+                  keyFeatures: project.keyFeatures || [],
+                  recognitions: project.recognitions || [],
+                  logoImageId, // Add uploaded logo ID
+                  trailerVideoUrl: project.trailerVideoUrl,
+                  gameplayVideoUrl: project.gameplayVideoUrl,
+                });
+                console.log(`✅ Game document created for: ${project.gameTitle}`);
+              } catch (error) {
+                console.error(`❌ Failed to create game document for ${project.gameTitle}:`, error);
+                // Continue - don't block profile creation if game creation fails
+              }
+            });
+
+            // Wait for all games to be created (but don't fail if some fail)
+            await Promise.allSettled(gamePromises);
+          }
 
           // Profile created successfully
           setSubmittedProfile(formData);
           setShowProfileModal(false);
           setShowApprovalNotice(true);
         } catch (e: any) {
+          console.error('❌ Error creating profile:', e);
           alert(e?.message || 'Failed to submit profile.');
         } finally {
           setIsSubmitting(false);
@@ -301,6 +420,28 @@ function AppContent() {
     }
     setShowProfileModal(true);
   }, [user]);
+
+  // Check for password reset URL parameters
+  useEffect(() => {
+    const userId = searchParams.get('userId');
+    const secret = searchParams.get('secret');
+    
+    if (userId && secret) {
+      setResetUserId(userId);
+      setResetSecret(secret);
+      setShowResetPasswordModal(true);
+      // Clean up URL parameters
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  const handleResetPasswordSuccess = useCallback(() => {
+    setShowResetPasswordModal(false);
+    setResetUserId('');
+    setResetSecret('');
+    setShowLoginModal(true);
+    alert('Password reset successfully! Please sign in with your new password.');
+  }, []);
 
   // If dashboard is shown, render only the dashboard
   if (showDashboard) {
@@ -466,6 +607,10 @@ function AppContent() {
             setShowLoginModal(false);
             setShowSignupModal(true);
           }}
+          onSwitchToForgotPassword={() => {
+            setShowLoginModal(false);
+            setShowForgotPasswordModal(true);
+          }}
         />
       )}
 
@@ -476,6 +621,30 @@ function AppContent() {
             setShowSignupModal(false);
             setShowLoginModal(true);
           }}
+        />
+      )}
+
+      {showForgotPasswordModal && (
+        <ForgotPasswordModal
+          onClose={() => setShowForgotPasswordModal(false)}
+          onBackToLogin={() => {
+            setShowForgotPasswordModal(false);
+            setShowLoginModal(true);
+          }}
+        />
+      )}
+
+      {showResetPasswordModal && resetUserId && resetSecret && (
+        <ResetPasswordModal
+          isOpen={showResetPasswordModal}
+          onClose={() => {
+            setShowResetPasswordModal(false);
+            setResetUserId('');
+            setResetSecret('');
+          }}
+          userId={resetUserId}
+          secret={resetSecret}
+          onSuccess={handleResetPasswordSuccess}
         />
       )}
 

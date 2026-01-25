@@ -1,8 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTeamMember } from '../../hooks/useTeamMember';
 import { getAllProfiles, updateProfileStatus, deleteProfile, createProfileDocument } from '../../services/profile';
 import { Button } from '../ui/Button';
+import { ProfileModal } from '../sections/ProfileModal';
+import type { FormData, ProfileStep } from '../../types';
+import { Storage } from 'appwrite';
+import { ID } from '../../config/appwrite';
+import client from '../../config/appwrite';
+import { compressImage } from '../../services/studioImages';
+import { addAdminGame } from '../../services/adminGames';
 
 interface Profile {
   $id: string;
@@ -72,8 +79,24 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
   const [rejectReason, setRejectReason] = useState('');
   const [sendingReject, setSendingReject] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [creating, setCreating] = useState(false);
   const [selectedProfileForDetails, setSelectedProfileForDetails] = useState<Profile | null>(null);
+  const [profileStep, setProfileStep] = useState<ProfileStep>('create');
+  const [formData, setFormData] = useState<FormData>({
+    name: '',
+    tagline: '',
+    genre: '',
+    platform: '',
+    teamSize: '',
+    location: '',
+    description: '',
+    website: '',
+    email: '',
+    tools: [],
+    revenue: '',
+    foundedYear: '',
+    tags: [],
+  });
+  const [submittedProfile, setSubmittedProfile] = useState<FormData | null>(null);
 
   const DB_ID = import.meta.env.VITE_APPWRITE_DATABASE_ID as string;
   const PROFILE_TABLE_ID = import.meta.env.VITE_APPWRITE_PROFILE_TABLE_ID as string;
@@ -87,8 +110,11 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
 
     try {
       setLoading(true);
+      console.log('🔍 Fetching all profiles from database...');
       const data = await getAllProfiles(DB_ID, PROFILE_TABLE_ID);
-      console.log('Fetched profiles:', data); // Debug log
+      console.log('✅ Raw profiles fetched:', data);
+      console.log('📊 Total profiles:', data?.length || 0);
+      
       // Ensure profiles are properly parsed
       const parsedProfiles = Array.isArray(data) ? data.map((p: any) => {
         // Double-check parsing if needed
@@ -103,10 +129,45 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
         }
         return p;
       }) : [];
+      
+      // Log status breakdown
+      const statusBreakdown = {
+        pending: parsedProfiles.filter((p: any) => p.status === 'pending').length,
+        approved: parsedProfiles.filter((p: any) => p.status === 'approved').length,
+        rejected: parsedProfiles.filter((p: any) => p.status === 'rejected').length,
+        unknown: parsedProfiles.filter((p: any) => !p.status || !['pending', 'approved', 'rejected'].includes(p.status)).length,
+      };
+      console.log('📈 Status breakdown:', statusBreakdown);
+      console.log('📋 All profiles with status:', parsedProfiles.map((p: any) => ({
+        name: p.name,
+        status: p.status,
+        statusType: typeof p.status,
+        id: p.$id,
+        userId: p.userId,
+        createdByTeam: p.createdByTeam,
+      })));
+      
+      // Log pending profiles specifically
+      const pendingProfiles = parsedProfiles.filter((p: any) => p.status === 'pending');
+      console.log('⏳ Pending profiles found:', pendingProfiles.length);
+      if (pendingProfiles.length > 0) {
+        console.log('⏳ Pending profiles details:', pendingProfiles.map((p: any) => ({
+          name: p.name,
+          status: p.status,
+          id: p.$id,
+        })));
+      }
+      
       setProfiles(parsedProfiles as any);
-    } catch (error) {
-      console.error('Error fetching profiles:', error);
-      alert('Failed to load profiles. Please check your database configuration.');
+    } catch (error: any) {
+      console.error('❌ Error fetching profiles:', error);
+      console.error('Error details:', {
+        message: error?.message,
+        code: error?.code,
+        type: error?.type,
+        response: error?.response,
+      });
+      alert(`Failed to load profiles: ${error?.message || 'Unknown error'}. Check console for details.`);
     } finally {
       setLoading(false);
     }
@@ -116,38 +177,218 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
   useEffect(() => {
     // Only fetch profiles if user is authorized
     if (user && isTeamMember && !teamLoading && DB_ID && PROFILE_TABLE_ID) {
-      const loadProfiles = async () => {
-        try {
-          setLoading(true);
-          const data = await getAllProfiles(DB_ID, PROFILE_TABLE_ID);
-          console.log('Fetched profiles:', data); // Debug log
-          // Ensure profiles are properly parsed
-          const parsedProfiles = Array.isArray(data) ? data.map((p: any) => {
-            // Double-check parsing if needed
-            if (p.profileData && typeof p.profileData === 'string') {
-              try {
-                const parsed = JSON.parse(p.profileData);
-                return { ...p, ...parsed, profileData: parsed };
-              } catch (e) {
-                console.error('Error parsing profile in ReviewDashboard:', e);
-                return p;
-              }
-            }
-            return p;
-          }) : [];
-          setProfiles(parsedProfiles as any);
-        } catch (error) {
-          console.error('Error fetching profiles:', error);
-          alert('Failed to load profiles. Please check your database configuration.');
-        } finally {
-          setLoading(false);
-        }
-      };
-      loadProfiles();
+      fetchProfiles();
     } else if (!user || !isTeamMember) {
       setLoading(false);
     }
   }, [user, isTeamMember, teamLoading, DB_ID, PROFILE_TABLE_ID]);
+
+  // Helper function to upload image to Appwrite Storage
+  const uploadImageToStorage = async (imageFile: File, _fileName: string): Promise<string> => {
+    try {
+      const STUDIO_IMAGES_BUCKET_ID = import.meta.env.VITE_APPWRITE_STUDIO_IMAGES_BUCKET_ID as string;
+      if (!STUDIO_IMAGES_BUCKET_ID) {
+        throw new Error('Studio images bucket not configured');
+      }
+
+      // Compress image
+      const compressedFile = await compressImage(imageFile, 800, 0.85);
+
+      // Upload to Appwrite Storage
+      const storage = new Storage(client);
+      const file = await storage.createFile(
+        STUDIO_IMAGES_BUCKET_ID,
+        ID.unique(),
+        compressedFile
+      );
+
+      return file.$id;
+        } catch (error) {
+      console.error('Error uploading image to storage:', error);
+      throw error;
+    }
+  };
+
+  const handleFormChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement> | { target: { name: string; value: any } }) => {
+    const target = e.target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | { name: string; value: any };
+    
+    // Handle custom events (for repeatable fields, complex objects)
+    if ('value' in target && typeof target.value !== 'string' && typeof target.value !== 'boolean') {
+      setFormData((prev) => ({ ...prev, [target.name]: target.value }));
+      return;
+    }
+
+    const name = (target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement).name;
+
+    // Handle checkbox toggles for multi-select fields
+    const multiSelectFields = ['tools', 'tags', 'languagesSupported', 'regionsServed', 'primaryExpertise', 'gameEngines', 'supportedPlatforms', 'distributionChannels', 'lookingFor'];
+    if (target instanceof HTMLInputElement && target.type === 'checkbox' && multiSelectFields.includes(name)) {
+      const val = target.value;
+      setFormData((prev) => {
+        const currentArray = (prev as any)[name] || [];
+        const cur = new Set(currentArray);
+        if (target.checked) cur.add(val); else cur.delete(val);
+        return { ...prev, [name]: Array.from(cur) } as any;
+      });
+      return;
+    }
+
+    const value = (target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement).value;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  }, []);
+
+  const handleNextStep = useCallback(async () => {
+    if (profileStep === 'create') {
+      // Validate required fields
+      if (
+        formData.name &&
+        formData.tagline &&
+        formData.genre &&
+        formData.platform &&
+        formData.teamSize &&
+        formData.location
+      ) {
+        if (!user) {
+          alert('User not logged in');
+          return;
+        }
+        if (!DB_ID || !PROFILE_TABLE_ID) {
+          alert('Missing database configuration');
+          return;
+        }
+        
+        try {
+          const GAMES_TABLE_ID = import.meta.env.VITE_APPWRITE_GAMES_TABLE_ID as string;
+
+          // Upload studio profile image if provided
+          let profileImageId: string | undefined = undefined;
+          if (formData.profileImageFile) {
+            try {
+              profileImageId = await uploadImageToStorage(formData.profileImageFile, `${formData.name}-profile`);
+              console.log('✅ Studio profile image uploaded:', profileImageId);
+            } catch (error) {
+              console.error('❌ Failed to upload studio profile image:', error);
+            }
+          }
+
+          // Create profile document with image ID
+          const profileData = {
+            ...formData,
+            authEmail: (user as any).email,
+            profileImageId,
+          };
+
+          // Remove file objects before storing
+          delete (profileData as any).profileImageFile;
+          
+          // Clean up file objects from projects
+          if (profileData.projects) {
+            profileData.projects = profileData.projects.map((project: any) => {
+              const { logoImageFile, ...projectWithoutFile } = project;
+              return projectWithoutFile;
+            });
+          }
+
+          await createProfileDocument({
+            databaseId: DB_ID,
+            tableId: PROFILE_TABLE_ID,
+            userId: user.$id,
+            data: profileData,
+            createdByTeam: true, // Mark as created by team (auto-approved)
+          });
+
+          console.log('✅ Profile created:', profileData.name);
+
+          // Create game documents for each project
+          if (formData.projects && formData.projects.length > 0 && GAMES_TABLE_ID) {
+            const gamePromises = formData.projects.map(async (project) => {
+              // Upload game logo if provided
+              let logoImageId: string | undefined = undefined;
+              if (project.logoImageFile) {
+                try {
+                  logoImageId = await uploadImageToStorage(project.logoImageFile, `${project.gameTitle}-logo`);
+                  console.log(`✅ Game logo uploaded for ${project.gameTitle}:`, logoImageId);
+                } catch (error) {
+                  console.error(`❌ Failed to upload game logo for ${project.gameTitle}:`, error);
+                }
+              }
+
+              // Map project status to game status
+              const gameStatus = project.projectStatus === 'Released' ? 'Released' 
+                : project.projectStatus === 'In Development' ? 'In Development (TBA)'
+                : 'Announced';
+
+              // Create game document with all fields
+              try {
+                await addAdminGame({
+                  name: project.gameTitle,
+                  developedBy: project.developedBy || formData.name,
+                  publisher: project.publisher || formData.name,
+                  status: gameStatus,
+                  releaseDate: project.releaseDate || (project.projectStatus === 'Released' ? 'Released' : 'TBA'),
+                  platforms: project.platforms || [],
+                  engine: project.engine,
+                  genre: project.genre || formData.genre || 'Unknown',
+                  monetization: project.monetization || formData.revenue || 'Not specified',
+                  description: project.description || project.shortDescription || `Game developed by ${formData.name}`,
+                  keyFeatures: project.keyFeatures || [],
+                  recognitions: project.recognitions || [],
+                  logoImageId,
+                  trailerVideoUrl: project.trailerVideoUrl,
+                  gameplayVideoUrl: project.gameplayVideoUrl,
+                });
+                console.log(`✅ Game document created for: ${project.gameTitle}`);
+              } catch (error) {
+                console.error(`❌ Failed to create game document for ${project.gameTitle}:`, error);
+              }
+            });
+
+            await Promise.allSettled(gamePromises);
+          }
+
+          // Profile created successfully
+          setSubmittedProfile(formData);
+          setShowCreateModal(false);
+          await fetchProfiles(); // Refresh the list
+          alert('Profile created successfully and is now live!');
+        } catch (e: any) {
+          console.error('❌ Error creating profile:', e);
+          alert(e?.message || 'Failed to submit profile.');
+        }
+      } else {
+        alert('Please fill in all required fields');
+      }
+    } else if (profileStep === 'review') {
+      // For review step, just move to list (but we skip this in dashboard)
+      setProfileStep('list');
+    }
+  }, [profileStep, formData, user, DB_ID, PROFILE_TABLE_ID, fetchProfiles]);
+
+  const handleBackStep = useCallback(() => {
+    if (profileStep === 'review') setProfileStep('create');
+    else if (profileStep === 'list') setProfileStep('review');
+  }, [profileStep]);
+
+  const handleCloseModal = useCallback(() => {
+    setShowCreateModal(false);
+    setProfileStep('create');
+    setFormData({
+      name: '',
+      tagline: '',
+      genre: '',
+      platform: '',
+      teamSize: '',
+      location: '',
+      description: '',
+      website: '',
+      email: '',
+      tools: [],
+      revenue: '',
+      foundedYear: '',
+      tags: [],
+    });
+    setSubmittedProfile(null);
+  }, []);
 
   // Show loading while checking team membership
   if (teamLoading) {
@@ -381,36 +622,12 @@ The Game Centralen Team`);
     }
   };
 
-  const handleCreateProfile = async (formData: any) => {
-    if (!DB_ID || !PROFILE_TABLE_ID || !user) {
-      alert('Missing configuration or user not logged in');
-      return;
-    }
-
-    try {
-      setCreating(true);
-      await createProfileDocument({
-        databaseId: DB_ID,
-        tableId: PROFILE_TABLE_ID,
-        userId: user.$id, // Use team member's ID
-        data: formData,
-        createdByTeam: true // Mark as created by team
-      });
-      
-      setShowCreateModal(false);
-      await fetchProfiles(); // Refresh the list
-      alert('Profile created successfully and is now live!');
-    } catch (error: any) {
-      console.error('Error creating profile:', error);
-      alert(error?.message || 'Failed to create profile');
-    } finally {
-      setCreating(false);
-    }
-  };
-
   const filteredProfiles = profiles.filter((profile) => {
     if (filter === 'all') return true;
-    return profile.status === filter;
+    // Normalize status - handle case sensitivity and undefined
+    const profileStatus = profile.status?.toLowerCase()?.trim();
+    const filterStatus = filter.toLowerCase();
+    return profileStatus === filterStatus;
   });
 
   const statusCounts = {
@@ -448,6 +665,13 @@ The Game Centralen Team`);
               <p className="text-cyan-200">Review and manage submitted studio profiles</p>
             </div>
             <div className="flex gap-3">
+              <button
+                onClick={fetchProfiles}
+                className="h-10 px-4 border border-cyan-500/50 bg-[rgba(9,14,22,0.55)] text-cyan-100 rounded-xl font-extrabold transition-all duration-200 hover:bg-[rgba(0,229,255,0.12)] hover:text-white hover:shadow-[0_0_10px_rgba(0,229,255,0.35)]"
+                title="Refresh profiles list"
+              >
+                🔄 Refresh
+              </button>
               <button
                 onClick={() => setShowCreateModal(true)}
                 className="h-10 px-4 bg-linear-to-b from-cyan-500 to-cyan-300 text-[#001018] rounded-xl font-extrabold transition-all duration-200 hover:from-cyan-400 hover:to-cyan-500 shadow-[0_8px_22px_rgba(34,211,238,0.35)]"
@@ -728,14 +952,17 @@ The Game Centralen Team`);
         </div>
       )}
 
-      {/* Create Profile Modal */}
-      {showCreateModal && (
-        <CreateProfileModal
-          onClose={() => setShowCreateModal(false)}
-          onSubmit={handleCreateProfile}
-          loading={creating}
-        />
-      )}
+      {/* Create Profile Modal - Using Full ProfileModal Component */}
+      <ProfileModal
+        showProfileModal={showCreateModal}
+        profileStep={profileStep}
+        formData={formData}
+        submittedProfile={submittedProfile}
+        onClose={handleCloseModal}
+        onFormChange={handleFormChange}
+        onNextStep={handleNextStep}
+        onBackStep={handleBackStep}
+      />
 
       {/* Full Details Modal */}
       {selectedProfileForDetails && (
@@ -824,21 +1051,21 @@ The Game Centralen Team`);
                       </p>
                     </div>
                   </div>
-                </div>
+        </div>
 
                 {/* Studio Details */}
                 <div className="border-b border-white/10 pb-4">
                   <h3 className="text-xl font-bold text-cyan-300 mb-4">Studio Details</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
                       <span className="text-cyan-400 text-sm font-semibold">Studio Type</span>
                       <p className="text-white">
                         {selectedProfileForDetails.studioType && selectedProfileForDetails.studioType !== '' 
                           ? selectedProfileForDetails.studioType 
                           : <span className="text-gray-400 italic">Not provided</span>}
                       </p>
-                    </div>
-                    <div>
+            </div>
+            <div>
                       <span className="text-cyan-400 text-sm font-semibold">Year Founded</span>
                       <p className="text-white">
                         {selectedProfileForDetails.foundedYear || <span className="text-gray-400 italic">Not provided</span>}
@@ -872,14 +1099,14 @@ The Game Centralen Team`);
                           : <span className="text-gray-400 italic">Not provided</span>}
                       </p>
                     </div>
-                  </div>
-                </div>
+            </div>
+          </div>
 
                 {/* Ownership & Identity */}
                 <div className="border-b border-white/10 pb-4">
                   <h3 className="text-xl font-bold text-cyan-300 mb-4">Ownership & Identity</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+          <div>
                       <span className="text-cyan-400 text-sm font-semibold">Founder(s)</span>
                       <p className="text-white">
                         {selectedProfileForDetails.founders && selectedProfileForDetails.founders.length > 0 
@@ -908,13 +1135,13 @@ The Game Centralen Team`);
                       </p>
                     </div>
                   </div>
-                </div>
+          </div>
 
                 {/* Team & Capabilities */}
                 <div className="border-b border-white/10 pb-4">
                   <h3 className="text-xl font-bold text-cyan-300 mb-4">Team & Capabilities</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
                       <span className="text-cyan-400 text-sm font-semibold">Target Audience</span>
                       <p className="text-white">
                         {selectedProfileForDetails.targetAudience && selectedProfileForDetails.targetAudience !== '' 
@@ -947,12 +1174,12 @@ The Game Centralen Team`);
                       </p>
                     </div>
                   </div>
-                </div>
+            </div>
 
                 {/* Platforms & Technology */}
                 <div className="border-b border-white/10 pb-4">
                   <h3 className="text-xl font-bold text-cyan-300 mb-4">Platforms & Technology</h3>
-                  <div>
+            <div>
                     <span className="text-cyan-400 text-sm font-semibold">Supported Platforms</span>
                     <p className="text-white">
                       {selectedProfileForDetails.supportedPlatforms && selectedProfileForDetails.supportedPlatforms.length > 0 
@@ -992,7 +1219,7 @@ The Game Centralen Team`);
                                 >
                                   {project.projectPageUrl}
                                 </a>
-                              </div>
+            </div>
                             )}
                             {project.shortDescription && (
                               <div className="md:col-span-2">
@@ -1007,13 +1234,13 @@ The Game Centralen Team`);
                   ) : (
                     <p className="text-gray-400 italic">No projects provided</p>
                   )}
-                </div>
+          </div>
 
                 {/* Business & Collaboration */}
                 <div className="border-b border-white/10 pb-4">
                   <h3 className="text-xl font-bold text-cyan-300 mb-4">Business & Collaboration</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
                       <span className="text-cyan-400 text-sm font-semibold">Looking For</span>
                       <p className="text-white">
                         {selectedProfileForDetails.lookingFor && selectedProfileForDetails.lookingFor.length > 0 
@@ -1062,7 +1289,7 @@ The Game Centralen Team`);
                       </p>
                     </div>
                   </div>
-                </div>
+            </div>
 
                 {/* Distribution & Stores */}
                 <div className="border-b border-white/10 pb-4">
@@ -1079,7 +1306,7 @@ The Game Centralen Team`);
                     </div>
                   )}
                   {selectedProfileForDetails.storeLinks && selectedProfileForDetails.storeLinks.length > 0 ? (
-                    <div>
+            <div>
                       <span className="text-cyan-400 text-sm font-semibold">Store Links</span>
                       <div className="space-y-1 mt-1">
                         {selectedProfileForDetails.storeLinks.map((link: string, index: number) => (
@@ -1093,7 +1320,7 @@ The Game Centralen Team`);
                             {link}
                           </a>
                         ))}
-                      </div>
+            </div>
                     </div>
                   ) : (
                     <div>
@@ -1101,13 +1328,13 @@ The Game Centralen Team`);
                       <p className="text-gray-400 italic mt-1">Not provided</p>
                     </div>
                   )}
-                </div>
+          </div>
 
                 {/* Contact & Community */}
                 <div className="border-b border-white/10 pb-4">
                   <h3 className="text-xl font-bold text-cyan-300 mb-4">Contact & Community</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
                       <span className="text-cyan-400 text-sm font-semibold">Public Contact Email</span>
                       <p className="text-white">
                         {selectedProfileForDetails.publicContactEmail ? (
@@ -1121,7 +1348,7 @@ The Game Centralen Team`);
                           <span className="text-gray-400 italic">Not provided</span>
                         )}
                       </p>
-                    </div>
+            </div>
                     <div className="md:col-span-2">
                       <span className="text-cyan-400 text-sm font-semibold">Social Links</span>
                       {selectedProfileForDetails.socialLinks && typeof selectedProfileForDetails.socialLinks === 'object' && 
@@ -1194,7 +1421,7 @@ The Game Centralen Team`);
                         <p className="text-gray-400 italic mt-2">Not provided</p>
                       )}
                     </div>
-                    <div>
+            <div>
                       <span className="text-cyan-400 text-sm font-semibold">Trailer Video</span>
                       <p className="text-white">
                         {selectedProfileForDetails.trailerVideoUrl ? (
@@ -1228,8 +1455,8 @@ The Game Centralen Team`);
                         )}
                       </p>
                     </div>
-                  </div>
-                </div>
+            </div>
+          </div>
 
                 {/* Recognition & Press */}
                 <div className="border-b border-white/10 pb-4">
@@ -1239,7 +1466,7 @@ The Game Centralen Team`);
                       {selectedProfileForDetails.recognitions.map((recognition: any, index: number) => (
                         <div key={index} className="bg-[rgba(0,229,255,0.08)] border border-cyan-500/15 rounded-lg p-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                            <div>
+          <div>
                               <span className="text-cyan-400">Type: </span>
                               <span className="text-white">{recognition.recognitionType || 'N/A'}</span>
                             </div>
@@ -1270,13 +1497,13 @@ The Game Centralen Team`);
                   ) : (
                     <p className="text-gray-400 italic">No recognitions or awards provided</p>
                   )}
-                </div>
+          </div>
 
                 {/* Tools & Tags */}
                 <div className="border-b border-white/10 pb-4">
                   <h3 className="text-xl font-bold text-cyan-300 mb-4">Additional Info</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+          <div>
                       <span className="text-cyan-400 text-sm font-semibold">Tools</span>
                       <p className="text-white">
                         {selectedProfileForDetails.tools && selectedProfileForDetails.tools.length > 0 
@@ -1302,7 +1529,7 @@ The Game Centralen Team`);
                     </div>
                   </div>
                 </div>
-              </div>
+          </div>
 
               <div className="mt-6 flex justify-end">
                 <button
@@ -1311,8 +1538,8 @@ The Game Centralen Team`);
                 >
                   Close
                 </button>
-              </div>
-            </div>
+          </div>
+      </div>
           </div>
         </div>
       )}
@@ -1320,235 +1547,4 @@ The Game Centralen Team`);
   );
 }
 
-// Create Profile Modal Component
-function CreateProfileModal({ onClose, onSubmit, loading }: { onClose: () => void; onSubmit: (data: any) => void; loading: boolean }) {
-  const [formData, setFormData] = useState({
-    name: '',
-    tagline: '',
-    genre: '',
-    platform: '',
-    teamSize: '',
-    location: '',
-    description: '',
-    website: '',
-    email: '',
-    authEmail: '',
-    tools: [] as string[],
-    foundedYear: '',
-    tags: [] as string[],
-    revenue: 'F2P' // Default to F2P to satisfy Appwrite enum requirement
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validation
-    if (!formData.name || !formData.tagline || !formData.genre || !formData.platform || 
-        !formData.teamSize || !formData.location || !formData.email) {
-      alert('Please fill in all required fields');
-      return;
-    }
-
-    onSubmit(formData);
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-[rgba(20,28,42,0.95)] border border-white/8 rounded-2xl p-6 max-w-2xl w-full shadow-[0_20px_50px_rgba(0,0,0,0.5)] my-8">
-        <div className="mb-6">
-          <h3 className="text-2xl font-bold mb-2 bg-linear-to-r from-cyan-100 to-cyan-300 bg-clip-text text-transparent">
-            Create Studio Profile
-          </h3>
-          <p className="text-cyan-200 text-sm">
-            Create a profile directly - it will be auto-approved and appear immediately in the directory.
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-cyan-300 text-sm font-semibold mb-2">Studio Name *</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full bg-[rgba(0,0,0,0.4)] text-white border border-white/8 rounded-lg p-3"
-                placeholder="Enter studio name"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-cyan-300 text-sm font-semibold mb-2">Email *</label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value, authEmail: e.target.value })}
-                className="w-full bg-[rgba(0,0,0,0.4)] text-white border border-white/8 rounded-lg p-3"
-                placeholder="studio@example.com"
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-cyan-300 text-sm font-semibold mb-2">Tagline *</label>
-            <input
-              type="text"
-              value={formData.tagline}
-              onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
-              className="w-full bg-[rgba(0,0,0,0.4)] text-white border border-white/8 rounded-lg p-3"
-              placeholder="Brief description"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-cyan-300 text-sm font-semibold mb-2">Genre *</label>
-              <select
-                value={formData.genre}
-                onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
-                className="w-full bg-[rgba(0,0,0,0.4)] text-white border border-white/8 rounded-lg p-3"
-                required
-              >
-                <option value="">Select genre</option>
-                <option value="Action">Action</option>
-                <option value="Adventure">Adventure</option>
-                <option value="RPG">RPG</option>
-                <option value="Strategy">Strategy</option>
-                <option value="Simulation">Simulation</option>
-                <option value="Puzzle">Puzzle</option>
-                <option value="Horror">Horror</option>
-                <option value="Platformer">Platformer</option>
-                <option value="Sports">Sports</option>
-                <option value="Racing">Racing</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-cyan-300 text-sm font-semibold mb-2">Platform *</label>
-              <select
-                value={formData.platform}
-                onChange={(e) => setFormData({ ...formData, platform: e.target.value })}
-                className="w-full bg-[rgba(0,0,0,0.4)] text-white border border-white/8 rounded-lg p-3"
-                required
-              >
-                <option value="">Select platform</option>
-                <option value="PC">PC</option>
-                <option value="Console">Console</option>
-                <option value="Mobile">Mobile</option>
-                <option value="Web">Web</option>
-                <option value="VR">VR</option>
-                <option value="Multi-platform">Multi-platform</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-cyan-300 text-sm font-semibold mb-2">Team Size *</label>
-              <select
-                value={formData.teamSize}
-                onChange={(e) => setFormData({ ...formData, teamSize: e.target.value })}
-                className="w-full bg-[rgba(0,0,0,0.4)] text-white border border-white/8 rounded-lg p-3"
-                required
-              >
-                <option value="">Select team size</option>
-                <option value="Solo">Solo</option>
-                <option value="2-5">2-5</option>
-                <option value="6-10">6-10</option>
-                <option value="11-20">11-20</option>
-                <option value="21-50">21-50</option>
-                <option value="50+">50+</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-cyan-300 text-sm font-semibold mb-2">Location *</label>
-              <input
-                type="text"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                className="w-full bg-[rgba(0,0,0,0.4)] text-white border border-white/8 rounded-lg p-3"
-                placeholder="City, Country"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-cyan-300 text-sm font-semibold mb-2">Revenue Model *</label>
-              <select
-                value={formData.revenue}
-                onChange={(e) => setFormData({ ...formData, revenue: e.target.value })}
-                className="w-full bg-[rgba(0,0,0,0.4)] text-white border border-white/8 rounded-lg p-3"
-                required
-              >
-                <option value="F2P">Free to Play (F2P)</option>
-                <option value="Premium">Premium</option>
-                <option value="Subscription">Subscription</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-cyan-300 text-sm font-semibold mb-2">Founded Year</label>
-              <input
-                type="text"
-                value={formData.foundedYear}
-                onChange={(e) => setFormData({ ...formData, foundedYear: e.target.value })}
-                className="w-full bg-[rgba(0,0,0,0.4)] text-white border border-white/8 rounded-lg p-3"
-                placeholder="e.g., 2020"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-cyan-300 text-sm font-semibold mb-2">Description</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows={4}
-              className="w-full bg-[rgba(0,0,0,0.4)] text-white border border-white/8 rounded-lg p-3"
-              placeholder="Tell us about the studio..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-cyan-300 text-sm font-semibold mb-2">Website</label>
-            <input
-              type="url"
-              value={formData.website}
-              onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-              className="w-full bg-[rgba(0,0,0,0.4)] text-white border border-white/8 rounded-lg p-3"
-              placeholder="https://example.com"
-            />
-          </div>
-
-          <div className="flex gap-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              fullWidth
-              disabled={loading}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              fullWidth
-              loading={loading}
-            >
-              {loading ? 'Creating...' : 'Create Profile'}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
 

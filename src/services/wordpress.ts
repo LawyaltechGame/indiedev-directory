@@ -222,6 +222,100 @@ export async function fetchTools(page: number = 1, perPage: number = 10): Promis
 }
 
 /**
+ * Fetch all posts from WordPress (blogs, news, guides, tools combined)
+ * @param page - Page number for pagination (default: 1)
+ * @param perPage - Number of posts per page (default: 10)
+ */
+export async function fetchAllPosts(page: number = 1, perPage: number = 10): Promise<WordPressPost[]> {
+  if (!config.baseUrl) {
+    console.warn('WordPress base URL not configured');
+    return [];
+  }
+
+  try {
+    // Fetch posts from each category separately and combine them
+    // WordPress REST API treats multiple categories as AND, not OR
+    // Fetch enough posts from each category to support pagination
+    const postsPerCategory = Math.max(perPage * 2, 24); // Fetch at least 24 posts per category or 2x perPage
+    
+    const fetchPromises: Promise<WordPressPost[]>[] = [];
+    
+    if (config.blogCategoryId) {
+      fetchPromises.push(fetchBlogs(1, postsPerCategory));
+    }
+    if (config.newsCategoryId) {
+      fetchPromises.push(fetchNews(1, postsPerCategory));
+    }
+    if (config.guidesCategoryId) {
+      fetchPromises.push(fetchGuides(1, postsPerCategory));
+    }
+    if (config.toolsCategoryId) {
+      fetchPromises.push(fetchTools(1, postsPerCategory));
+    }
+
+    // Wait for all requests to complete
+    const results = await Promise.all(fetchPromises);
+    
+    // Combine all posts and deduplicate by post ID
+    const allPosts: WordPressPost[] = [];
+    const seenIds = new Set<number>();
+    
+    results.forEach(posts => {
+      posts.forEach(post => {
+        if (!seenIds.has(post.id)) {
+          seenIds.add(post.id);
+          allPosts.push(post);
+        }
+      });
+    });
+
+    // Sort by date (newest first)
+    allPosts.sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return dateB - dateA;
+    });
+
+    // Return only the requested number of posts per page
+    const startIndex = (page - 1) * perPage;
+    const endIndex = startIndex + perPage;
+    return allPosts.slice(startIndex, endIndex);
+  } catch (error) {
+    console.error('Error fetching all posts:', error);
+    return [];
+  }
+}
+
+/**
+ * Get the category tag name for a post based on its categories
+ * @param post - WordPress post object
+ * @returns Category tag name ('Blog', 'News', 'Guide', 'Tools', or 'Blog' as default)
+ */
+export function getPostCategoryTag(post: WordPressPost): string {
+  if (!post.categories || post.categories.length === 0) {
+    return 'Blog';
+  }
+
+  const categoryIds = post.categories;
+  
+  if (config.newsCategoryId && categoryIds.includes(config.newsCategoryId)) {
+    return 'News';
+  }
+  if (config.toolsCategoryId && categoryIds.includes(config.toolsCategoryId)) {
+    return 'Tools';
+  }
+  if (config.guidesCategoryId && categoryIds.includes(config.guidesCategoryId)) {
+    return 'Guide';
+  }
+  if (config.blogCategoryId && categoryIds.includes(config.blogCategoryId)) {
+    return 'Blog';
+  }
+
+  // Default to Blog if no matching category found
+  return 'Blog';
+}
+
+/**
  * Update WordPress configuration
  * Use this to set your WordPress site details
  */

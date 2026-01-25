@@ -8,9 +8,10 @@ import { Button } from '../ui/Button';
 interface LoginModalProps {
   onClose: () => void;
   onSwitchToSignup: () => void;
+  onSwitchToForgotPassword: () => void;
 }
 
-export function LoginModal({ onClose, onSwitchToSignup }: LoginModalProps) {
+export function LoginModal({ onClose, onSwitchToSignup, onSwitchToForgotPassword }: LoginModalProps) {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -56,13 +57,24 @@ export function LoginModal({ onClose, onSwitchToSignup }: LoginModalProps) {
           label="Email"
         />
 
-        <PasswordInput
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••"
-          required
-          label="Password"
-        />
+        <div>
+          <PasswordInput
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            required
+            label="Password"
+          />
+          <div className="mt-2 text-right">
+            <button
+              type="button"
+              onClick={onSwitchToForgotPassword}
+              className="text-sm font-medium text-cyan-400 hover:text-cyan-300 transition-colors underline underline-offset-2"
+            >
+              Forgot Password?
+            </button>
+          </div>
+        </div>
 
         <Button
           type="submit"

@@ -98,6 +98,9 @@ export async function createProfileDocument(params: {
       recognitions: data.recognitions || [],
       trailerVideoUrl: data.trailerVideoUrl || '',
       gameplayVideoUrl: data.gameplayVideoUrl || '',
+      
+      // Studio Profile Image
+      profileImageId: data.profileImageId || '',
     }),
   } as const;
 
@@ -113,6 +116,17 @@ export function parseProfileJSONFields(profile: any) {
   
   const parsed = { ...profile };
   
+  // IMPORTANT: Preserve root-level fields that should NOT be overwritten by profileData
+  const preservedFields = {
+    $id: parsed.$id,
+    userId: parsed.userId,
+    status: parsed.status, // CRITICAL: Preserve status field
+    createdByTeam: parsed.createdByTeam,
+    createdAt: parsed.createdAt,
+    $createdAt: parsed.$createdAt,
+    $updatedAt: parsed.$updatedAt,
+  };
+  
   // Parse the main profileData JSON column and flatten all fields
   if (parsed.profileData && parsed.profileData !== 'NULL' && parsed.profileData !== null) {
     if (typeof parsed.profileData === 'string' && parsed.profileData.trim() && parsed.profileData.trim() !== 'NULL') {
@@ -120,6 +134,8 @@ export function parseProfileJSONFields(profile: any) {
         const profileData = JSON.parse(parsed.profileData);
         // Flatten all fields to root level for backward compatibility
         Object.assign(parsed, profileData);
+        // Restore preserved fields (in case profileData had conflicting keys)
+        Object.assign(parsed, preservedFields);
         // Keep the grouped version too
         parsed.profileData = profileData;
       } catch (e) {
@@ -129,6 +145,8 @@ export function parseProfileJSONFields(profile: any) {
     } else if (typeof parsed.profileData === 'object' && parsed.profileData !== null) {
       // Already parsed, just flatten it
       Object.assign(parsed, parsed.profileData);
+      // Restore preserved fields (in case profileData had conflicting keys)
+      Object.assign(parsed, preservedFields);
     }
   }
   
@@ -178,11 +196,32 @@ export function parseProfileJSONFields(profile: any) {
 
 export async function getAllProfiles(databaseId: string, tableId: string) {
   try {
+    console.log('🔍 getAllProfiles: Fetching from database...', { databaseId, tableId });
     const response = await databases.listDocuments(databaseId, tableId);
+    console.log('✅ getAllProfiles: Raw response received', {
+      total: response.total,
+      documentsCount: response.documents.length,
+      firstDoc: response.documents[0] ? {
+        id: response.documents[0].$id,
+        status: response.documents[0].status,
+        userId: response.documents[0].userId,
+      } : null,
+    });
     // Parse JSON columns for each profile
-    return response.documents.map(parseProfileJSONFields);
-  } catch (error) {
-    console.error('Error fetching profiles:', error);
+    const parsed = response.documents.map(parseProfileJSONFields);
+    console.log('✅ getAllProfiles: Parsed profiles', {
+      count: parsed.length,
+      statuses: parsed.map((p: any) => p.status),
+    });
+    return parsed;
+  } catch (error: any) {
+    console.error('❌ getAllProfiles: Error fetching profiles:', error);
+    console.error('Error details:', {
+      message: error?.message,
+      code: error?.code,
+      type: error?.type,
+      response: error?.response,
+    });
     throw error;
   }
 }
