@@ -66,6 +66,51 @@ interface ReviewDashboardProps {
   onClose?: () => void;
 }
 
+function normalizeStudioName(name: unknown): string {
+  return String(name ?? '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
+function getProfileNameForDedupe(p: any): string {
+  // Prefer flattened name, then nested profileData.name
+  if (p?.name) return String(p.name);
+  if (p?.profileData && typeof p.profileData === 'object' && p.profileData?.name) return String(p.profileData.name);
+  return '';
+}
+
+function getCreatedAtSortable(p: any): string {
+  // Prefer explicit createdAt, else Appwrite $createdAt, else id as stable fallback
+  const v = p?.createdAt || p?.$createdAt || '';
+  if (typeof v === 'string' && v) return v;
+  return String(p?.$id || '');
+}
+
+function dedupeProfilesForDashboard(input: Profile[]): Profile[] {
+  // Dedupe by (normalized studio name + status). Keep the most recent doc.
+  const byKey = new Map<string, Profile>();
+  for (const p of input) {
+    const name = getProfileNameForDedupe(p);
+    const normName = normalizeStudioName(name);
+    const status = String((p as any)?.status ?? '').toLowerCase().trim();
+    const key = `${normName}__${status}`;
+
+    const existing = byKey.get(key);
+    if (!existing) {
+      byKey.set(key, p);
+      continue;
+    }
+
+    const existingCreated = getCreatedAtSortable(existing);
+    const currentCreated = getCreatedAtSortable(p);
+    if (currentCreated > existingCreated) {
+      byKey.set(key, p);
+    }
+  }
+  return Array.from(byKey.values());
+}
+
 export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
   const { user } = useAuth();
   const { isTeamMember, loading: teamLoading } = useTeamMember();
@@ -157,7 +202,8 @@ export function ReviewDashboard({ onClose }: ReviewDashboardProps) {
           id: p.$id,
         })));
       }
-      
+
+      // Keep raw docs in state; dedupe is done for rendering/counts below.
       setProfiles(parsedProfiles as any);
     } catch (error: any) {
       console.error('❌ Error fetching profiles:', error);
@@ -630,11 +676,14 @@ The Game Centralen Team`);
     return profileStatus === filterStatus;
   });
 
+  // Dedupe for display (prevents duplicate studio cards in dashboard)
+  const displayProfiles = dedupeProfilesForDashboard(filteredProfiles);
+
   const statusCounts = {
-    all: profiles.length,
-    pending: profiles.filter((p) => p.status === 'pending').length,
-    approved: profiles.filter((p) => p.status === 'approved').length,
-    rejected: profiles.filter((p) => p.status === 'rejected').length,
+    all: dedupeProfilesForDashboard(profiles).length,
+    pending: dedupeProfilesForDashboard(profiles.filter((p) => p.status === 'pending')).length,
+    approved: dedupeProfilesForDashboard(profiles.filter((p) => p.status === 'approved')).length,
+    rejected: dedupeProfilesForDashboard(profiles.filter((p) => p.status === 'rejected')).length,
   };
 
   if (loading) {
@@ -708,7 +757,7 @@ The Game Centralen Team`);
         </div>
 
         {/* Profiles List */}
-        {filteredProfiles.length === 0 ? (
+        {displayProfiles.length === 0 ? (
           <div className="text-center py-20">
             <div className="text-6xl mb-4">📋</div>
             <h3 className="text-2xl font-bold mb-2">No profiles found</h3>
@@ -718,7 +767,7 @@ The Game Centralen Team`);
           </div>
         ) : (
           <div className="grid gap-6">
-            {filteredProfiles.map((profile) => (
+            {displayProfiles.map((profile) => (
               <div
                 key={profile.$id}
                 className="bg-[rgba(20,28,42,0.6)] backdrop-blur-[10px] border border-white/8 rounded-2xl p-6 shadow-[0_14px_36px_rgba(0,0,0,0.35)]"
