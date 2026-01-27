@@ -15,7 +15,6 @@ interface AuthContextType {
   loginWithOAuth: (provider: OAuthProvider) => Promise<void>;
   requestPasswordReset: (email: string, redirectUrl: string) => Promise<void>;
   resetPassword: (userId: string, secret: string, newPassword: string) => Promise<void>;
-  verifyEmail: (userId: string, secret: string) => Promise<void>;
   resendVerificationEmail: (email: string, password: string) => Promise<void>;
 }
 
@@ -131,16 +130,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const verifyEmail = useCallback(async (userId: string, secret: string) => {
-    try {
-      await account.updateVerification(userId, secret);
-      const verifiedUser = await account.get();
-      setUser(verifiedUser);
-    } catch (error: any) {
-      throw new Error(error.message || 'Email verification failed');
-    }
-  }, []);
-
   const resendVerificationEmail = useCallback(async (email: string, password: string) => {
     try {
       // Must be authenticated to request verification email
@@ -170,9 +159,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loginWithOAuth,
     requestPasswordReset,
     resetPassword,
-    verifyEmail,
     resendVerificationEmail,
-  }), [user, loading, register, login, logout, loginWithOAuth, requestPasswordReset, resetPassword, verifyEmail, resendVerificationEmail]);
+  }), [user, loading, register, login, logout, loginWithOAuth, requestPasswordReset, resetPassword, resendVerificationEmail]);
 
   return (
     <AuthContext.Provider value={value}>

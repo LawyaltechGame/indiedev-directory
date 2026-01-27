@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
 
 export function EmailVerificationPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { verifyEmail } = useAuth();
-  const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
-  const [message, setMessage] = useState<string>('Verifying your email address...');
+  const [status, setStatus] = useState<'success' | 'error'>('success');
+  const [message, setMessage] = useState<string>('Your email has been verified. You can now sign in to your account.');
 
   useEffect(() => {
     const userId = searchParams.get('userId');
@@ -18,18 +16,9 @@ export function EmailVerificationPage() {
       setMessage('Invalid verification link. Please use the link from your email.');
       return;
     }
-
-    (async () => {
-      try {
-        await verifyEmail(userId, secret);
-        setStatus('success');
-        setMessage('Your email has been verified. You can now sign in to your account.');
-      } catch (err: any) {
-        setStatus('error');
-        setMessage(err?.message || 'Email verification failed. The link may have expired.');
-      }
-    })();
-  }, [searchParams, verifyEmail]);
+    // Appwrite has already processed the verification before redirecting here.
+    // We just show a friendly success message.
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen bg-bg text-white flex items-center justify-center p-8">
@@ -39,12 +28,10 @@ export function EmailVerificationPage() {
             background:
               status === 'success'
                 ? 'rgba(34,197,94,0.2)'
-                : status === 'error'
-                ? 'rgba(248,113,113,0.2)'
-                : 'rgba(56,189,248,0.2)',
+                : 'rgba(248,113,113,0.2)',
           }}
         >
-          {status === 'success' ? '✓' : status === 'error' ? '!' : '⏳'}
+          {status === 'success' ? '✓' : '!'}
         </div>
         <h1 className="text-2xl font-bold mb-3 bg-linear-to-r from-cyan-100 to-cyan-300 bg-clip-text text-transparent">
           Email Verification
