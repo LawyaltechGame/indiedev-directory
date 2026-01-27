@@ -31,6 +31,7 @@ import { LoginModal } from './components/auth/LoginModal';
 import { SignupModal } from './components/auth/SignupModal';
 import { ForgotPasswordModal } from './components/auth/ForgotPasswordModal';
 import { ResetPasswordModal } from './components/auth/ResetPasswordModal';
+import { EmailVerificationPage } from './components/auth/EmailVerificationPage';
 import { ReviewDashboard } from './components/dashboard/ReviewDashboard';
 import { PageViewTracker } from './components/analytics/PageViewTracker';
 import type { FormData, ProfileStep } from './types';
@@ -423,6 +424,24 @@ function AppContent() {
 
   // Check for password reset URL parameters
   useEffect(() => {
+    // Only treat userId/secret as password reset on the dedicated reset route
+    try {
+      const path = window.location.pathname || '';
+      if (!path.startsWith('/reset-password')) {
+        // Safety: if we land on email verification (which also uses userId/secret),
+        // ensure reset-password modal is not shown.
+        if (path.startsWith('/email-verify')) {
+          setShowResetPasswordModal(false);
+          setResetUserId('');
+          setResetSecret('');
+        }
+        return;
+      }
+    } catch {
+      // In non-browser environments, skip
+      return;
+    }
+
     const userId = searchParams.get('userId');
     const secret = searchParams.get('secret');
     
@@ -479,6 +498,10 @@ function AppContent() {
       })()}
 
       <Routes>
+        <Route
+          path="/email-verify"
+          element={<EmailVerificationPage />}
+        />
         <Route
           path="/studios_directory"
           element={<StudiosDirectory onCreateProfile={handleCreateProfile} />}
@@ -634,7 +657,14 @@ function AppContent() {
         />
       )}
 
-      {showResetPasswordModal && resetUserId && resetSecret && (
+      {showResetPasswordModal && resetUserId && resetSecret && (() => {
+        try {
+          const path = window.location.pathname || '';
+          if (!path.startsWith('/reset-password')) return null;
+        } catch {
+          return null;
+        }
+        return (
         <ResetPasswordModal
           isOpen={showResetPasswordModal}
           onClose={() => {
@@ -646,7 +676,8 @@ function AppContent() {
           secret={resetSecret}
           onSuccess={handleResetPasswordSuccess}
         />
-      )}
+        );
+      })()}
 
       {/* AUTH REQUIRED MODAL */}
       {showAuthRequiredModal && (

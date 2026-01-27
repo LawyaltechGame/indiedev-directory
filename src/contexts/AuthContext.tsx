@@ -15,6 +15,8 @@ interface AuthContextType {
   loginWithOAuth: (provider: OAuthProvider) => Promise<void>;
   requestPasswordReset: (email: string, redirectUrl: string) => Promise<void>;
   resetPassword: (userId: string, secret: string, newPassword: string) => Promise<void>;
+  verifyEmail: (userId: string, secret: string) => Promise<void>;
+  resendVerificationEmail: (email: string, password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,7 +32,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkUser = async () => {
     try {
       const currentUser = await account.get();
-      setUser(currentUser);
+      // Enforce verified email before treating as logged-in
+      if (!currentUser.emailVerification) {
+        try {
+          await account.deleteSession('current');
+        } catch {
+          // ignore
+        }
+        setUser(null);
+      } else {
+        setUser(currentUser);
+      }
     } catch (error) {
       setUser(null);
     } finally {
@@ -40,8 +52,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = useCallback(async (email: string, password: string, name: string) => {
     try {
-      await account.create(ID.unique(), email, password, name);
-      await login(email, password);
+      // 1) Create account
+      const newUser = await account.create(ID.unique(), email, password, name);
+
+      // 2) Create a short-lived session so Appwrite can associate the verification
+      await account.createEmailPasswordSession(email, password);
+
+      // 3) Trigger verification email – user must confirm before login
+      const baseUrl = import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin;
+      const redirectUrl = `${baseUrl}/email-verify`;
+      await account.createVerification(redirectUrl);
+
+      // 4) Clean up session so user is effectively logged out until verified
+      try {
+        await account.deleteSession('current');
+      } catch {
+        // ignore if no session
+      }
+
+      // Keep auth state as logged-out until verification succeeds
+      if (newUser) {
+        setUser(null);
+      }
     } catch (error: any) {
       throw new Error(error.message || 'Registration failed');
     }
@@ -51,6 +83,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await account.createEmailPasswordSession(email, password);
       const currentUser = await account.get();
+      if (!currentUser.emailVerification) {
+        // Do not allow unverified accounts to stay logged in
+        await account.deleteSession('current');
+        throw new Error('Please verify your email address before logging in. Check your inbox for the verification link.');
+      }
       setUser(currentUser);
     } catch (error: any) {
       throw new Error(error.message || 'Login failed');
@@ -94,6 +131,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const verifyEmail = useCallback(async (userId: string, secret: string) => {
+    try {
+      await account.updateVerification(userId, secret);
+      const verifiedUser = await account.get();
+      setUser(verifiedUser);
+    } catch (error: any) {
+      throw new Error(error.message || 'Email verification failed');
+    }
+  }, []);
+
+  const resendVerificationEmail = useCallback(async (email: string, password: string) => {
+    try {
+      // Must be authenticated to request verification email
+      await account.createEmailPasswordSession(email, password);
+
+      const baseUrl = import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin;
+      const redirectUrl = `${baseUrl}/email-verify`;
+      await account.createVerification(redirectUrl);
+    } catch (error: any) {
+      throw new Error(error.message || 'Failed to resend verification email');
+    } finally {
+      // Always log out after sending
+      try {
+        await account.deleteSession('current');
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
   const value = useMemo(() => ({
     user,
     loading,
@@ -103,7 +170,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loginWithOAuth,
     requestPasswordReset,
     resetPassword,
-  }), [user, loading, register, login, logout, loginWithOAuth, requestPasswordReset, resetPassword]);
+    verifyEmail,
+    resendVerificationEmail,
+  }), [user, loading, register, login, logout, loginWithOAuth, requestPasswordReset, resetPassword, verifyEmail, resendVerificationEmail]);
 
   return (
     <AuthContext.Provider value={value}>
