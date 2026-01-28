@@ -10,14 +10,60 @@ export function EmailVerificationPage() {
   useEffect(() => {
     const userId = searchParams.get('userId');
     const secret = searchParams.get('secret');
+    const email = searchParams.get('email') || '';
+    const name = searchParams.get('name') || '';
 
     if (!userId || !secret) {
       setStatus('error');
       setMessage('Invalid verification link. Please use the link from your email.');
       return;
     }
+
+    // Send follow-up email with "Create Profile" link (best-effort; once per user)
+    (async () => {
+      if (!email) return;
+      const sentKey = `gc_post_verify_create_profile_email_sent_${userId}`;
+      try {
+        if (localStorage.getItem(sentKey) === '1') return;
+      } catch {
+        // ignore
+      }
+
+      const baseUrl = import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin;
+      const createProfileLink = `${baseUrl}/studios_directory`;
+
+      try {
+        const res = await fetch('/api/send-create-profile-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, name, createProfileLink }),
+        });
+        if (res.ok) {
+          try {
+            localStorage.setItem(sentKey, '1');
+          } catch {
+            // ignore
+          }
+        }
+      } catch {
+        // ignore — do not block redirect
+      }
+    })();
+
     // Appwrite has already processed the verification before redirecting here.
-    // We just show a friendly success message.
+    // Tell the app to open "Create Profile" as soon as the user is signed in.
+    try {
+      localStorage.setItem('gc_post_verify_open_create_profile', '1');
+    } catch {
+      // ignore
+    }
+
+    // Redirect to Studio Hub automatically
+    const t = window.setTimeout(() => {
+      navigate('/studios_directory', { replace: true, state: { openCreateProfile: true } });
+    }, 700);
+
+    return () => window.clearTimeout(t);
   }, [searchParams]);
 
   return (

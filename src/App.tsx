@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useSearchParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import StudiosDirectory from './components/sections/StudiosDirectory';
 import Publishers from './components/sections/Publishers';
 import Tools from './components/sections/Tools';
@@ -32,10 +32,11 @@ import { SignupModal } from './components/auth/SignupModal';
 import { ForgotPasswordModal } from './components/auth/ForgotPasswordModal';
 import { ResetPasswordModal } from './components/auth/ResetPasswordModal';
 import { EmailVerificationPage } from './components/auth/EmailVerificationPage';
+import { AccountSettings } from './components/sections/AccountSettings';
 import { ReviewDashboard } from './components/dashboard/ReviewDashboard';
 import { PageViewTracker } from './components/analytics/PageViewTracker';
 import type { FormData, ProfileStep } from './types';
-import { createProfileDocument } from './services/profile';
+import { createProfileDocument, getUserLatestProfile, updateProfileDocument } from './services/profile';
 import { Storage } from 'appwrite';
 import { ID } from './config/appwrite';
 import client from './config/appwrite';
@@ -57,6 +58,8 @@ function AppContent() {
   const { isTeamMember } = useTeamMember();
   useCursorAura();
   const [searchParams, setSearchParams] = useSearchParams();
+  const routerLocation = useLocation();
+  const navigate = useNavigate();
 
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -70,6 +73,7 @@ function AppContent() {
   const [showDashboard, setShowDashboard] = useState(false);
   const [profileStep, setProfileStep] = useState<ProfileStep>('create');
   const [, setIsSubmitting] = useState(false);
+  const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>({
     name: '',
     tagline: '',
@@ -307,12 +311,21 @@ function AppContent() {
             });
           }
 
-          const profileResult = await createProfileDocument({
-            databaseId: DB_ID,
-            tableId: PROFILE_TABLE_ID,
-            userId: (user as any).$id || (user as any).id,
-            data: profileData,
-          });
+          const userId = (user as any).$id || (user as any).id;
+          const profileResult = editingProfileId
+            ? await updateProfileDocument({
+                databaseId: DB_ID,
+                tableId: PROFILE_TABLE_ID,
+                documentId: editingProfileId,
+                userId,
+                data: profileData,
+              })
+            : await createProfileDocument({
+                databaseId: DB_ID,
+                tableId: PROFILE_TABLE_ID,
+                userId,
+                data: profileData,
+              });
 
           console.log('✅ Profile created:', profileResult);
 
@@ -370,6 +383,7 @@ function AppContent() {
           setSubmittedProfile(formData);
           setShowProfileModal(false);
           setShowApprovalNotice(true);
+          setEditingProfileId(null);
         } catch (e: any) {
           console.error('❌ Error creating profile:', e);
           alert(e?.message || 'Failed to submit profile.');
@@ -384,7 +398,7 @@ function AppContent() {
       setShowProfileModal(false);
       setShowApprovalNotice(true);
     }
-  }, [profileStep, formData, user, DB_ID, PROFILE_TABLE_ID]);
+  }, [profileStep, formData, user, DB_ID, PROFILE_TABLE_ID, editingProfileId]);
 
   const handleBackStep = useCallback(() => {
     if (profileStep === 'review') setProfileStep('create');
@@ -419,8 +433,90 @@ function AppContent() {
       setShowLoginModal(true);
       return;
     }
+    setEditingProfileId(null);
     setShowProfileModal(true);
   }, [user]);
+
+  const handleEditProfile = useCallback(async () => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    if (!DB_ID || !PROFILE_TABLE_ID) {
+      alert('Missing database configuration.');
+      return;
+    }
+
+    const userId = (user as any).$id || (user as any).id;
+    const existing = await getUserLatestProfile(DB_ID, PROFILE_TABLE_ID, userId);
+    if (!existing) {
+      setEditingProfileId(null);
+      setShowProfileModal(true);
+      return;
+    }
+
+    setEditingProfileId(existing.$id);
+    setFormData((prev) => ({
+      ...prev,
+      ...existing,
+      tools: existing.tools || [],
+      tags: existing.tags || [],
+      languagesSupported: existing.languagesSupported || [],
+      regionsServed: existing.regionsServed || [],
+      founders: existing.founders || [],
+      primaryExpertise: existing.primaryExpertise || [],
+      gameEngines: existing.gameEngines || [],
+      supportedPlatforms: existing.supportedPlatforms || [],
+      projects: existing.projects || [],
+      lookingFor: existing.lookingFor || [],
+      distributionChannels: existing.distributionChannels || [],
+      storeLinks: existing.storeLinks || [],
+      socialLinks: existing.socialLinks || {},
+      recognitions: existing.recognitions || [],
+      trailerVideoUrl: existing.trailerVideoUrl || '',
+      gameplayVideoUrl: existing.gameplayVideoUrl || '',
+      profileImageId: existing.profileImageId || '',
+    }));
+
+    setProfileStep('create');
+    setShowProfileModal(true);
+  }, [user, DB_ID, PROFILE_TABLE_ID]);
+
+  // After email verification, automatically take user to Studio Hub and open Create Profile.
+  // If they aren't signed in yet, keep the intent and prompt login.
+  useEffect(() => {
+    let shouldOpen = false;
+    try {
+      shouldOpen = localStorage.getItem('gc_post_verify_open_create_profile') === '1';
+    } catch {
+      // ignore
+    }
+
+    const stateWantsOpen = Boolean((routerLocation as any)?.state?.openCreateProfile);
+    if (!shouldOpen && !stateWantsOpen) return;
+
+    // Ensure we're on Studio Hub
+    if (!String(routerLocation.pathname || '').startsWith('/studios_directory')) {
+      navigate('/studios_directory', { replace: false, state: { openCreateProfile: true } });
+      return;
+    }
+
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+
+    // Open the modal
+    setProfileStep('create');
+    setShowProfileModal(true);
+
+    // Clear intent
+    try {
+      localStorage.removeItem('gc_post_verify_open_create_profile');
+    } catch {
+      // ignore
+    }
+  }, [user, routerLocation.pathname, (routerLocation as any)?.state, navigate]);
 
   // Check for password reset URL parameters
   useEffect(() => {
@@ -498,25 +594,26 @@ function AppContent() {
       })()}
 
       <Routes>
+        <Route path="/account/settings" element={<AccountSettings />} />
         <Route
           path="/email-verify"
           element={<EmailVerificationPage />}
         />
         <Route
           path="/studios_directory"
-          element={<StudiosDirectory onCreateProfile={handleCreateProfile} />}
+          element={<StudiosDirectory onCreateProfile={handleCreateProfile} onEditProfile={handleEditProfile} onOpenSignup={handleOpenSignup} />}
         />
         <Route
           path="/studios_directory/publishers"
-          element={<Publishers onCreateProfile={handleCreateProfile} />}
+          element={<Publishers onCreateProfile={handleCreateProfile} onEditProfile={handleEditProfile} onOpenSignup={handleOpenSignup} />}
         />
         <Route
           path="/studios_directory/tools"
-          element={<Tools onCreateProfile={handleCreateProfile} />}
+          element={<Tools onCreateProfile={handleCreateProfile} onEditProfile={handleEditProfile} onOpenSignup={handleOpenSignup} />}
         />
         <Route
           path="/studios_directory/resources"
-          element={<Resources onCreateProfile={handleCreateProfile} />}
+          element={<Resources onCreateProfile={handleCreateProfile} onEditProfile={handleEditProfile} onOpenSignup={handleOpenSignup} />}
         />
         <Route
           path="/studio/:id"

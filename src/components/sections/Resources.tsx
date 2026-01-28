@@ -1,5 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { AccountMenu } from '../ui/AccountMenu';
 
 // Define the structure for a single resource item, including the new 'link'
 interface ResourceItem {
@@ -14,6 +16,8 @@ interface ResourceItem {
 
 interface ResourcesProps {
   onCreateProfile?: () => void;
+  onOpenSignup?: () => void;
+  onEditProfile?: () => void;
 }
 
 /**
@@ -111,9 +115,10 @@ const ResourceCard = ({ resource }: { resource: ResourceItem }) => (
   </a>
 );
 
-export default function Resources({ onCreateProfile }: ResourcesProps) {
+export default function Resources({ onCreateProfile, onOpenSignup, onEditProfile }: ResourcesProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout } = useAuth();
   const isStudiosActive = location.pathname === '/studios_directory';
   const isPublishersActive = location.pathname.startsWith('/studios_directory/publishers');
   const isToolsActive = location.pathname.startsWith('/studios_directory/tools');
@@ -157,12 +162,24 @@ export default function Resources({ onCreateProfile }: ResourcesProps) {
           </nav>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={onCreateProfile}
-              className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all hidden md:block"
-            >
-              Create a Profile
-            </button>
+            {user ? (
+              <AccountMenu
+                displayName={(user as any).name || (user as any).email}
+                items={[
+                  { id: 'add-company', label: 'Add company', onClick: () => onCreateProfile?.() },
+                  { id: 'settings', label: 'Settings', onClick: () => navigate('/account/settings') },
+                  { id: 'edit-profile', label: 'Edit profile', onClick: () => onEditProfile?.() },
+                  { id: 'logout', label: 'Logout', tone: 'danger', onClick: () => logout() },
+                ]}
+              />
+            ) : (
+              <button
+                onClick={onOpenSignup}
+                className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all hidden md:block"
+              >
+                Sign up to create a profile
+              </button>
+            )}
           </div>
         </div>
 
@@ -175,13 +192,24 @@ export default function Resources({ onCreateProfile }: ResourcesProps) {
               <a onClick={() => { navigate('/studios_directory/publishers'); setIsMenuOpen(false); }} className={`cursor-pointer transition py-2 ${isPublishersActive ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}>Publishers</a>
               <a onClick={() => { navigate('/studios_directory/tools'); setIsMenuOpen(false); }} className={`cursor-pointer transition py-2 ${isToolsActive ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}>Tools</a>
               <a onClick={() => { navigate('/studios_directory/resources'); setIsMenuOpen(false); }} className={`cursor-pointer transition py-2 ${isResourcesActive ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}>Resources</a>
-              {onCreateProfile && (
-                <button
-                  onClick={() => { onCreateProfile(); setIsMenuOpen(false); }}
-                  className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all"
-                >
-                  Create a Profile
-                </button>
+              {user ? (
+                onCreateProfile && (
+                  <button
+                    onClick={() => { onCreateProfile(); setIsMenuOpen(false); }}
+                    className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all"
+                  >
+                    Create a Profile
+                  </button>
+                )
+              ) : (
+                onOpenSignup && (
+                  <button
+                    onClick={() => { onOpenSignup(); setIsMenuOpen(false); }}
+                    className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all"
+                  >
+                    Sign up to create a profile
+                  </button>
+                )
               )}
             </nav>
           </div>

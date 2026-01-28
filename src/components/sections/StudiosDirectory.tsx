@@ -1,13 +1,18 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { AccountMenu } from '../ui/AccountMenu';
 
 interface StudiosDirectoryProps {
   onCreateProfile?: () => void;
+  onOpenSignup?: () => void;
+  onEditProfile?: () => void;
 }
 
-export default function StudiosDirectory({ onCreateProfile }: StudiosDirectoryProps) {
+export default function StudiosDirectory({ onCreateProfile, onOpenSignup, onEditProfile }: StudiosDirectoryProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout } = useAuth();
   const isStudiosActive = location.pathname === '/studios_directory';
   const isPublishersActive = location.pathname.startsWith('/studios_directory/publishers');
   const isResourcesActive = location.pathname.startsWith('/studios_directory/resources');
@@ -54,7 +59,19 @@ export default function StudiosDirectory({ onCreateProfile }: StudiosDirectoryPr
           {/* Right Actions */}
           <div className="flex items-center gap-3">
             {/* <button className="w-10 h-10 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition" title="Search">🔍</button> */}
-            <button onClick={onCreateProfile} className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all hidden md:block">Create a Profile</button>
+            {user ? (
+              <AccountMenu
+                displayName={(user as any).name || (user as any).email}
+                items={[
+                  { id: 'add-company', label: 'Add company', onClick: () => onCreateProfile?.() },
+                  { id: 'settings', label: 'Settings', onClick: () => navigate('/account/settings') },
+                  { id: 'edit-profile', label: 'Edit profile', onClick: () => onEditProfile?.() },
+                  { id: 'logout', label: 'Logout', tone: 'danger', onClick: () => logout() },
+                ]}
+              />
+            ) : (
+              <button onClick={onOpenSignup} className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all hidden md:block">Sign up to create a profile</button>
+            )}
           </div>
         </div>
         
@@ -92,13 +109,24 @@ export default function StudiosDirectory({ onCreateProfile }: StudiosDirectoryPr
               >
                 Resources
               </a>
-              {onCreateProfile && (
-                <button 
-                  onClick={() => { onCreateProfile(); setIsMenuOpen(false); }}
-                  className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all"
-                >
-                  Create a Profile
-                </button>
+              {user ? (
+                onCreateProfile && (
+                  <button 
+                    onClick={() => { onCreateProfile(); setIsMenuOpen(false); }}
+                    className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all"
+                  >
+                    Create a Profile
+                  </button>
+                )
+              ) : (
+                onOpenSignup && (
+                  <button 
+                    onClick={() => { onOpenSignup(); setIsMenuOpen(false); }}
+                    className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all"
+                  >
+                    Sign up to create a profile
+                  </button>
+                )
               )}
             </nav>
           </div>
@@ -135,7 +163,11 @@ export default function StudiosDirectory({ onCreateProfile }: StudiosDirectoryPr
             </div>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4">
-              <button onClick={onCreateProfile} className="w-full sm:w-auto px-6 py-3 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold text-sm md:text-base">Create a Profile</button>
+              {user ? (
+                <button onClick={onCreateProfile} className="w-full sm:w-auto px-6 py-3 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold text-sm md:text-base">Create a Profile</button>
+              ) : (
+                <button onClick={onOpenSignup} className="w-full sm:w-auto px-6 py-3 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold text-sm md:text-base">Sign up to create a profile</button>
+              )}
               {/* Commented out: <a href="/Home/WhyJoin" className="w-full sm:w-auto px-6 py-3 rounded-xl border border-white/8 text-cyan-100 text-sm md:text-base">Learn more</a> */}
             </div>
           </div>
@@ -175,7 +207,11 @@ export default function StudiosDirectory({ onCreateProfile }: StudiosDirectoryPr
               <h3 className="text-xl md:text-2xl font-bold text-white mb-3">Ready to get discovered?</h3>
               <p className="text-cyan-300 mb-6 text-sm md:text-base">Create your StudioHub profile now, it only takes a few minutes and can unlock publishing, hiring, and partnership opportunities.</p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4">
-                <button onClick={onCreateProfile} className="w-full sm:w-auto px-6 py-3 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold text-sm md:text-base">Create my Profile</button>
+                {user ? (
+                  <button onClick={onCreateProfile} className="w-full sm:w-auto px-6 py-3 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold text-sm md:text-base">Create my Profile</button>
+                ) : (
+                  <button onClick={onOpenSignup} className="w-full sm:w-auto px-6 py-3 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold text-sm md:text-base">Sign up to create a profile</button>
+                )}
                 {/* Commented out: <a href="/studios_directory/resources" className="w-full sm:w-auto px-6 py-3 rounded-xl border border-white/8 text-cyan-100 text-sm md:text-base">Browse resources</a> */}
               </div>
             </div>

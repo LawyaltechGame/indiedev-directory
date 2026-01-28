@@ -268,6 +268,83 @@ export async function getUserPendingProfile(databaseId: string, tableId: string,
   }
 }
 
+export async function getUserLatestProfile(databaseId: string, tableId: string, userId: string) {
+  try {
+    const response = await databases.listDocuments(databaseId, tableId, [
+      Query.equal('userId', userId),
+      Query.orderDesc('$createdAt'),
+      Query.limit(1),
+    ]);
+    return response.documents.length > 0 ? parseProfileJSONFields(response.documents[0]) : null;
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    return null;
+  }
+}
+
+export async function updateProfileDocument(params: {
+  databaseId: string;
+  tableId: string;
+  documentId: string;
+  userId: string;
+  data: FormData;
+}) {
+  const { databaseId, tableId, documentId, userId, data } = params;
+
+  // Keep within free-tier column limit: update the same JSON column + a few queryable fields.
+  const documentData = {
+    userId,
+    status: 'pending', // edits should be re-reviewed
+    profileData: JSON.stringify({
+      name: data.name,
+      tagline: data.tagline,
+      description: data.description || '',
+      website: data.website || '',
+      genre: data.genre,
+      platform: data.platform,
+      teamSize: data.teamSize,
+      location: data.location,
+      email: data.email,
+      authEmail: data.authEmail,
+      publicContactEmail: data.publicContactEmail || '',
+      revenue: data.revenue || '',
+      foundedYear: data.foundedYear || '',
+      tools: data.tools || [],
+      tags: data.tags || [],
+      studioType: data.studioType || '',
+      headquartersCountry: data.headquartersCountry || '',
+      city: data.city || '',
+      languagesSupported: data.languagesSupported || [],
+      regionsServed: data.regionsServed || [],
+      founders: data.founders || [],
+      parentCompany: data.parentCompany || '',
+      acquisitionStatus: data.acquisitionStatus || '',
+      acquiredBy: data.acquiredBy || '',
+      targetAudience: data.targetAudience || '',
+      primaryExpertise: data.primaryExpertise || [],
+      gameEngines: data.gameEngines || [],
+      deploymentType: data.deploymentType || '',
+      supportedPlatforms: data.supportedPlatforms || [],
+      projects: data.projects || [],
+      lookingFor: data.lookingFor || [],
+      openToPublishingDeals: data.openToPublishingDeals || false,
+      publisherPartners: data.publisherPartners || '',
+      fundingType: data.fundingType || '',
+      latestFundingRound: data.latestFundingRound || '',
+      totalFunding: data.totalFunding || '',
+      distributionChannels: data.distributionChannels || [],
+      storeLinks: data.storeLinks || [],
+      socialLinks: data.socialLinks || {},
+      recognitions: data.recognitions || [],
+      trailerVideoUrl: data.trailerVideoUrl || '',
+      gameplayVideoUrl: data.gameplayVideoUrl || '',
+      profileImageId: data.profileImageId || '',
+    }),
+  } as const;
+
+  return await databases.updateDocument(databaseId, tableId, documentId, documentData as any);
+}
+
 export async function updateProfilePermissions(
   databaseId: string,
   tableId: string,

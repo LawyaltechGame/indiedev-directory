@@ -1,13 +1,18 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { AccountMenu } from '../ui/AccountMenu';
 
 interface PublishersProps {
   onCreateProfile?: () => void;
+  onOpenSignup?: () => void;
+  onEditProfile?: () => void;
 }
 
-export default function Publishers({ onCreateProfile }: PublishersProps) {
+export default function Publishers({ onCreateProfile, onOpenSignup, onEditProfile }: PublishersProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout } = useAuth();
   const isStudiosActive = location.pathname === '/studios_directory';
   const isPublishersActive = location.pathname.startsWith('/studios_directory/publishers');
   const isResourcesActive = location.pathname.startsWith('/studios_directory/resources');
@@ -49,7 +54,19 @@ export default function Publishers({ onCreateProfile }: PublishersProps) {
 
           <div className="flex items-center gap-3">
             {/* <button className="w-10 h-10 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition hidden md:block" title="Search">🔍</button> */}
-            <button onClick={onCreateProfile} className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all hidden md:block">Create a Profile</button>
+            {user ? (
+              <AccountMenu
+                displayName={(user as any).name || (user as any).email}
+                items={[
+                  { id: 'add-company', label: 'Add company', onClick: () => onCreateProfile?.() },
+                  { id: 'settings', label: 'Settings', onClick: () => navigate('/account/settings') },
+                  { id: 'edit-profile', label: 'Edit profile', onClick: () => onEditProfile?.() },
+                  { id: 'logout', label: 'Logout', tone: 'danger', onClick: () => logout() },
+                ]}
+              />
+            ) : (
+              <button onClick={onOpenSignup} className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all hidden md:block">Sign up to create a profile</button>
+            )}
           </div>
         </div>
 
@@ -88,13 +105,24 @@ export default function Publishers({ onCreateProfile }: PublishersProps) {
                 Resources
               </a>
               <button className="w-10 h-10 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition" title="Search">🔍</button>
-              {onCreateProfile && (
-                <button
-                  onClick={() => { onCreateProfile(); setIsMenuOpen(false); }}
-                  className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all"
-                >
-                  Create a Profile
-                </button>
+              {user ? (
+                onCreateProfile && (
+                  <button
+                    onClick={() => { onCreateProfile(); setIsMenuOpen(false); }}
+                    className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all"
+                  >
+                    Create a Profile
+                  </button>
+                )
+              ) : (
+                onOpenSignup && (
+                  <button
+                    onClick={() => { onOpenSignup(); setIsMenuOpen(false); }}
+                    className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all"
+                  >
+                    Sign up to create a profile
+                  </button>
+                )
               )}
             </nav>
           </div>

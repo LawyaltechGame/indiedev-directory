@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // 3) Trigger verification email – user must confirm before login
       const baseUrl = import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin;
-      const redirectUrl = `${baseUrl}/email-verify`;
+      const redirectUrl = `${baseUrl}/email-verify?email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`;
       await account.createVerification(redirectUrl);
 
       // 4) Clean up session so user is effectively logged out until verified
@@ -136,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await account.createEmailPasswordSession(email, password);
 
       const baseUrl = import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin;
-      const redirectUrl = `${baseUrl}/email-verify`;
+      const redirectUrl = `${baseUrl}/email-verify?email=${encodeURIComponent(email)}`;
       await account.createVerification(redirectUrl);
     } catch (error: any) {
       throw new Error(error.message || 'Failed to resend verification email');

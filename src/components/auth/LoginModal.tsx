@@ -12,27 +12,51 @@ interface LoginModalProps {
 }
 
 export function LoginModal({ onClose, onSwitchToSignup, onSwitchToForgotPassword }: LoginModalProps) {
-  const { login } = useAuth();
+  const { login, resendVerificationEmail } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isVerificationError, setIsVerificationError] = useState(false);
+  const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent'>('idle');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsVerificationError(false);
+    setResendStatus('idle');
     setLoading(true);
 
     try {
       await login(email, password);
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please try again.');
+      const errorMessage = err.message || 'Login failed. Please try again.';
+      setError(errorMessage);
+      // Detect if it's a verification error
+      if (errorMessage.toLowerCase().includes('verify') && errorMessage.toLowerCase().includes('email')) {
+        setIsVerificationError(true);
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  const handleResendVerification = async () => {
+    if (!email || !password) {
+      setError('Please enter your email and password to resend verification.');
+      return;
+    }
+    setResendStatus('sending');
+    setError('');
+    try {
+      await resendVerificationEmail(email, password);
+      setResendStatus('sent');
+    } catch (err: any) {
+      setResendStatus('idle');
+      setError(err?.message || 'Failed to resend verification email.');
+    }
+  };
 
   return (
     <Modal
@@ -44,6 +68,28 @@ export function LoginModal({ onClose, onSwitchToSignup, onSwitchToForgotPassword
       {error && (
         <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-xl text-red-200 text-sm">
           {error}
+        </div>
+      )}
+
+      {isVerificationError && resendStatus !== 'sent' && (
+        <div className="mb-4 p-3 bg-yellow-500/15 border border-yellow-500/40 rounded-xl text-yellow-200 text-sm">
+          <p className="mb-2">Your email is not verified yet. Click below to resend the verification email.</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            loading={resendStatus === 'sending'}
+            disabled={resendStatus === 'sending'}
+            onClick={handleResendVerification}
+          >
+            {resendStatus === 'sending' ? 'Sending...' : 'Resend verification email'}
+          </Button>
+        </div>
+      )}
+
+      {resendStatus === 'sent' && (
+        <div className="mb-4 p-3 bg-green-500/15 border border-green-500/40 rounded-xl text-green-200 text-sm">
+          Verification email sent! Please check your inbox and click the link to verify your account.
         </div>
       )}
 
