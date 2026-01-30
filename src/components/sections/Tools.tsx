@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useHasProfile } from '../../hooks/useHasProfile';
 import { AccountMenu } from '../ui/AccountMenu';
 
 // Define the structure for the tool meta data
@@ -125,6 +126,7 @@ export default function Tools({ onCreateProfile, onOpenSignup, onEditProfile }: 
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { hasProfile } = useHasProfile();
   const isStudiosActive = location.pathname === '/studios_directory';
   const isPublishersActive = location.pathname.startsWith('/studios_directory/publishers');
   const isToolsActive = location.pathname.startsWith('/studios_directory/tools');
@@ -168,15 +170,25 @@ export default function Tools({ onCreateProfile, onOpenSignup, onEditProfile }: 
           <div className="flex items-center gap-3">
             {/* <button className="w-10 h-10 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition hidden md:block" title="Search">🔍</button> */}
             {user ? (
-              <AccountMenu
-                displayName={(user as any).name || (user as any).email}
-                items={[
-                  { id: 'add-company', label: 'Add company', onClick: () => onCreateProfile?.() },
-                  { id: 'settings', label: 'Settings', onClick: () => navigate('/account/settings') },
-                  { id: 'edit-profile', label: 'Edit profile', onClick: () => onEditProfile?.() },
-                  { id: 'logout', label: 'Logout', tone: 'danger', onClick: () => logout() },
-                ]}
-              />
+              <>
+                {!hasProfile && (
+                  <button
+                    onClick={onCreateProfile}
+                    className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all hidden md:block"
+                  >
+                    Create a Profile
+                  </button>
+                )}
+                <AccountMenu
+                  displayName={(user as any).name || (user as any).email}
+                  items={[
+                    ...(!hasProfile ? [{ id: 'add-company', label: 'Add company', onClick: () => onCreateProfile?.() }] : []),
+                    { id: 'settings', label: 'Settings', onClick: () => navigate('/account/settings') },
+                    ...(hasProfile ? [{ id: 'edit-profile', label: 'Edit profile', onClick: () => onEditProfile?.() }] : []),
+                    { id: 'logout', label: 'Logout', tone: 'danger' as const, onClick: () => logout() },
+                  ]}
+                />
+              </>
             ) : (
               <button onClick={onOpenSignup} className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all hidden md:block">Sign up to create a profile</button>
             )}
@@ -219,7 +231,7 @@ export default function Tools({ onCreateProfile, onOpenSignup, onEditProfile }: 
               </a>
               {/* <button className="w-10 h-10 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition" title="Search">🔍</button> */}
               {user ? (
-                onCreateProfile && (
+                !hasProfile && onCreateProfile && (
                   <button 
                     onClick={() => { onCreateProfile(); setIsMenuOpen(false); }}
                     className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all"

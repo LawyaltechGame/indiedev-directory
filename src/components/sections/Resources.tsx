@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useHasProfile } from '../../hooks/useHasProfile';
 import { AccountMenu } from '../ui/AccountMenu';
 
 // Define the structure for a single resource item, including the new 'link'
@@ -119,6 +120,7 @@ export default function Resources({ onCreateProfile, onOpenSignup, onEditProfile
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { hasProfile } = useHasProfile();
   const isStudiosActive = location.pathname === '/studios_directory';
   const isPublishersActive = location.pathname.startsWith('/studios_directory/publishers');
   const isToolsActive = location.pathname.startsWith('/studios_directory/tools');
@@ -163,15 +165,25 @@ export default function Resources({ onCreateProfile, onOpenSignup, onEditProfile
 
           <div className="flex items-center gap-3">
             {user ? (
-              <AccountMenu
-                displayName={(user as any).name || (user as any).email}
-                items={[
-                  { id: 'add-company', label: 'Add company', onClick: () => onCreateProfile?.() },
-                  { id: 'settings', label: 'Settings', onClick: () => navigate('/account/settings') },
-                  { id: 'edit-profile', label: 'Edit profile', onClick: () => onEditProfile?.() },
-                  { id: 'logout', label: 'Logout', tone: 'danger', onClick: () => logout() },
-                ]}
-              />
+              <>
+                {!hasProfile && (
+                  <button
+                    onClick={onCreateProfile}
+                    className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all hidden md:block"
+                  >
+                    Create a Profile
+                  </button>
+                )}
+                <AccountMenu
+                  displayName={(user as any).name || (user as any).email}
+                  items={[
+                    ...(!hasProfile ? [{ id: 'add-company', label: 'Add company', onClick: () => onCreateProfile?.() }] : []),
+                    { id: 'settings', label: 'Settings', onClick: () => navigate('/account/settings') },
+                    ...(hasProfile ? [{ id: 'edit-profile', label: 'Edit profile', onClick: () => onEditProfile?.() }] : []),
+                    { id: 'logout', label: 'Logout', tone: 'danger' as const, onClick: () => logout() },
+                  ]}
+                />
+              </>
             ) : (
               <button
                 onClick={onOpenSignup}
@@ -193,7 +205,7 @@ export default function Resources({ onCreateProfile, onOpenSignup, onEditProfile
               <a onClick={() => { navigate('/studios_directory/tools'); setIsMenuOpen(false); }} className={`cursor-pointer transition py-2 ${isToolsActive ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}>Tools</a>
               <a onClick={() => { navigate('/studios_directory/resources'); setIsMenuOpen(false); }} className={`cursor-pointer transition py-2 ${isResourcesActive ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}>Resources</a>
               {user ? (
-                onCreateProfile && (
+                !hasProfile && onCreateProfile && (
                   <button
                     onClick={() => { onCreateProfile(); setIsMenuOpen(false); }}
                     className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all"
