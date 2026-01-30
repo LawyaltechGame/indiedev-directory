@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { account } from '../../config/appwrite';
 
 export function EmailVerificationPage() {
   const [searchParams] = useSearchParams();
@@ -19,52 +20,56 @@ export function EmailVerificationPage() {
       return;
     }
 
-    // Send follow-up email with "Create Profile" link (best-effort; once per user)
-    (async () => {
-      if (!email) return;
-      const sentKey = `gc_post_verify_create_profile_email_sent_${userId}`;
+    // Complete the email verification with Appwrite
+    const verifyEmail = async () => {
       try {
-        if (localStorage.getItem(sentKey) === '1') return;
-      } catch {
-        // ignore
-      }
+        await account.updateVerification(userId, secret);
+        setStatus('success');
+        setMessage('Your email has been verified successfully! You can now sign in to your account.');
 
-      const baseUrl = import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin;
-      const createProfileLink = `${baseUrl}/studios_directory`;
-
-      try {
-        const res = await fetch('/api/send-create-profile-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, name, createProfileLink }),
-        });
-        if (res.ok) {
+        // Send follow-up email with "Create Profile" link (best-effort; once per user)
+        if (email) {
+          const sentKey = `gc_post_verify_create_profile_email_sent_${userId}`;
           try {
-            localStorage.setItem(sentKey, '1');
+            if (localStorage.getItem(sentKey) !== '1') {
+              const baseUrl = import.meta.env.VITE_PUBLIC_APP_URL || window.location.origin;
+              const createProfileLink = `${baseUrl}/studios_directory`;
+
+              const res = await fetch('/api/send-create-profile-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, name, createProfileLink }),
+              });
+              if (res.ok) {
+                localStorage.setItem(sentKey, '1');
+              }
+            }
           } catch {
-            // ignore
+            // ignore — do not block redirect
           }
         }
-      } catch {
-        // ignore — do not block redirect
+
+        // Tell the app to open "Create Profile" as soon as the user is signed in.
+        try {
+          localStorage.setItem('gc_post_verify_open_create_profile', '1');
+        } catch {
+          // ignore
+        }
+
+        // Redirect to Studio Hub automatically after a short delay
+        setTimeout(() => {
+          navigate('/studios_directory', { replace: true, state: { openCreateProfile: true } });
+        }, 2000);
+
+      } catch (error: any) {
+        console.error('Email verification failed:', error);
+        setStatus('error');
+        setMessage(error.message || 'Email verification failed. The link may have expired. Please request a new verification email.');
       }
-    })();
+    };
 
-    // Appwrite has already processed the verification before redirecting here.
-    // Tell the app to open "Create Profile" as soon as the user is signed in.
-    try {
-      localStorage.setItem('gc_post_verify_open_create_profile', '1');
-    } catch {
-      // ignore
-    }
-
-    // Redirect to Studio Hub automatically
-    const t = window.setTimeout(() => {
-      navigate('/studios_directory', { replace: true, state: { openCreateProfile: true } });
-    }, 700);
-
-    return () => window.clearTimeout(t);
-  }, [searchParams]);
+    verifyEmail();
+  }, [searchParams, navigate]);
 
   return (
     <div className="min-h-screen bg-bg text-white flex items-center justify-center p-8">
