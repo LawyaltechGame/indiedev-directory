@@ -525,7 +525,7 @@ export function ProfileModal({
               </div>
               {/* Projects / Portfolio Section */}
               <div className="border-t border-white/10 pt-4 mt-4">
-                <h3 className="text-lg font-bold text-cyan-200 mb-4">Projects / Portfolio</h3>
+                <h3 className="text-lg font-bold text-cyan-200 mb-4">Projects / Portfolio/Games</h3>
                 <div className="space-y-4">
                   {(formData.projects || []).map((project, index) => (
                     <div key={index} className="bg-[rgba(10,16,28,0.4)] border border-white/8 rounded-lg p-4 space-y-3">

@@ -205,7 +205,7 @@ export default function StudiosDirectory({ onCreateProfile, onOpenSignup, onEdit
                 </details>
                 <details className="bg-[#071622] border border-white/6 rounded-lg p-4 text-cyan-200">
                   <summary className="font-semibold text-white cursor-pointer text-sm md:text-base">How long before a profile goes live?</summary>
-                  <div className="mt-2 text-sm">Profiles are reviewed by the team; approved profiles usually go live within 24–72 hours.</div>
+                  <div className="mt-2 text-sm">Profiles are reviewed by the team and only approved ones go live.</div>
                 </details>
                 <details className="bg-[#071622] border border-white/6 rounded-lg p-4 text-cyan-200">
                   <summary className="font-semibold text-white cursor-pointer text-sm md:text-base">Can I update my listing later?</summary>
