@@ -197,7 +197,7 @@ export default function StudiosDirectory({ onCreateProfile, onOpenSignup, onEdit
           <div className="max-w-4xl mx-auto mt-10 md:mt-14 px-4">
             {/* FAQ section */}
             <div className="mb-10 md:mb-12 max-w-4xl mx-auto">
-              <h3 className="text-white font-bold text-xl md:text-2xl mb-4 text-center">Frequently asked</h3>
+              <h3 className="text-white font-bold text-xl md:text-2xl mb-4 text-center">Frequently asked questions</h3>
               <div className="space-y-3">
                 <details className="bg-[#071622] border border-white/6 rounded-lg p-4 text-cyan-200">
                   <summary className="font-semibold text-white cursor-pointer text-sm md:text-base">Is listing free?</summary>
