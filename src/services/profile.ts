@@ -11,14 +11,7 @@ export async function createProfileDocument(params: {
 }) {
   const { databaseId, tableId, userId, data, createdByTeam = false } = params;
 
-  const createdAt = new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(new Date());
+  const createdAt = new Date().toISOString();
 
   // Normalize payload to simple fields
   // ALL data grouped into ONE JSON column to stay within Appwrite free tier column limit (15 max)

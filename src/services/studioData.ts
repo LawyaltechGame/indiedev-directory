@@ -38,14 +38,7 @@ export async function addAvalancheStudiosProfile() {
       userId: 'system', // System user ID for manually added studios
       status: 'approved',
       createdByTeam: true,
-      createdAt: new Intl.DateTimeFormat('en-US', {
-        month: 'short',
-        day: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      }).format(new Date()),
+      createdAt: new Date().toISOString(),
       profileData: JSON.stringify({
         // Basic Profile Info
         name: 'Avalanche Studios',

@@ -190,14 +190,7 @@ export async function addAdminGame(gameData: {
       userId: 'admin-team',
       status: 'approved',
       createdByTeam: true,
-      createdAt: new Intl.DateTimeFormat('en-US', {
-        month: 'short',
-        day: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      }).format(new Date()),
+      createdAt: new Date().toISOString(),
       gameData: JSON.stringify({
         name: gameData.name,
         developedBy: gameData.developedBy,

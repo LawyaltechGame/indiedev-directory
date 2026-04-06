@@ -214,14 +214,7 @@ export async function addAdminStudio(studioData: {
       userId: 'admin-team', // Mark as admin-created
       status: 'approved', // Auto-approved
       createdByTeam: true, // Mark as team-created
-      createdAt: new Intl.DateTimeFormat('en-US', {
-        month: 'short',
-        day: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      }).format(new Date()),
+      createdAt: new Date().toISOString(),
     };
 
     // Handle profile image upload
