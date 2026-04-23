@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { submitNewsletter } from '../../services/newsletter';
 export function Footer() {
   const [name, setName] = useState('');
