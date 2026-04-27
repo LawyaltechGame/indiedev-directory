@@ -4,6 +4,7 @@ const SHEET_ENDPOINT = 'https://script.google.com/macros/s/AKfycbywt1tqLIxaPZO96
 /**
  * Submits newsletter subscription data to Google Sheet
  * via Google Apps Script Web App.
+ * The Apps Script also sends an owner notification email via MailApp.
  */
 export async function submitNewsletter(name: string, email: string) {
   console.log('📤 Sending newsletter subscription to:', SHEET_ENDPOINT);
