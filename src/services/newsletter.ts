@@ -1,29 +1,38 @@
-// Google Apps Script Web App endpoint — hardcoded
-const SHEET_ENDPOINT = 'https://script.google.com/macros/s/AKfycbx5feFMMJiehxjGILlvSAGsxT3jtufcCUmRgN-nvlmeO5e2SOi0UzuARioeUsYYWf6GOg/exec';
+// Google Apps Script endpoint — saves to Google Sheet
+const SHEET_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxD0ZCH-Y-vGBYPupsTa8_vdhRBwM_PjhC3d8m2VYD6QaVs6QcZvjA0gfls-JAEd9Cr8w/exec';
+
+// Notification email via FormSubmit.co (no backend needed)
+const NOTIFY_EMAIL = 'nandtlegaltech@gmail.com';
 
 /**
- * Submits newsletter subscription data to Google Sheet
- * via Google Apps Script Web App.
- * The Apps Script also sends an owner notification email via MailApp.
+ * Submits newsletter subscription:
+ * 1. Saves name + email to Google Sheet
+ * 2. Sends a notification email to the owner via FormSubmit.co
  */
 export async function submitNewsletter(name: string, email: string) {
-  console.log('📤 Sending newsletter subscription to:', SHEET_ENDPOINT);
-  console.log('📤 Payload:', { name, email });
+  // 1. Save to Google Sheet (fire and forget)
+  fetch(`${SHEET_ENDPOINT}?name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}`, {
+    method: 'GET',
+    mode: 'no-cors',
+  }).catch(() => {});
 
-  const formData = new URLSearchParams();
-  formData.append('name', name);
-  formData.append('email', email);
+  // 2. Send notification email via FormSubmit.co
+  const form = new FormData();
+  form.append('name', name);
+  form.append('email', email);
+  form.append('subject', `📬 New Newsletter Subscriber: ${name}`);
+  form.append('message', `Name: ${name}\nEmail: ${email}\nTime: ${new Date().toLocaleString()}`);
+  form.append('_captcha', 'false');
+  form.append('_template', 'table');
 
-  try {
-    await fetch(SHEET_ENDPOINT, {
-      method: 'POST',
-      mode: 'no-cors',
-      body: formData,
-    });
-    console.log('✅ Newsletter request sent');
-    return { success: true };
-  } catch (err) {
-    console.error('❌ Newsletter fetch failed:', err);
-    throw err;
+  const res = await fetch(`https://formsubmit.co/ajax/${NOTIFY_EMAIL}`, {
+    method: 'POST',
+    body: form,
+  });
+
+  if (!res.ok) {
+    throw new Error('Failed to send notification email');
   }
+
+  return { success: true };
 }
