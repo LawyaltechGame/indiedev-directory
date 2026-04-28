@@ -1,5 +1,5 @@
 // Google Apps Script Web App endpoint — hardcoded
-const SHEET_ENDPOINT = 'https://script.google.com/macros/s/AKfycbywt1tqLIxaPZO961oX7bgFK_cXqqIxNzn2v6jByBJXrrHaw5qd-rUXkKFToGWHTL9vQA/exec';
+const SHEET_ENDPOINT = 'https://script.google.com/macros/s/AKfycbx5feFMMJiehxjGILlvSAGsxT3jtufcCUmRgN-nvlmeO5e2SOi0UzuARioeUsYYWf6GOg/exec';
 
 /**
  * Submits newsletter subscription data to Google Sheet
