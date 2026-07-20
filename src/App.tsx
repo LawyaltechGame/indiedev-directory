@@ -35,8 +35,10 @@ import { EmailVerificationPage } from './components/auth/EmailVerificationPage';
 import { AccountSettings } from './components/sections/AccountSettings';
 import { ReviewDashboard } from './components/dashboard/ReviewDashboard';
 import { PageViewTracker } from './components/analytics/PageViewTracker';
+import { Modal } from './components/ui/Modal';
 import type { FormData, ProfileStep } from './types';
 import { createProfileDocument, getUserLatestProfile, updateProfileDocument } from './services/profile';
+import { submitNewsletter } from './services/newsletter';
 import { Storage } from 'appwrite';
 import { ID } from './config/appwrite';
 import client from './config/appwrite';
@@ -52,9 +54,11 @@ import './utils/reuploadStudioImage'; // Utility to re-upload studio images
 import './utils/updateStudioImageId'; // Utility to update studio image ID
 import './utils/findAndFixDuplicates'; // Utility to find and fix duplicate studios
 
+const NEWSLETTER_POPUP_KEY = 'gc-newsletter-popup-seen';
+
 function AppContent() {
   const { scrollProgress, navShrunk, showScrollTop } = useScrollProgress();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { isTeamMember } = useTeamMember();
   useCursorAura();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -66,11 +70,61 @@ function AppContent() {
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+  const [showNewsletterPopup, setShowNewsletterPopup] = useState(false);
+  const [newsletterName, setNewsletterName] = useState('');
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterStatus, setNewsletterStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [newsletterError, setNewsletterError] = useState<string | null>(null);
   const [resetUserId, setResetUserId] = useState<string>('');
   const [resetSecret, setResetSecret] = useState<string>('');
   const [showAuthRequiredModal, setShowAuthRequiredModal] = useState(false);
   const [showApprovalNotice, setShowApprovalNotice] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (user) return;
+
+    try {
+      const alreadySeen = window.localStorage.getItem(NEWSLETTER_POPUP_KEY);
+      if (!alreadySeen) {
+        setShowNewsletterPopup(true);
+      }
+    } catch (error) {
+      // Ignore localStorage errors
+    }
+  }, [authLoading, user]);
+
+  const closeNewsletterPopup = useCallback(() => {
+    try {
+      window.localStorage.setItem(NEWSLETTER_POPUP_KEY, '1');
+    } catch (error) {
+      // Ignore localStorage errors
+    }
+    setShowNewsletterPopup(false);
+  }, []);
+
+  const handleNewsletterSubmit = useCallback(async () => {
+    setNewsletterError(null);
+    if (!newsletterName.trim() || !newsletterEmail.trim()) {
+      setNewsletterStatus('error');
+      setNewsletterError('Please enter your name and email.');
+      return;
+    }
+
+    setNewsletterStatus('loading');
+    try {
+      await submitNewsletter(newsletterName.trim(), newsletterEmail.trim());
+      setNewsletterStatus('success');
+      setNewsletterName('');
+      setNewsletterEmail('');
+      closeNewsletterPopup();
+    } catch (error: any) {
+      console.error('Newsletter submission failed:', error);
+      setNewsletterStatus('error');
+      setNewsletterError(error?.message || 'Unable to subscribe right now.');
+    }
+  }, [newsletterName, newsletterEmail, closeNewsletterPopup]);
   const [profileStep, setProfileStep] = useState<ProfileStep>('create');
   const [, setIsSubmitting] = useState(false);
   const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
@@ -706,6 +760,58 @@ function AppContent() {
           ↑
                   </button>
       )}
+
+      <Modal
+        isOpen={showNewsletterPopup}
+        onClose={closeNewsletterPopup}
+        title="Join the Game Centralen newsletter"
+        subtitle="Get early indie game news, curated studio stories, and launch updates."
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="text-cyan-200 text-sm leading-relaxed">
+            Stay in the loop with new studios, updates, and indie stories. No spam — just the best community picks.
+          </div>
+
+          <div className="space-y-3">
+            <input
+              value={newsletterName}
+              onChange={(e) => setNewsletterName(e.target.value)}
+              placeholder="Your name"
+              className="w-full rounded-xl border border-white/10 bg-[rgba(9,14,22,0.7)] px-4 py-3 text-cyan-100 outline-none transition-all duration-150 focus:border-cyan-300"
+            />
+            <input
+              value={newsletterEmail}
+              onChange={(e) => setNewsletterEmail(e.target.value)}
+              placeholder="Your email"
+              type="email"
+              className="w-full rounded-xl border border-white/10 bg-[rgba(9,14,22,0.7)] px-4 py-3 text-cyan-100 outline-none transition-all duration-150 focus:border-cyan-300"
+            />
+          </div>
+
+          {newsletterError && (
+            <div className="text-sm text-red-300">{newsletterError}</div>
+          )}
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              onClick={handleNewsletterSubmit}
+              className="w-full sm:flex-1 h-14 px-6 bg-linear-to-b from-cyan-500 to-cyan-300 text-[#001018] font-extrabold rounded-2xl border-0 cursor-pointer transition-all duration-200 hover:from-cyan-400 hover:to-cyan-500 shadow-[0_10px_26px_rgba(34,211,238,0.35)] disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={newsletterStatus === 'loading'}
+            >
+              {newsletterStatus === 'loading' ? 'Subscribing...' : 'Subscribe'}
+            </button>
+            <button
+              type="button"
+              onClick={closeNewsletterPopup}
+              className="w-full sm:w-auto h-14 px-6 border border-white/10 bg-[rgba(9,14,22,0.65)] text-cyan-100 rounded-2xl font-extrabold transition-all duration-200 hover:bg-[rgba(0,229,255,0.12)]"
+            >
+             Maybe later
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* PROFILE MODAL */}
       <ProfileModal
