@@ -793,21 +793,14 @@ function AppContent() {
             <div className="text-sm text-red-300">{newsletterError}</div>
           )}
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div>
             <button
               type="button"
               onClick={handleNewsletterSubmit}
-              className="w-full sm:flex-1 h-14 px-6 bg-linear-to-b from-cyan-500 to-cyan-300 text-[#001018] font-extrabold rounded-2xl border-0 cursor-pointer transition-all duration-200 hover:from-cyan-400 hover:to-cyan-500 shadow-[0_10px_26px_rgba(34,211,238,0.35)] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-14 px-6 bg-linear-to-b from-cyan-500 to-cyan-300 text-[#001018] font-extrabold rounded-2xl border-0 cursor-pointer transition-all duration-200 hover:from-cyan-400 hover:to-cyan-500 shadow-[0_10px_26px_rgba(34,211,238,0.35)] disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={newsletterStatus === 'loading'}
             >
               {newsletterStatus === 'loading' ? 'Subscribing...' : 'Subscribe'}
-            </button>
-            <button
-              type="button"
-              onClick={closeNewsletterPopup}
-              className="w-full sm:w-auto h-14 px-6 border border-white/10 bg-[rgba(9,14,22,0.65)] text-cyan-100 rounded-2xl font-extrabold transition-all duration-200 hover:bg-[rgba(0,229,255,0.12)]"
-            >
-             Maybe later
             </button>
           </div>
         </div>
