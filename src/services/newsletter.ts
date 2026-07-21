@@ -55,7 +55,7 @@ export async function submitNewsletter(
           // Still save to Sheet and notify
           saveToSheetAndNotify(name, email);
           
-          return { success: true, subscriber: updated as NewsletterSubscriber };
+          return { success: true, subscriber: updated as unknown as NewsletterSubscriber };
         }
       } catch (e) {
         console.warn('Error checking existing subscriber:', e);
@@ -78,7 +78,7 @@ export async function submitNewsletter(
         // Save to Sheet and notify
         saveToSheetAndNotify(name, email);
 
-        return { success: true, subscriber: subscriber as NewsletterSubscriber };
+        return { success: true, subscriber: subscriber as unknown as NewsletterSubscriber };
       } catch (e) {
         console.error('Error creating Appwrite subscriber:', e);
         // Fall back to Sheet and notify only
@@ -134,7 +134,7 @@ export async function getSubscribers(): Promise<NewsletterSubscriber[]> {
       Query.equal('isActive', true),
     ]);
 
-    return result.documents as NewsletterSubscriber[];
+    return result.documents as unknown as NewsletterSubscriber[];
   } catch (error) {
     console.error('Error fetching subscribers:', error);
     return [];
