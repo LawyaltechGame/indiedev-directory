@@ -54,7 +54,7 @@ import './utils/reuploadStudioImage'; // Utility to re-upload studio images
 import './utils/updateStudioImageId'; // Utility to update studio image ID
 import './utils/findAndFixDuplicates'; // Utility to find and fix duplicate studios
 
-const NEWSLETTER_POPUP_KEY = 'gc-newsletter-popup-seen';
+
 
 function AppContent() {
   const { scrollProgress, navShrunk, showScrollTop } = useScrollProgress();
@@ -84,23 +84,10 @@ function AppContent() {
   useEffect(() => {
     if (authLoading) return;
     if (user) return;
-
-    try {
-      const alreadySeen = window.localStorage.getItem(NEWSLETTER_POPUP_KEY);
-      if (!alreadySeen) {
-        setShowNewsletterPopup(true);
-      }
-    } catch (error) {
-      // Ignore localStorage errors
-    }
+    setShowNewsletterPopup(true);
   }, [authLoading, user]);
 
   const closeNewsletterPopup = useCallback(() => {
-    try {
-      window.localStorage.setItem(NEWSLETTER_POPUP_KEY, '1');
-    } catch (error) {
-      // Ignore localStorage errors
-    }
     setShowNewsletterPopup(false);
   }, []);
 
