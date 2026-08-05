@@ -3,7 +3,13 @@ import client from '../config/appwrite';
 
 const storage = new Storage(client);
 
-const STUDIO_IMAGES_BUCKET_ID = import.meta.env.VITE_APPWRITE_STUDIO_IMAGES_BUCKET_ID as string;
+const getEnv = (key: string, fallback: string): string => {
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) return import.meta.env[key] as string;
+  if (typeof process !== 'undefined' && process.env && process.env[key]) return process.env[key] as string;
+  return fallback;
+};
+
+const STUDIO_IMAGES_BUCKET_ID = getEnv('VITE_APPWRITE_STUDIO_IMAGES_BUCKET_ID', 'studio_images');
 
 /**
  * Compress image before uploading

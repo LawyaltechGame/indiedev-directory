@@ -594,7 +594,8 @@ Thank you for being part of the Game Centralen community!
 Best regards,
 The Game Centralen Team`);
 
-      const response = await fetch('https://formsubmit.co/cryptotrader035@gmail.com', {
+      const reviewerEmail = import.meta.env.VITE_REVIEWER_EMAIL || 'cryptotrader035@gmail.com';
+      const response = await fetch(`https://formsubmit.co/${encodeURIComponent(reviewerEmail)}`, {
         method: 'POST',
         body: formBody,
         headers: {
@@ -644,7 +645,8 @@ Best regards,
 The Game Centralen Team`);
 
       // Send from cryptotrader035@gmail.com
-      const response = await fetch('https://formsubmit.co/cryptotrader035@gmail.com', {
+      const reviewerEmail = import.meta.env.VITE_REVIEWER_EMAIL || 'cryptotrader035@gmail.com';
+      const response = await fetch(`https://formsubmit.co/${encodeURIComponent(reviewerEmail)}`, {
         method: 'POST',
         body: formBody,
         headers: {

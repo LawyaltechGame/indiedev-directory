@@ -4,10 +4,16 @@ import client from '../config/appwrite';
 import { compressImage } from './studioImages';
 
 const storage = new Storage(client);
-const STUDIO_IMAGES_BUCKET_ID = import.meta.env.VITE_APPWRITE_STUDIO_IMAGES_BUCKET_ID as string;
 
-const DB_ID = import.meta.env.VITE_APPWRITE_DATABASE_ID as string;
-const GAMES_TABLE_ID = import.meta.env.VITE_APPWRITE_GAMES_TABLE_ID as string;
+const getEnv = (key: string, fallback: string) => {
+  if (typeof import.meta !== 'undefined' && import.meta.env?.[key]) return import.meta.env[key];
+  if (typeof process !== 'undefined' && process.env?.[key]) return process.env[key];
+  return fallback;
+};
+
+const STUDIO_IMAGES_BUCKET_ID = getEnv('VITE_APPWRITE_STUDIO_IMAGES_BUCKET_ID', 'studio_images');
+const DB_ID = getEnv('VITE_APPWRITE_DATABASE_ID', 'game_centralen_db');
+const GAMES_TABLE_ID = getEnv('VITE_APPWRITE_GAMES_TABLE_ID', 'games');
 
 /**
  * Upload image file to Appwrite Storage and return file ID

@@ -5,10 +5,16 @@ import { parseProfileJSONFields } from './profile';
 import { compressImage } from './studioImages';
 
 const storage = new Storage(client);
-const STUDIO_IMAGES_BUCKET_ID = import.meta.env.VITE_APPWRITE_STUDIO_IMAGES_BUCKET_ID as string;
 
-const DB_ID = import.meta.env.VITE_APPWRITE_DATABASE_ID as string;
-const PROFILE_TABLE_ID = import.meta.env.VITE_APPWRITE_PROFILE_TABLE_ID as string;
+const getEnv = (key: string, fallback: string): string => {
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) return import.meta.env[key] as string;
+  if (typeof process !== 'undefined' && process.env && process.env[key]) return process.env[key] as string;
+  return fallback;
+};
+
+const STUDIO_IMAGES_BUCKET_ID = getEnv('VITE_APPWRITE_STUDIO_IMAGES_BUCKET_ID', 'studio_images');
+const DB_ID = getEnv('VITE_APPWRITE_DATABASE_ID', 'game_centralen_db');
+const PROFILE_TABLE_ID = getEnv('VITE_APPWRITE_PROFILE_TABLE_ID', 'profiles');
 
 /**
  * Upload image file to Appwrite Storage and return file ID

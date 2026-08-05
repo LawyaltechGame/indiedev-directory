@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { databases, Query } from '../../config/appwrite';
 import { parseProfileJSONFields } from '../../services/profile';
 import { getStudioImageUrl } from '../../services/studioImages';
@@ -18,7 +18,8 @@ interface StudioDetailData {
     gameTitle: string;
     status: string;
     platforms: string[];
-    projectPageUrl?: string; // kept for compatibility, but no longer used for navigation
+    year?: string;
+    projectPageUrl?: string;
   }>;
   headquartersCountry?: string;
   city?: string;
@@ -40,23 +41,53 @@ interface StudioDetailData {
   totalFunding?: string;
   distributionChannels?: string[];
   storeLinks?: string[];
-  socialLinks?: {
-    twitter?: string;
-    youtube?: string;
-    instagram?: string;
-    facebook?: string;
-    discord?: string;
-    linkedin?: string;
-  };
+  socialLinks?: Record<string, string>;
   recognitions?: Array<{
-    type: string;
+    type?: string;
     title: string;
     year?: string;
     description?: string;
     source?: string;
+    link?: string;
   }>;
   trailerVideoUrl?: string;
   gameplayVideoUrl?: string;
+
+  // Extended corporate profile fields matching remedy.html
+  legalEntityName?: string;
+  registrationId?: string;
+  stockSymbol?: string;
+  acquisitionStatus?: string;
+  parentCompany?: string;
+  leadership?: Array<{ name: string; role: string; bio?: string }>;
+  financials?: Array<{
+    year: string;
+    revenue: string;
+    ebitda?: string;
+    ebit?: string;
+    result?: string;
+    balanceSheet?: string;
+    equity?: string;
+    equityRatio?: string;
+    eps?: string;
+    fte?: string;
+  }>;
+  workforce?: {
+    headcount?: number;
+    avgFte?: number;
+    composition?: string;
+  };
+  whatChanged?: Array<{ date: string; event: string }>;
+  businessModel?: string;
+  ipOwned?: string;
+  financingNotes?: string;
+  similarStudios?: Array<{
+    name: string;
+    location: string;
+    tags: string;
+    description: string;
+    link?: string;
+  }>;
 }
 
 export function StudioDetail() {
@@ -83,39 +114,49 @@ export function StudioDetail() {
           throw new Error('Database configuration missing');
         }
 
-        // Fetch studio profile
-        let response;
-        try {
-          response = await databases.getDocument(DB_ID, PROFILE_TABLE_ID, id);
-        } catch (docError: any) {
-          // If document not found by ID, try to find by name (for Avalanche Studios)
-          if (docError?.code === 404) {
-            const allProfiles = await databases.listDocuments(DB_ID, PROFILE_TABLE_ID, [
-              Query.equal('status', 'approved'),
-            ]);
-            const foundProfile = allProfiles.documents.find((doc: any) => {
-              try {
-                const parsed = parseProfileJSONFields(doc);
-                // Try to match by name if ID doesn't match
-                return parsed.name === 'Avalanche Studios' || doc.$id === id;
-              } catch {
-                return false;
-              }
-            });
-            if (foundProfile) {
-              response = foundProfile;
-            } else {
-              throw docError;
+        let response: any = null;
+        const decodedId = decodeURIComponent(id);
+        const normalize = (str: string) => str.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const searchNormalized = normalize(decodedId);
+
+        // Fetch up to 500 studio profiles to avoid Appwrite 25 default limit
+        const allProfiles = await databases.listDocuments(DB_ID, PROFILE_TABLE_ID, [
+          Query.equal('status', 'approved'),
+          Query.limit(500),
+        ]);
+
+        response = allProfiles.documents.find((doc: any) => {
+          try {
+            const parsed = parseProfileJSONFields(doc);
+            const studioName = parsed.name || '';
+            if (
+              doc.$id === id ||
+              generateSlug(studioName) === decodedId.toLowerCase() ||
+              normalize(studioName) === searchNormalized ||
+              studioName.toLowerCase() === decodedId.toLowerCase()
+            ) {
+              return true;
             }
-          } else {
-            throw docError;
+            return false;
+          } catch {
+            return false;
           }
+        });
+
+        if (!response) {
+          try {
+            response = await databases.getDocument(DB_ID, PROFILE_TABLE_ID, id);
+          } catch {
+            // fallback
+          }
+        }
+
+        if (!response) {
+          throw new Error(`Studio profile '${id}' could not be found.`);
         }
 
         const parsedProfile = parseProfileJSONFields(response);
 
-        // Extract profileImageId - check both root level (after parsing) and nested in profileData
-        // Also handle empty string case (should be treated as null)
         let profileImageId =
           parsedProfile.profileImageId ||
           (parsedProfile.profileData && typeof parsedProfile.profileData === 'object'
@@ -123,21 +164,10 @@ export function StudioDetail() {
             : null) ||
           null;
 
-        // Treat empty string as null
         if (profileImageId === '' || profileImageId === 'NULL' || profileImageId === null) {
           profileImageId = null;
         }
 
-        // Debug logging for all studios
-        console.log(`StudioDetail - Studio: ${parsedProfile.name}`, {
-          profileImageId: profileImageId,
-          rootLevel: parsedProfile.profileImageId,
-          nested: parsedProfile.profileData?.profileImageId,
-          profileDataType: typeof parsedProfile.profileData,
-          rawResponse: response,
-        });
-
-        // Map database profile to StudioDetailData format
         const studioData: StudioDetailData = {
           name: parsedProfile.name || 'Unknown Studio',
           tagline: parsedProfile.tagline || '',
@@ -171,6 +201,21 @@ export function StudioDetail() {
           recognitions: parsedProfile.recognitions || [],
           trailerVideoUrl: parsedProfile.trailerVideoUrl || '',
           gameplayVideoUrl: parsedProfile.gameplayVideoUrl || '',
+
+          // Corporate extensions
+          legalEntityName: parsedProfile.legalEntityName || '',
+          registrationId: parsedProfile.registrationId || '',
+          stockSymbol: parsedProfile.stockSymbol || '',
+          acquisitionStatus: parsedProfile.acquisitionStatus || 'Independent',
+          parentCompany: parsedProfile.parentCompany || '',
+          leadership: parsedProfile.leadership || [],
+          financials: parsedProfile.financials || [],
+          workforce: parsedProfile.workforce || {},
+          whatChanged: parsedProfile.whatChanged || [],
+          businessModel: parsedProfile.businessModel || '',
+          ipOwned: parsedProfile.ipOwned || '',
+          financingNotes: parsedProfile.financingNotes || '',
+          similarStudios: parsedProfile.similarStudios || []
         };
 
         setStudio(studioData);
@@ -187,10 +232,7 @@ export function StudioDetail() {
 
   const formatUrl = (url: string) => {
     if (!url) return '';
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
-    }
-    return `https://${url}`;
+    return url.startsWith('http://') || url.startsWith('https://') ? url : `https://${url}`;
   };
 
   const extractYouTubeId = (url: string) => {
@@ -199,18 +241,24 @@ export function StudioDetail() {
     return match && match[2].length === 11 ? match[2] : null;
   };
 
+  const goToGame = (gameTitle: string) => {
+    let gameSlug: string;
+    if (gameTitle.includes('Owl Observatory')) {
+      gameSlug = 'owl-observatory';
+    } else if (gameTitle.includes('Dinner with an Owl')) {
+      gameSlug = 'dinner-with-an-owl-dessert-edition';
+    } else {
+      gameSlug = generateSlug(gameTitle);
+    }
+    navigate(`/game/${encodeURIComponent(gameSlug)}`);
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-bg text-white pt-28 pb-16 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse">
-            <div className="h-12 bg-white/10 rounded w-1/3 mb-8" />
-            <div className="h-96 bg-white/10 rounded-2xl mb-8" />
-            <div className="space-y-4">
-              <div className="h-4 bg-white/10 rounded w-full" />
-              <div className="h-4 bg-white/10 rounded w-5/6" />
-            </div>
-          </div>
+      <div className="min-h-screen bg-[#05070a] text-white pt-28 pb-16 px-6">
+        <div className="max-w-7xl mx-auto animate-pulse space-y-8">
+          <div className="h-12 bg-white/10 rounded w-1/3" />
+          <div className="h-96 bg-white/10 rounded-3xl" />
         </div>
       </div>
     );
@@ -218,14 +266,11 @@ export function StudioDetail() {
 
   if (error || !studio) {
     return (
-      <div className="min-h-screen bg-bg text-white pt-28 pb-16 px-6">
+      <div className="min-h-screen bg-[#05070a] text-white pt-28 pb-16 px-6">
         <div className="max-w-7xl mx-auto">
-          <button
-            onClick={() => navigate(-1)}
-            className="mb-6 flex items-center gap-2 text-cyan-300 hover:text-cyan-200 transition-colors duration-200"
-          >
-            <span>←</span> Back to Directory
-          </button>
+          <Link to="/" className="mb-6 inline-block text-cyan-300 hover:text-cyan-200 font-semibold">
+            ← Back to Directory
+          </Link>
           <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-8 text-center">
             <p className="text-red-300 text-lg">{error || 'Studio not found'}</p>
           </div>
@@ -235,647 +280,541 @@ export function StudioDetail() {
   }
 
   const youtubeId = studio.trailerVideoUrl ? extractYouTubeId(studio.trailerVideoUrl) : null;
-
-  // ✅ Shared navigation: BOTH game title + "View Project" now go to the same internal /game/:slug page
-  const goToGame = (gameTitle: string) => {
-    let gameSlug: string;
-
-    // Handle special cases for game slugs to match database names
-    // Check for Owl Observatory FIRST since its title contains "Dinner with an Owl"
-    if (gameTitle.includes('Owl Observatory')) {
-      gameSlug = 'owl-observatory';
-    } else if (gameTitle.includes('Dinner with an Owl')) {
-      gameSlug = 'dinner-with-an-owl-dessert-edition';
-    } else {
-      gameSlug = generateSlug(gameTitle);
-    }
-
-    navigate(`/game/${encodeURIComponent(gameSlug)}`);
-  };
+  const studioInitials = studio.name.split(' ').map(w => w[0]).join('').substring(0, 3).toUpperCase();
 
   return (
     <>
       <SEOHead
-        title={`${studio.name} - ${studio.tagline} | Game Centralen`}
-        description={studio.description || studio.tagline || `Learn more about ${studio.name}, an indie game studio.`}
+        title={`${studio.name} — Studio Profile | Game Centralen`}
+        description={studio.tagline || studio.description || `Studio profile for ${studio.name}`}
         canonicalUrl={`https://gamecentralen.com/studio/${id}`}
         ogImage={studio.profileImageId ? getStudioImageUrl(studio.profileImageId) : undefined}
       />
 
-      <div className="min-h-screen bg-bg text-white pt-28 pb-16 px-6">
-        <div className="max-w-7xl mx-auto">
-          {/* Back Button */}
-          <button
-            onClick={() => navigate(-1)}
-            className="mb-8 group flex items-center gap-2 text-cyan-300 hover:text-cyan-200 transition-all duration-300 hover:gap-3"
-          >
-            <span className="transition-transform duration-300 group-hover:-translate-x-1">←</span>
-            <span>Back to Directory</span>
-          </button>
+      <div className="min-h-screen bg-[#05070a] text-white font-sans antialiased">
+        {/* Background Gradients */}
+        <div
+          className="fixed inset-0 pointer-events-none z-0 opacity-60"
+          style={{
+            background:
+              'radial-gradient(900px 500px at 15% -5%, rgba(34,211,238,.10), transparent 60%),radial-gradient(800px 500px at 90% 0%, rgba(59,130,246,.10), transparent 60%)',
+          }}
+        />
+
+        <main className="relative z-10 max-w-7xl mx-auto px-4 lg:px-6 pt-28 pb-20">
 
           {/* Hero Section */}
-          <div className="relative bg-gradient-to-br from-[rgba(20,28,42,0.8)] via-[rgba(20,28,42,0.6)] to-[rgba(20,28,42,0.8)] border border-white/10 rounded-3xl overflow-hidden mb-12 shadow-2xl shadow-cyan-500/10 hover:shadow-cyan-500/20 transition-all duration-500 group">
-            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 via-transparent to-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <section className="relative overflow-hidden bg-gradient-to-br from-[rgba(20,28,42,0.7)] to-[rgba(20,28,42,0.5)] border border-white/10 rounded-3xl shadow-xl transition-all duration-500 mb-8 p-8 md:p-12">
+            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 via-transparent to-blue-500/5" />
+            <div className="relative">
+              <Link
+                to="/"
+                className="inline-flex items-center gap-2 text-cyan-300/70 hover:text-cyan-300 text-sm font-semibold mb-8 cursor-pointer"
+              >
+                ← Back to Directory
+              </Link>
 
-            <div className="relative p-8 md:p-12">
               <div className="flex flex-col md:flex-row gap-8 items-start">
-                {/* Studio Logo */}
+                {/* Logo / Monogram */}
                 {studio.profileImageId ? (
-                  <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-3xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center flex-shrink-0 border-2 border-cyan-500/30 p-3 shadow-lg shadow-cyan-500/20 group/logo hover:scale-105 transition-transform duration-300">
-                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent opacity-0 group-hover/logo:opacity-100 transition-opacity duration-300 rounded-3xl" />
+                  <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-3xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center flex-shrink-0 border-2 border-cyan-500/30 p-3 shadow-lg shadow-cyan-500/20">
                     <img
                       src={getStudioImageUrl(studio.profileImageId)}
                       alt={`${studio.name} logo`}
-                      className="relative w-auto h-auto max-w-full max-h-full object-contain z-10"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        const parent = target.parentElement;
-                        if (parent) {
-                          parent.className =
-                            'w-32 h-32 md:w-40 md:h-40 rounded-3xl bg-gradient-to-br from-cyan-400 to-blue-400 flex items-center justify-center text-[#001018] text-4xl md:text-5xl font-black flex-shrink-0 shadow-lg';
-                          parent.innerHTML = `<span>${studio.name.charAt(0)}</span>`;
-                        }
-                      }}
+                      className="w-auto h-auto max-w-full max-h-full object-contain"
                     />
                   </div>
                 ) : (
-                  <div className="w-32 h-32 md:w-40 md:h-40 rounded-3xl bg-gradient-to-br from-cyan-400 via-blue-400 to-teal-400 flex items-center justify-center text-[#001018] text-4xl md:text-5xl font-black flex-shrink-0 shadow-lg shadow-cyan-500/30 hover:scale-105 transition-transform duration-300">
-                    {studio.name.charAt(0)}
+                  <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-3xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center flex-shrink-0 border-2 border-cyan-500/30 shadow-lg shadow-cyan-500/20">
+                    <span className="text-4xl md:text-5xl font-black tracking-tighter text-transparent bg-gradient-to-br from-cyan-100 to-blue-300 bg-clip-text">
+                      {studioInitials}
+                    </span>
                   </div>
                 )}
 
-                {/* Studio Details */}
+                {/* Studio Information */}
                 <div className="flex-1">
-                  <h1 className="text-5xl md:text-6xl font-black mb-3 bg-gradient-to-r from-cyan-100 via-cyan-300 to-blue-300 bg-clip-text text-transparent animate-fade-in">
-                    {studio.name}
-                  </h1>
-                  <p className="text-xl md:text-2xl text-cyan-200/90 mb-6 font-medium">{studio.tagline}</p>
+                  <div className="flex flex-wrap items-center gap-3 mb-2">
+                    <h1 className="text-4xl md:text-6xl font-black bg-gradient-to-r from-cyan-100 via-cyan-300 to-blue-300 bg-clip-text text-transparent">
+                      {studio.name}
+                    </h1>
+                    <span className="inline-flex px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-emerald-500/30 to-teal-500/30 text-emerald-300 border border-emerald-500/30">
+                      {studio.acquisitionStatus || 'Independent'}
+                    </span>
+                  </div>
 
-                  {studio.website && (
-                    <a
-                      href={formatUrl(studio.website)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 rounded-xl text-cyan-300 hover:text-white hover:border-cyan-400/50 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/20 group/link"
-                    >
-                      <svg
-                        className="w-5 h-5 transition-transform duration-300 group-hover/link:translate-x-1"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                  <p className="text-sm font-mono text-cyan-300/60 mb-4">
+                    {[
+                      studio.legalEntityName || studio.name,
+                      studio.registrationId,
+                      studio.city ? `${studio.city}, ${studio.headquartersCountry}` : studio.headquartersCountry,
+                      studio.stockSymbol
+                    ].filter(Boolean).join(' · ')}
+                  </p>
+
+                  <p className="text-lg md:text-2xl text-cyan-200/90 mb-6 font-medium">
+                    {studio.tagline}
+                  </p>
+
+                  <div className="flex flex-wrap gap-3">
+                    {studio.website && (
+                      <a
+                        href={formatUrl(studio.website)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 rounded-xl font-bold text-cyan-100 hover:border-cyan-400/60 transition"
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                        />
-                      </svg>
-                      <span className="font-semibold">{studio.website.replace(/^https?:\/\//, '')}</span>
+                        🌐 {studio.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                      </a>
+                    )}
+                    <a
+                      href="#financials"
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-xl font-bold text-cyan-100 hover:border-amber-400/40 transition"
+                    >
+                      📊 Filed financials
                     </a>
-                  )}
+                    <a
+                      href="#games"
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-xl font-bold text-cyan-100 hover:border-cyan-400/40 transition"
+                    >
+                      🎮 {studio.projects?.length || 0} titles
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* Main Content Grid */}
+          {/* Grid Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column */}
+            
+            {/* Left Main Content */}
             <div className="lg:col-span-2 space-y-8">
-              {/* About */}
+              
+              {/* About Section */}
               {studio.description && (
-                <div className="group bg-gradient-to-br from-[rgba(20,28,42,0.7)] to-[rgba(20,28,42,0.5)] border border-white/10 rounded-3xl p-8 md:p-10 shadow-xl hover:shadow-2xl hover:shadow-cyan-500/10 transition-all duration-500 hover:border-cyan-500/30">
-                  <div className="flex items-center gap-3 mb-6">
+                <section className="bg-gradient-to-br from-[rgba(20,28,42,0.7)] to-[rgba(20,28,42,0.5)] border border-white/10 rounded-3xl shadow-xl p-8 md:p-10 hover:border-cyan-500/30 transition-all">
+                  <div className="flex items-center gap-3 mb-6 flex-wrap">
                     <div className="w-1 h-8 bg-gradient-to-b from-cyan-400 to-blue-400 rounded-full" />
-                    <h2 className="text-3xl font-bold text-transparent bg-gradient-to-r from-cyan-100 to-blue-200 bg-clip-text">
+                    <h2 className="text-2xl md:text-3xl font-bold text-transparent bg-gradient-to-r from-cyan-100 to-blue-200 bg-clip-text">
                       About
                     </h2>
+                    <span className="ml-auto text-[10px] font-semibold uppercase tracking-wider text-cyan-300/40 whitespace-nowrap">
+                      Verified Profile
+                    </span>
                   </div>
                   <p className="text-cyan-200/90 leading-relaxed text-lg">{studio.description}</p>
-                </div>
+                </section>
               )}
 
-              {/* Known For */}
-              {studio.knownFor && (
-                <div className="group bg-gradient-to-br from-[rgba(20,28,42,0.7)] to-[rgba(20,28,42,0.5)] border border-white/10 rounded-3xl p-8 md:p-10 shadow-xl hover:shadow-2xl hover:shadow-teal-500/10 transition-all duration-500 hover:border-teal-500/30">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-1 h-8 bg-gradient-to-b from-blue-400 to-teal-400 rounded-full" />
-                    <h2 className="text-3xl font-bold text-transparent bg-gradient-to-r from-blue-100 to-teal-200 bg-clip-text">
-                      Known For
-                    </h2>
-                  </div>
-                  <p className="text-cyan-200/90 leading-relaxed text-lg">{studio.knownFor}</p>
+              {/* Legal Entity & Ownership Section */}
+              <section className="bg-gradient-to-br from-[rgba(20,28,42,0.7)] to-[rgba(20,28,42,0.5)] border border-white/10 rounded-3xl shadow-xl p-8 md:p-10 hover:border-cyan-500/30 transition-all">
+                <div className="flex items-center gap-3 mb-6 flex-wrap">
+                  <div className="w-1 h-8 bg-gradient-to-b from-blue-400 to-teal-400 rounded-full" />
+                  <h2 className="text-2xl md:text-3xl font-bold text-transparent bg-gradient-to-r from-blue-100 to-teal-200 bg-clip-text">
+                    Legal Entity & Ownership
+                  </h2>
                 </div>
-              )}
-
-              {/* Projects Portfolio */}
-              {studio.projects && studio.projects.length > 0 && (
-                <div className="group bg-gradient-to-br from-[rgba(20,28,42,0.7)] to-[rgba(20,28,42,0.5)] border border-white/10 rounded-3xl p-8 md:p-10 shadow-xl hover:shadow-2xl hover:shadow-cyan-500/10 transition-all duration-500">
-                  <div className="flex items-center gap-3 mb-8">
-                    <div className="w-1 h-8 bg-gradient-to-b from-cyan-400 to-blue-400 rounded-full" />
-                    <h2 className="text-3xl font-bold text-transparent bg-gradient-to-r from-cyan-100 to-blue-200 bg-clip-text">
-                      Projects Portfolio
-                    </h2>
+                <div className="mb-6 p-5 rounded-2xl bg-black/30 border border-white/10 font-mono text-sm leading-7">
+                  <div className="text-cyan-100">
+                    <strong>{studio.legalEntityName || studio.name}</strong>{' '}
+                    <span className="text-cyan-400/60">· {studio.registrationId || 'Registered Entity'}</span>
                   </div>
+                  <div className="text-zinc-400/70 pt-2">
+                    Operating presence in {studio.city ? `${studio.city}, ` : ''}{studio.headquartersCountry}. {studio.parentCompany ? `Parent company: ${studio.parentCompany}.` : 'Independent ownership.'}
+                  </div>
+                </div>
+                <div className="p-5 rounded-2xl border border-cyan-500/20 bg-cyan-500/[0.04]">
+                  <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-cyan-500/15 text-cyan-300 border-cyan-500/30 border mb-3">
+                    Corporate Profile
+                  </span>
+                  <h3 className="text-lg font-bold text-cyan-50 mb-1">{studio.name}</h3>
+                  <p className="text-cyan-300 font-mono text-sm mb-4">{studio.registrationId || studio.stockSymbol || 'Registered Studio'}</p>
+                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                    <div>
+                      <dt className="text-cyan-300/60 text-xs uppercase tracking-wide">Form</dt>
+                      <dd className="text-cyan-100">{studio.studioType || 'Game Studio'}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-cyan-300/60 text-xs uppercase tracking-wide">Incorporated</dt>
+                      <dd className="text-cyan-100">{studio.foundedYear || 'N/A'}</dd>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <dt className="text-cyan-300/60 text-xs uppercase tracking-wide">Registered Address</dt>
+                      <dd className="text-cyan-100">{studio.city ? `${studio.city}, ` : ''}{studio.headquartersCountry || 'Global'}</dd>
+                    </div>
+                  </dl>
+                </div>
+              </section>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Financials (filed) Section */}
+              <section id="financials" className="bg-gradient-to-br from-[rgba(20,28,42,0.7)] to-[rgba(20,28,42,0.5)] border border-white/10 rounded-3xl shadow-xl p-8 md:p-10 hover:border-cyan-500/30 transition-all">
+                <div className="flex items-center gap-3 mb-6 flex-wrap">
+                  <div className="w-1 h-8 bg-gradient-to-b from-green-400 to-emerald-400 rounded-full" />
+                  <h2 className="text-2xl md:text-3xl font-bold text-transparent bg-gradient-to-r from-green-100 to-emerald-200 bg-clip-text">
+                    Financials (filed)
+                  </h2>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-400/15 text-emerald-300 border border-emerald-400/30">
+                    Verified
+                  </span>
+                </div>
+
+                {studio.financials && studio.financials.length > 0 ? (
+                  <div className="overflow-x-auto -mx-2 px-2 mb-6">
+                    <table className="w-full text-sm border-collapse">
+                      <thead>
+                        <tr className="border-b border-white/15">
+                          <th className="px-3 py-2.5 text-left text-xs font-bold text-cyan-200">Metric</th>
+                          {studio.financials.map((f, i) => (
+                            <th key={i} className="px-3 py-2.5 text-right text-xs font-bold text-cyan-200">
+                              {f.year}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="bg-white/[0.03]">
+                          <td className="px-3 py-2.5 text-left text-cyan-200/80 font-semibold">Revenue</td>
+                          {studio.financials.map((f, i) => (
+                            <td key={i} className="px-3 py-2.5 text-right tabular-nums text-cyan-50">
+                              {f.revenue}
+                            </td>
+                          ))}
+                        </tr>
+                        {studio.financials.some(f => f.ebitda) && (
+                          <tr>
+                            <td className="px-3 py-2.5 text-left text-cyan-200/80 font-semibold">EBITDA</td>
+                            {studio.financials.map((f, i) => (
+                              <td key={i} className="px-3 py-2.5 text-right tabular-nums text-cyan-50">
+                                {f.ebitda || 'n/t'}
+                              </td>
+                            ))}
+                          </tr>
+                        )}
+                        {studio.financials.some(f => f.ebit) && (
+                          <tr className="bg-white/[0.03]">
+                            <td className="px-3 py-2.5 text-left text-cyan-200/80 font-semibold">Operating Profit (EBIT)</td>
+                            {studio.financials.map((f, i) => (
+                              <td key={i} className="px-3 py-2.5 text-right tabular-nums text-cyan-50">
+                                {f.ebit || 'n/t'}
+                              </td>
+                            ))}
+                          </tr>
+                        )}
+                        {studio.financials.some(f => f.fte) && (
+                          <tr>
+                            <td className="px-3 py-2.5 text-left text-cyan-300/70 font-semibold">Average Personnel (FTE)</td>
+                            {studio.financials.map((f, i) => (
+                              <td key={i} className="px-3 py-2.5 text-right tabular-nums text-cyan-300/80">
+                                {f.fte || 'n/t'}
+                              </td>
+                            ))}
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="p-5 rounded-2xl bg-white/5 border border-white/10 text-cyan-200/80 text-sm">
+                    Funding Model: <strong className="text-cyan-100">{studio.fundingType || 'Private / Self-Funded'}</strong>. Official annual reports filed with local business registers.
+                  </div>
+                )}
+              </section>
+
+              {/* Leadership & Founder Pedigree Section */}
+              <section className="bg-gradient-to-br from-[rgba(20,28,42,0.7)] to-[rgba(20,28,42,0.5)] border border-white/10 rounded-3xl shadow-xl p-8 md:p-10 hover:border-cyan-500/30 transition-all">
+                <div className="flex items-center gap-3 mb-6 flex-wrap">
+                  <div className="w-1 h-8 bg-gradient-to-b from-violet-400 to-fuchsia-400 rounded-full" />
+                  <h2 className="text-2xl md:text-3xl font-bold text-transparent bg-gradient-to-r from-violet-100 to-fuchsia-200 bg-clip-text">
+                    Leadership & Founder Pedigree
+                  </h2>
+                </div>
+
+                <div className="space-y-2">
+                  {studio.leadership && studio.leadership.length > 0 ? (
+                    studio.leadership.map((person, i) => (
+                      <div key={i} className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-4 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
+                        <div className="sm:w-56 flex-shrink-0">
+                          <span className="block font-bold text-cyan-50 text-sm">{person.name}</span>
+                          <span className="block text-[11px] text-cyan-300/60 uppercase tracking-wide">{person.role}</span>
+                        </div>
+                        <p className="text-sm text-cyan-200/80 leading-relaxed">{person.bio || 'Key leadership member.'}</p>
+                      </div>
+                    ))
+                  ) : (
+                    studio.founders?.map((founder, i) => (
+                      <div key={i} className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-4 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
+                        <div className="sm:w-56 flex-shrink-0">
+                          <span className="block font-bold text-cyan-50 text-sm">{founder}</span>
+                          <span className="block text-[11px] text-cyan-300/60 uppercase tracking-wide">Co-Founder</span>
+                        </div>
+                        <p className="text-sm text-cyan-200/80 leading-relaxed">Founding team member of {studio.name}.</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </section>
+
+              {/* Projects Portfolio Section */}
+              <section id="games" className="bg-gradient-to-br from-[rgba(20,28,42,0.7)] to-[rgba(20,28,42,0.5)] border border-white/10 rounded-3xl shadow-xl p-8 md:p-10 hover:border-cyan-500/30 transition-all">
+                <div className="flex items-center gap-3 mb-6 flex-wrap">
+                  <div className="w-1 h-8 bg-gradient-to-b from-cyan-400 to-blue-400 rounded-full" />
+                  <h2 className="text-2xl md:text-3xl font-bold text-transparent bg-gradient-to-r from-cyan-100 to-blue-200 bg-clip-text">
+                    Projects Portfolio
+                  </h2>
+                </div>
+
+                {studio.projects && studio.projects.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     {studio.projects.map((project, index) => (
                       <div
                         key={index}
-                        className="group/project bg-gradient-to-br from-[rgba(0,0,0,0.3)] to-[rgba(0,0,0,0.1)] border border-white/10 rounded-2xl p-6 hover:border-cyan-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/10 hover:-translate-y-1"
+                        onClick={() => goToGame(project.gameTitle)}
+                        className="block group/project bg-gradient-to-br from-[rgba(0,0,0,0.35)] to-[rgba(0,0,0,0.15)] border border-white/10 rounded-2xl p-6 hover:border-cyan-500/40 transition-all duration-300 cursor-pointer"
                       >
-                        <div className="flex items-start justify-between mb-4">
-                          {/* ✅ Game title is now ALWAYS clickable and navigates to /game/:slug */}
-                          <button
-                            onClick={() => goToGame(project.gameTitle)}
-                            className="text-xl font-bold text-cyan-100 group-hover/project:text-white hover:text-cyan-200 transition-colors cursor-pointer text-left"
-                          >
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <span className="text-lg font-bold text-cyan-100 group-hover/project:text-white transition-colors">
                             {project.gameTitle}
-                          </button>
-
+                          </span>
+                          {project.year && (
+                            <span className="text-xs font-bold text-cyan-300/50 flex-shrink-0 mt-1">{project.year}</span>
+                          )}
+                        </div>
+                        <div className="mb-3">
                           <span
                             className={`inline-flex px-3 py-1 rounded-full text-xs font-bold shadow-lg ${
                               project.status === 'Released'
-                                ? 'bg-gradient-to-r from-green-500/30 to-emerald-500/30 text-green-300 border border-green-500/30'
+                                ? 'bg-gradient-to-r from-green-500/30 to-emerald-500/30 text-green-300 border-green-500/30 border'
                                 : project.status === 'In Development'
-                                ? 'bg-gradient-to-r from-yellow-500/30 to-amber-500/30 text-yellow-300 border border-yellow-500/30'
-                                : 'bg-gradient-to-r from-blue-500/30 to-cyan-500/30 text-blue-300 border border-blue-500/30'
+                                ? 'bg-gradient-to-r from-blue-500/30 to-cyan-500/30 text-blue-300 border-blue-500/30 border'
+                                : 'bg-gradient-to-r from-zinc-500/30 to-slate-500/30 text-zinc-300 border-zinc-500/30 border'
                             }`}
                           >
                             {project.status}
                           </span>
                         </div>
-
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          {project.platforms.map((platform, pIndex) => (
-                            <span
-                              key={pIndex}
-                              className="px-3 py-1 bg-cyan-500/10 text-cyan-300 rounded-lg text-xs font-semibold border border-cyan-500/20"
-                            >
-                              {platform}
-                            </span>
-                          ))}
-                        </div>
-
-                        {/* ✅ "View Project" now redirects to the SAME internal page as the game title */}
-                        <button
-                          onClick={() => goToGame(project.gameTitle)}
-                          className="inline-flex items-center gap-2 text-cyan-300 hover:text-cyan-200 font-semibold transition-all duration-300 group/link"
-                        >
-                          <span>View Game</span>
-                          <svg
-                            className="w-4 h-4 transition-transform duration-300 group-hover/link:translate-x-1"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </button>
+                        <p className="text-sm text-cyan-200/60 mb-4">{project.platforms?.join(', ')}</p>
+                        <span className="inline-flex items-center gap-2 text-cyan-300 group-hover/project:text-cyan-200 font-semibold text-sm">
+                          View Game →
+                        </span>
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <p className="text-cyan-300/70 text-sm">No games listed in portfolio yet.</p>
+                )}
+              </section>
 
               {/* Media Gallery */}
               {youtubeId && (
-                <div className="group bg-gradient-to-br from-[rgba(20,28,42,0.7)] to-[rgba(20,28,42,0.5)] border border-white/10 rounded-3xl p-8 md:p-10 shadow-xl hover:shadow-2xl hover:shadow-red-500/10 transition-all duration-500">
+                <section className="bg-gradient-to-br from-[rgba(20,28,42,0.7)] to-[rgba(20,28,42,0.5)] border border-white/10 rounded-3xl shadow-xl p-8 md:p-10 hover:border-cyan-500/30 transition-all">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="w-1 h-8 bg-gradient-to-b from-red-400 to-orange-400 rounded-full" />
-                    <h2 className="text-3xl font-bold text-transparent bg-gradient-to-r from-red-100 to-orange-200 bg-clip-text">
-                      Media Gallery
+                    <h2 className="text-2xl md:text-3xl font-bold text-transparent bg-gradient-to-r from-red-100 to-orange-200 bg-clip-text">
+                      Featured Trailer
                     </h2>
                   </div>
-                  <div className="aspect-video rounded-2xl overflow-hidden border-2 border-white/10 shadow-2xl group-hover:border-red-500/30 transition-all duration-500">
+                  <div className="aspect-video rounded-2xl overflow-hidden border-2 border-white/10 shadow-2xl">
                     <iframe
                       width="100%"
                       height="100%"
                       src={`https://www.youtube.com/embed/${youtubeId}`}
-                      title="Studio Trailer"
+                      title="Trailer"
                       frameBorder="0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
                       className="w-full h-full"
                     />
                   </div>
-                </div>
+                </section>
               )}
-            </div>
 
-            {/* Right Column - Sidebar (UNCHANGED) */}
-            <div className="space-y-8">
-              {/* Key Facts */}
-              <div className="group bg-gradient-to-br from-[rgba(20,28,42,0.7)] to-[rgba(20,28,42,0.5)] border border-white/10 rounded-3xl p-6 md:p-8 shadow-xl hover:shadow-2xl hover:shadow-cyan-500/10 transition-all duration-500 hover:border-cyan-500/30">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-1 h-6 bg-gradient-to-b from-cyan-400 to-blue-400 rounded-full" />
-                  <h2 className="text-2xl font-bold text-transparent bg-gradient-to-r from-cyan-100 to-blue-200 bg-clip-text">
-                    Key Facts
-                  </h2>
-                </div>
-                <div className="space-y-4">
-                  {studio.headquartersCountry && (
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors group/item">
-                      <span className="text-cyan-400">📍</span>
-                      <div className="flex-1">
-                        <span className="text-cyan-300/70 text-xs block mb-1">Headquarters</span>
-                        <span className="text-cyan-100 font-semibold">{studio.headquartersCountry}</span>
-                      </div>
-                    </div>
-                  )}
-                  {studio.city && (
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors group/item">
-                      <span className="text-blue-400">🏙️</span>
-                      <div className="flex-1">
-                        <span className="text-cyan-300/70 text-xs block mb-1">City</span>
-                        <span className="text-cyan-100 font-semibold">{studio.city}</span>
-                      </div>
-                    </div>
-                  )}
-                  {studio.foundedYear && (
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors group/item">
-                      <span className="text-yellow-400">📅</span>
-                      <div className="flex-1">
-                        <span className="text-cyan-300/70 text-xs block mb-1">Year Founded</span>
-                        <span className="text-cyan-100 font-semibold">{studio.foundedYear}</span>
-                      </div>
-                    </div>
-                  )}
-                  {studio.founders && studio.founders.length > 0 && (
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors group/item">
-                      <span className="text-green-400">👥</span>
-                      <div className="flex-1">
-                        <span className="text-cyan-300/70 text-xs block mb-1">Founders</span>
-                        <span className="text-cyan-100 font-semibold">{studio.founders.join(', ')}</span>
-                      </div>
-                    </div>
-                  )}
-                  {studio.languagesSupported && studio.languagesSupported.length > 0 && (
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors group/item">
-                      <span className="text-blue-400">🌐</span>
-                      <div className="flex-1">
-                        <span className="text-cyan-300/70 text-xs block mb-1">Languages</span>
-                        <span className="text-cyan-100 font-semibold">{studio.languagesSupported.join(', ')}</span>
-                      </div>
-                    </div>
-                  )}
-                  {studio.teamSize && (
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors group/item">
-                      <span className="text-teal-400">👨‍💼</span>
-                      <div className="flex-1">
-                        <span className="text-cyan-300/70 text-xs block mb-1">Team Size</span>
-                        <span className="text-cyan-100 font-semibold">{studio.teamSize}</span>
-                      </div>
-                    </div>
-                  )}
-                  {studio.studioType && (
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors group/item">
-                      <span className="text-cyan-400">🎮</span>
-                      <div className="flex-1">
-                        <span className="text-cyan-300/70 text-xs block mb-1">Type</span>
-                        <span className="text-cyan-100 font-semibold">{studio.studioType}</span>
-                      </div>
-                    </div>
-                  )}
-                  {studio.gameEngines && studio.gameEngines.length > 0 && (
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors group/item">
-                      <span className="text-orange-400">⚙️</span>
-                      <div className="flex-1">
-                        <span className="text-cyan-300/70 text-xs block mb-1">Engine Used</span>
-                        <span className="text-cyan-100 font-semibold">{studio.gameEngines.join(', ')}</span>
-                      </div>
-                    </div>
-                  )}
-                  {studio.supportedPlatforms && studio.supportedPlatforms.length > 0 && (
-                    <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors group/item">
-                      <span className="text-indigo-400 mt-1">💻</span>
-                      <div className="flex-1">
-                        <span className="text-cyan-300/70 text-xs block mb-2">Platforms</span>
-                        <div className="flex flex-wrap gap-2">
-                          {studio.supportedPlatforms.map((platform, idx) => (
-                            <span
-                              key={idx}
-                              className="px-2 py-1 bg-cyan-500/20 text-cyan-300 rounded-lg text-xs font-semibold border border-cyan-500/30"
-                            >
-                              {platform}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {studio.regionsServed && studio.regionsServed.length > 0 && (
-                    <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors group/item">
-                      <span className="text-emerald-400 mt-1">🌍</span>
-                      <div className="flex-1">
-                        <span className="text-cyan-300/70 text-xs block mb-2">Regions Served</span>
-                        <div className="flex flex-wrap gap-2">
-                          {studio.regionsServed.map((region, idx) => (
-                            <span
-                              key={idx}
-                              className="px-2 py-1 bg-teal-500/20 text-teal-300 rounded-lg text-xs font-semibold border border-teal-500/30"
-                            >
-                              {region}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {studio.targetAudience && (
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors group/item">
-                      <span className="text-red-400">🎯</span>
-                      <div className="flex-1">
-                        <span className="text-cyan-300/70 text-xs block mb-1">Target Audience</span>
-                        <span className="text-cyan-100 font-semibold">{studio.targetAudience}</span>
-                      </div>
-                    </div>
-                  )}
-                  {studio.deploymentType && (
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors group/item">
-                      <span className="text-teal-400">📦</span>
-                      <div className="flex-1">
-                        <span className="text-cyan-300/70 text-xs block mb-1">Deployment</span>
-                        <span className="text-cyan-100 font-semibold">{studio.deploymentType}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Business & Collaboration */}
-              <div className="group bg-gradient-to-br from-[rgba(20,28,42,0.7)] to-[rgba(20,28,42,0.5)] border border-white/10 rounded-3xl p-6 md:p-8 shadow-xl hover:shadow-2xl hover:shadow-teal-500/10 transition-all duration-500 hover:border-teal-500/30">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-1 h-6 bg-gradient-to-b from-blue-400 to-teal-400 rounded-full" />
-                  <h2 className="text-2xl font-bold text-transparent bg-gradient-to-r from-blue-100 to-teal-200 bg-clip-text">
+              {/* Business & Collaboration Section */}
+              <section className="bg-gradient-to-br from-[rgba(20,28,42,0.7)] to-[rgba(20,28,42,0.5)] border border-white/10 rounded-3xl shadow-xl p-8 md:p-10 hover:border-cyan-500/30 transition-all">
+                <div className="flex items-center gap-3 mb-6 flex-wrap">
+                  <div className="w-1 h-8 bg-gradient-to-b from-blue-400 to-teal-400 rounded-full" />
+                  <h2 className="text-2xl md:text-3xl font-bold text-transparent bg-gradient-to-r from-blue-100 to-teal-200 bg-clip-text">
                     Business & Collaboration
                   </h2>
                 </div>
-                <div className="space-y-4">
-                  {studio.lookingFor && studio.lookingFor.length > 0 && (
-                    <div className="p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
-                      <span className="text-cyan-300/70 text-xs block mb-1">Looking For</span>
-                      <span className="text-cyan-100 font-semibold">{studio.lookingFor.join(', ')}</span>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                    <span className="text-cyan-400 mt-0.5 text-lg leading-none">🤝</span>
+                    <div className="min-w-0">
+                      <span className="text-cyan-300/70 text-xs block mb-1 uppercase tracking-wide">Publishing Partners</span>
+                      <span className="text-cyan-50 font-semibold text-sm leading-relaxed">{studio.publisherPartners || 'Self-Published'}</span>
                     </div>
-                  )}
-                  {studio.publisherPartners && (
-                    <div className="p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
-                      <span className="text-cyan-300/70 text-xs block mb-1">Partnerships</span>
-                      <span className="text-cyan-100 font-semibold">{studio.publisherPartners}</span>
-                    </div>
-                  )}
-                  <div className="p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
-                    <span className="text-cyan-300/70 text-xs block mb-1">Open to Publishing Deals</span>
-                    <span
-                      className={`inline-flex px-3 py-1 rounded-lg text-sm font-semibold ${
-                        studio.openToPublishingDeals === true
-                          ? 'bg-green-500/20 text-green-300 border border-green-500/30'
-                          : studio.openToPublishingDeals === false
-                          ? 'bg-red-500/20 text-red-300 border border-red-500/30'
-                          : 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
-                      }`}
-                    >
-                      {studio.openToPublishingDeals === true
-                        ? 'Yes'
-                        : studio.openToPublishingDeals === false
-                        ? 'No'
-                        : 'Case by case'}
-                    </span>
                   </div>
-                  {studio.fundingType && (
-                    <div className="p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
-                      <span className="text-cyan-300/70 text-xs block mb-1">Funding Type</span>
-                      <span className="text-cyan-100 font-semibold">{studio.fundingType}</span>
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                    <span className="text-cyan-400 mt-0.5 text-lg leading-none">💰</span>
+                    <div className="min-w-0">
+                      <span className="text-cyan-300/70 text-xs block mb-1 uppercase tracking-wide">Financing</span>
+                      <span className="text-cyan-50 font-semibold text-sm leading-relaxed">{studio.fundingType || 'Private / Self-Funded'}</span>
                     </div>
-                  )}
-                  {studio.latestFundingRound && (
-                    <div className="p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
-                      <span className="text-cyan-300/70 text-xs block mb-1">Latest Funding Round</span>
-                      <span className="text-cyan-100 font-semibold">{studio.latestFundingRound}</span>
-                    </div>
-                  )}
-                  {studio.totalFunding && (
-                    <div className="p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
-                      <span className="text-cyan-300/70 text-xs block mb-1">Total Funding</span>
-                      <span className="text-cyan-100 font-semibold">{studio.totalFunding}</span>
-                    </div>
-                  )}
+                  </div>
                 </div>
-              </div>
+              </section>
 
-              {/* Distribution & Community */}
-              <div className="group bg-gradient-to-br from-[rgba(20,28,42,0.7)] to-[rgba(20,28,42,0.5)] border border-white/10 rounded-3xl p-6 md:p-8 shadow-xl hover:shadow-2xl hover:shadow-cyan-500/10 transition-all duration-500 hover:border-cyan-500/30">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-1 h-6 bg-gradient-to-b from-cyan-400 to-blue-400 rounded-full" />
-                  <h2 className="text-2xl font-bold text-transparent bg-gradient-to-r from-cyan-100 to-blue-200 bg-clip-text">
-                    Distribution & Community
-                  </h2>
-                </div>
-                <div className="space-y-5">
-                  {studio.distributionChannels && studio.distributionChannels.length > 0 && (
-                    <div>
-                      <span className="text-cyan-300/70 text-sm font-semibold block mb-3">
-                        Distribution Channels
-                      </span>
-                      <div className="flex flex-wrap gap-2">
-                        {studio.distributionChannels.map((channel, index) => (
-                          <span
-                            key={index}
-                            className="px-3 py-1.5 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 rounded-xl text-xs font-semibold border border-cyan-500/30 hover:border-cyan-400/50 hover:bg-gradient-to-r hover:from-cyan-500/30 hover:to-blue-500/30 transition-all duration-300"
-                          >
-                            {channel}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {studio.storeLinks && studio.storeLinks.length > 0 && (
-                    <div>
-                      <span className="text-cyan-300/70 text-sm font-semibold block mb-3">Store Links</span>
-                      <div className="space-y-2">
-                        {studio.storeLinks.map((link, index) => (
-                          <a
-                            key={index}
-                            href={formatUrl(link)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="group/link flex items-center gap-2 p-3 rounded-xl bg-white/5 hover:bg-white/10 text-cyan-300 hover:text-white text-sm transition-all duration-300 border border-white/10 hover:border-cyan-500/30 break-words overflow-hidden"
-                          >
-                            <svg
-                              className="w-4 h-4 flex-shrink-0 transition-transform duration-300 group-hover/link:translate-x-1"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                              />
-                            </svg>
-                            <span className="font-medium break-all min-w-0">{link.replace(/^https?:\/\//, '')}</span>
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {studio.socialLinks && (
-                    <div>
-                      <span className="text-cyan-300/70 text-sm font-semibold block mb-4">Social Links</span>
-                      <div className="flex flex-wrap gap-4">
-                        {studio.socialLinks.twitter && (
-                          <a
-                            href={formatUrl(studio.socialLinks.twitter)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="group/social w-12 h-12 rounded-xl bg-gradient-to-br from-black/40 to-black/20 border border-white/10 flex items-center justify-center text-cyan-300 hover:text-white hover:border-cyan-400/50 hover:bg-gradient-to-br hover:from-cyan-500/20 hover:to-blue-500/20 transition-all duration-300 hover:scale-110 hover:shadow-lg hover:shadow-cyan-500/20"
-                            title="Twitter/X"
-                          >
-                            <svg className="w-6 h-6 transition-transform duration-300 group-hover/social:scale-110" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                            </svg>
-                          </a>
-                        )}
-                        {studio.socialLinks.youtube && (
-                          <a
-                            href={formatUrl(studio.socialLinks.youtube)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="group/social w-12 h-12 rounded-xl bg-gradient-to-br from-black/40 to-black/20 border border-white/10 flex items-center justify-center text-red-400 hover:text-white hover:border-red-400/50 hover:bg-gradient-to-br hover:from-red-500/20 hover:to-orange-500/20 transition-all duration-300 hover:scale-110 hover:shadow-lg hover:shadow-red-500/20"
-                            title="YouTube"
-                          >
-                            <svg className="w-6 h-6 transition-transform duration-300 group-hover/social:scale-110" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-                            </svg>
-                          </a>
-                        )}
-                        {studio.socialLinks.instagram && (
-                          <a
-                            href={formatUrl(studio.socialLinks.instagram)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="group/social w-12 h-12 rounded-xl bg-gradient-to-br from-black/40 to-black/20 border border-white/10 flex items-center justify-center text-pink-400 hover:text-white hover:border-pink-400/50 hover:bg-gradient-to-br hover:from-pink-500/20 hover:to-purple-500/20 transition-all duration-300 hover:scale-110 hover:shadow-lg hover:shadow-pink-500/20"
-                            title="Instagram"
-                          >
-                            <svg className="w-6 h-6 transition-transform duration-300 group-hover/social:scale-110" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                            </svg>
-                          </a>
-                        )}
-                        {studio.socialLinks.facebook && (
-                          <a
-                            href={formatUrl(studio.socialLinks.facebook)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="group/social w-12 h-12 rounded-xl bg-gradient-to-br from-black/40 to-black/20 border border-white/10 flex items-center justify-center text-blue-400 hover:text-white hover:border-blue-400/50 hover:bg-gradient-to-br hover:from-blue-500/20 hover:to-cyan-500/20 transition-all duration-300 hover:scale-110 hover:shadow-lg hover:shadow-blue-500/20"
-                            title="Facebook"
-                          >
-                            <svg className="w-6 h-6 transition-transform duration-300 group-hover/social:scale-110" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                            </svg>
-                          </a>
-                        )}
-                        {studio.socialLinks.discord && (
-                          <a
-                            href={formatUrl(studio.socialLinks.discord)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="group/social w-12 h-12 rounded-xl bg-gradient-to-br from-black/40 to-black/20 border border-white/10 flex items-center justify-center text-indigo-400 hover:text-white hover:border-indigo-400/50 hover:bg-gradient-to-br hover:from-indigo-500/20 hover:to-blue-500/20 transition-all duration-300 hover:scale-110 hover:shadow-lg hover:shadow-indigo-500/20"
-                            title="Discord"
-                          >
-                            <svg className="w-6 h-6 transition-transform duration-300 group-hover/social:scale-110" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
-                            </svg>
-                          </a>
-                        )}
-                        {studio.socialLinks.linkedin && (
-                          <a
-                            href={formatUrl(studio.socialLinks.linkedin)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="group/social w-12 h-12 rounded-xl bg-gradient-to-br from-black/40 to-black/20 border border-white/10 flex items-center justify-center text-blue-500 hover:text-white hover:border-blue-500/50 hover:bg-gradient-to-br hover:from-blue-600/20 hover:to-blue-700/20 transition-all duration-300 hover:scale-110 hover:shadow-lg hover:shadow-blue-500/20"
-                            title="LinkedIn"
-                          >
-                            <svg className="w-6 h-6 transition-transform duration-300 group-hover/social:scale-110" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-                            </svg>
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Recognition / Press */}
+              {/* Recognitions & Press Section */}
               {studio.recognitions && studio.recognitions.length > 0 && (
-                <div className="group bg-gradient-to-br from-[rgba(20,28,42,0.7)] to-[rgba(20,28,42,0.5)] border border-white/10 rounded-3xl p-8 md:p-10 shadow-xl hover:shadow-2xl hover:shadow-yellow-500/10 transition-all duration-500">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-1 h-8 bg-gradient-to-b from-yellow-400 to-orange-400 rounded-full" />
-                    <h2 className="text-3xl font-bold text-transparent bg-gradient-to-r from-yellow-100 to-orange-200 bg-clip-text">
+                <section className="bg-gradient-to-br from-[rgba(20,28,42,0.7)] to-[rgba(20,28,42,0.5)] border border-white/10 rounded-3xl shadow-xl p-8 md:p-10 hover:border-cyan-500/30 transition-all">
+                  <div className="flex items-center gap-3 mb-6 flex-wrap">
+                    <div className="w-1 h-8 bg-gradient-to-b from-red-400 to-orange-400 rounded-full" />
+                    <h2 className="text-2xl md:text-3xl font-bold text-transparent bg-gradient-to-r from-red-100 to-orange-200 bg-clip-text">
                       Recognition / Press
                     </h2>
                   </div>
-                  <div className="space-y-6">
-                    {studio.recognitions.map((recognition, index) => (
-                      <div
-                        key={index}
-                        className="group/award relative p-6 rounded-2xl bg-gradient-to-br from-[rgba(0,0,0,0.3)] to-[rgba(0,0,0,0.1)] border border-white/10 hover:border-yellow-500/30 transition-all duration-300 hover:shadow-lg hover:shadow-yellow-500/10 hover:-translate-y-1"
-                      >
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-yellow-400 to-orange-400 rounded-l-2xl opacity-0 group-hover/award:opacity-100 transition-opacity duration-300" />
-                        <div className="pl-4">
-                          <div className="inline-flex px-3 py-1 mb-3 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-300 rounded-lg text-xs font-bold border border-yellow-500/30">
-                            {recognition.type}
-                          </div>
-                          <div className="text-lg font-bold text-cyan-100 mb-2 group-hover/award:text-white transition-colors">
-                            {recognition.title}
-                          </div>
-                          {recognition.description && (
-                            <div className="text-cyan-200/80 text-sm mb-3 leading-relaxed">
-                              {recognition.description}
-                            </div>
-                          )}
-                          <div className="flex items-center gap-3 text-xs text-cyan-300/70">
-                            {recognition.source && (
-                              <span className="flex items-center gap-1">
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
-                                  />
-                                </svg>
-                                {recognition.source}
-                              </span>
-                            )}
-                            {recognition.year && (
-                              <span className="flex items-center gap-1">
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                  />
-                                </svg>
-                                {recognition.year}
-                              </span>
-                            )}
-                          </div>
+                  <div className="space-y-4">
+                    {studio.recognitions.map((item, idx) => (
+                      <div key={idx} className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                        <span className="inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-300 border border-emerald-500/25 mb-3">
+                          {item.type || 'Award'}
+                        </span>
+                        <p className="text-cyan-100/90 font-semibold leading-relaxed mb-1">{item.title}</p>
+                        {item.source && <p className="text-cyan-300/60 text-xs">{item.source}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+            </div>
+
+            {/* Right Column - Sidebar */}
+            <div className="space-y-8">
+              
+              {/* Key Facts */}
+              <div className="bg-gradient-to-br from-[rgba(20,28,42,0.7)] to-[rgba(20,28,42,0.5)] border border-white/10 rounded-3xl p-6 md:p-8 shadow-xl hover:border-cyan-500/30 transition-all">
+                <div className="flex items-center gap-3 mb-6 flex-wrap">
+                  <div className="w-1 h-8 bg-gradient-to-b from-cyan-400 to-blue-400 rounded-full" />
+                  <h2 className="text-2xl md:text-3xl font-bold text-transparent bg-gradient-to-r from-cyan-100 to-blue-200 bg-clip-text">
+                    Key Facts
+                  </h2>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                    <span className="text-cyan-400 mt-0.5 text-lg leading-none">📍</span>
+                    <div>
+                      <span className="text-cyan-300/70 text-xs block mb-1 uppercase tracking-wide">Headquarters</span>
+                      <span className="text-cyan-50 font-semibold text-sm">{studio.city ? `${studio.city}, ` : ''}{studio.headquartersCountry || 'Global'}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                    <span className="text-cyan-400 mt-0.5 text-lg leading-none">📅</span>
+                    <div>
+                      <span className="text-cyan-300/70 text-xs block mb-1 uppercase tracking-wide">Founded</span>
+                      <span className="text-cyan-50 font-semibold text-sm">{studio.foundedYear || 'N/A'}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                    <span className="text-cyan-400 mt-0.5 text-lg leading-none">🎮</span>
+                    <div>
+                      <span className="text-cyan-300/70 text-xs block mb-1 uppercase tracking-wide">Type</span>
+                      <span className="text-cyan-50 font-semibold text-sm">{studio.studioType || 'Game Studio'}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                    <span className="text-cyan-400 mt-0.5 text-lg leading-none">⚙️</span>
+                    <div>
+                      <span className="text-cyan-300/70 text-xs block mb-1 uppercase tracking-wide">Engine</span>
+                      <span className="text-cyan-50 font-semibold text-sm">{studio.gameEngines?.join(', ') || 'Custom Engine'}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                    <span className="text-cyan-400 mt-0.5 text-lg leading-none">📈</span>
+                    <div>
+                      <span className="text-cyan-300/70 text-xs block mb-1 uppercase tracking-wide">Titles Portfolio</span>
+                      <span className="text-cyan-50 font-semibold text-sm">{studio.projects?.length || 0} titles listed</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Workforce */}
+              <div className="bg-gradient-to-br from-[rgba(20,28,42,0.7)] to-[rgba(20,28,42,0.5)] border border-white/10 rounded-3xl p-6 md:p-8 shadow-xl hover:border-cyan-500/30 transition-all">
+                <div className="flex items-center gap-3 mb-6 flex-wrap">
+                  <div className="w-1 h-8 bg-gradient-to-b from-amber-400 to-orange-400 rounded-full" />
+                  <h2 className="text-2xl md:text-3xl font-bold text-transparent bg-gradient-to-r from-amber-100 to-orange-200 bg-clip-text">
+                    Workforce
+                  </h2>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                    <span className="text-cyan-400 mt-0.5 text-lg leading-none">👥</span>
+                    <div>
+                      <span className="text-cyan-300/70 text-xs block mb-1 uppercase tracking-wide">Team Size</span>
+                      <span className="text-cyan-50 font-semibold text-sm">{studio.workforce?.headcount || studio.teamSize || 'N/A'}</span>
+                    </div>
+                  </div>
+                  {studio.workforce?.composition && (
+                    <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
+                      <span className="text-cyan-400 mt-0.5 text-lg leading-none">🌍</span>
+                      <div>
+                        <span className="text-cyan-300/70 text-xs block mb-1 uppercase tracking-wide">Composition</span>
+                        <span className="text-cyan-50 font-semibold text-sm">{studio.workforce.composition}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* What Changed Timeline */}
+              {studio.whatChanged && studio.whatChanged.length > 0 && (
+                <div className="bg-gradient-to-br from-[rgba(20,28,42,0.7)] to-[rgba(20,28,42,0.5)] border border-white/10 rounded-3xl p-6 md:p-8 shadow-xl hover:border-cyan-500/30 transition-all">
+                  <div className="flex items-center gap-3 mb-6 flex-wrap">
+                    <div className="w-1 h-8 bg-gradient-to-b from-amber-400 to-orange-400 rounded-full" />
+                    <h2 className="text-2xl md:text-3xl font-bold text-transparent bg-gradient-to-r from-amber-100 to-orange-200 bg-clip-text">
+                      What Changed
+                    </h2>
+                  </div>
+                  <div className="space-y-3">
+                    {studio.whatChanged.map((event, idx) => (
+                      <div key={idx} className="flex gap-3 p-3 rounded-xl bg-white/5">
+                        <div className="flex flex-col items-center flex-shrink-0 pt-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
+                        </div>
+                        <div>
+                          <span className="text-cyan-300/70 text-xs font-bold uppercase tracking-wide block mb-1">
+                            {event.date}
+                          </span>
+                          <p className="text-sm text-cyan-100/90 leading-relaxed">{event.event}</p>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
+
+              {/* Platforms & Distribution */}
+              <div className="bg-gradient-to-br from-[rgba(20,28,42,0.7)] to-[rgba(20,28,42,0.5)] border border-white/10 rounded-3xl p-6 md:p-8 shadow-xl hover:border-cyan-500/30 transition-all">
+                <div className="flex items-center gap-3 mb-6 flex-wrap">
+                  <div className="w-1 h-8 bg-gradient-to-b from-violet-400 to-fuchsia-400 rounded-full" />
+                  <h2 className="text-2xl md:text-3xl font-bold text-transparent bg-gradient-to-r from-violet-100 to-fuchsia-200 bg-clip-text">
+                    Platforms & Distribution
+                  </h2>
+                </div>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {(studio.supportedPlatforms?.length ? studio.supportedPlatforms : ['PC', 'PlayStation', 'Xbox']).map((p, idx) => (
+                    <span key={idx} className="px-3 py-1 bg-cyan-500/10 text-cyan-300 rounded-lg text-xs font-semibold border border-cyan-500/20">
+                      {p}
+                    </span>
+                  ))}
+                </div>
+                {studio.distributionChannels && studio.distributionChannels.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {studio.distributionChannels.map((d, idx) => (
+                      <span key={idx} className="px-3 py-1 bg-blue-500/10 text-blue-300 rounded-lg text-xs font-semibold border border-blue-500/20">
+                        {d}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
             </div>
+
           </div>
-        </div>
+        </main>
       </div>
     </>
   );

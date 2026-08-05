@@ -1,0 +1,184 @@
+{
+  "studio": {
+    "name": "Remedy Entertainment",
+    "tagline": "Crafting story-driven action games with unique atmosphere",
+    "description": "Remedy Entertainment is a Finnish video game developer based in Espoo, best known for creating Max Payne, Alan Wake, Control, and Quantum Break. Founded in 1995, Remedy has earned a reputation for cinematic storytelling, atmospheric world-building, and innovative gameplay mechanics. The studio pioneered the use of bullet time in gaming with Max Payne and has consistently pushed the boundaries of narrative-driven action games.",
+    "website": "https://www.remedygames.com",
+    "genre": "Action / Narrative / Mystery",
+    "platform": "PC, PlayStation, Xbox",
+    "teamSize": "350+",
+    "location": "Espoo, Finland",
+    "foundedYear": "1995",
+    "headquartersCountry": "Finland",
+    "city": "Espoo",
+    "founders": ["Sam Lake", "Markus Mäki"],
+    "studioType": "AAA Studio",
+    "gameEngines": ["Northlight Engine"],
+    "supportedPlatforms": ["PC", "PlayStation 5", "PlayStation 4", "Xbox Series X/S", "Xbox One"],
+    "publisherPartners": "Epic Games Publishing, 505 Games, Rockstar Games, Microsoft",
+    "fundingType": "Publicly Traded (Nasdaq Helsinki)",
+    "distributionChannels": ["Steam", "Epic Games Store", "PlayStation Store", "Xbox Store"],
+    "profileImageUrl": "https://fra.cloud.appwrite.io/v1/storage/buckets/studio_images/files/6a72173a001a25c45791/view?project=6a71f754000631bfb4a4&impersonateuserid=&mode=admin",
+    "socialLinks": {
+      "twitter": "https://twitter.com/remedygames",
+      "youtube": "https://youtube.com/@remedygames",
+      "instagram": "https://instagram.com/remedygames",
+      "linkedin": "https://linkedin.com/company/remedy-entertainment"
+    },
+    "recognitions": [
+      { "type": "Award", "title": "Best Game Direction - Control", "source": "The Game Awards 2019" },
+      { "type": "Award", "title": "Best Narrative - Alan Wake 2", "source": "The Game Awards 2023" },
+      { "type": "Award", "title": "Best Art Direction - Alan Wake 2", "source": "The Game Awards 2023" },
+      { "type": "Award", "title": "BAFTA Best Game - Control", "source": "BAFTA 2020" }
+    ],
+    "knownFor": "Max Payne, Alan Wake, Control, Alan Wake 2, Quantum Break"
+  },
+  "games": [
+    {
+      "name": "Alan Wake 2",
+      "developedBy": "Remedy Entertainment",
+      "publisher": "Epic Games Publishing",
+      "status": "Released",
+      "releaseDate": "October 27, 2023",
+      "platforms": ["PC", "PlayStation 5", "Xbox Series X/S"],
+      "engine": "Northlight Engine",
+      "genre": "Survival Horror / Action-Adventure",
+      "monetization": "Paid Game",
+      "description": "Saga Anderson arrives to investigate ritualistic murders in a small town. Alan Wake writes a dark story to shape the reality around him. These two heroes are somehow connected. A survival horror game with gripping narrative and stunning visuals.",
+      "logoImageUrl": "https://images.igdb.com/igdb/image/upload/t_cover_big/co6q21.jpg",
+      "trailerVideoUrl": "https://www.youtube.com/watch?v=dlQ3FeNu5Lw",
+      "keyFeatures": [
+        { "feature": "Dual Protagonists", "description": "Play as both FBI Agent Saga Anderson and writer Alan Wake in interweaving storylines." },
+        { "feature": "Survival Horror", "description": "Intense atmospheric horror with resource management and light-based combat." },
+        { "feature": "Mind Place", "description": "Saga's detective investigation mechanic using a mental crime board." }
+      ],
+      "recognitions": [
+        { "type": "Award", "title": "Best Narrative", "source": "The Game Awards 2023" },
+        { "type": "Award", "title": "Best Art Direction", "source": "The Game Awards 2023" }
+      ]
+    },
+    {
+      "name": "Control",
+      "developedBy": "Remedy Entertainment",
+      "publisher": "505 Games",
+      "status": "Released",
+      "releaseDate": "August 27, 2019",
+      "platforms": ["PC", "PlayStation 4", "PlayStation 5", "Xbox One", "Xbox Series X/S", "Nintendo Switch"],
+      "engine": "Northlight Engine",
+      "genre": "Action-Adventure / Third-Person Shooter",
+      "monetization": "Paid Game + DLCs",
+      "description": "After a secretive agency in New York is invaded by an otherworldly threat, Jesse Faden becomes the new Director struggling to regain Control. Explore the brutalist labyrinth of the Oldest House, wield supernatural abilities, and uncover the Bureau's dark secrets.",
+      "logoImageUrl": "https://images.igdb.com/igdb/image/upload/t_cover_big/co1r7f.jpg",
+      "trailerVideoUrl": "https://www.youtube.com/watch?v=F74LLDhAhig",
+      "keyFeatures": [
+        { "feature": "Telekinetic Combat", "description": "Wield supernatural abilities like telekinesis, levitation, and shield alongside the transforming Service Weapon." },
+        { "feature": "The Oldest House", "description": "Explore a brutalist skyscraper that constantly shifts and defies the laws of physics." },
+        { "feature": "AWE DLC", "description": "Crossover expansion connecting Control's universe with Alan Wake." }
+      ],
+      "recognitions": [
+        { "type": "Award", "title": "Best Game Direction", "source": "The Game Awards 2019" },
+        { "type": "Award", "title": "Best Game", "source": "BAFTA 2020" }
+      ]
+    },
+    {
+      "name": "Quantum Break",
+      "developedBy": "Remedy Entertainment",
+      "publisher": "Microsoft Studios",
+      "status": "Released",
+      "releaseDate": "April 5, 2016",
+      "platforms": ["PC", "Xbox One"],
+      "engine": "Northlight Engine",
+      "genre": "Action-Adventure / Third-Person Shooter",
+      "monetization": "Paid Game",
+      "description": "When a time travel experiment goes wrong, Jack Joyce gains the ability to manipulate time. He must use these powers to prevent the end of time itself while battling Monarch Solutions. Features a unique blend of gameplay and live-action TV show episodes.",
+      "logoImageUrl": "https://images.igdb.com/igdb/image/upload/t_cover_big/co1qbu.jpg",
+      "trailerVideoUrl": "https://www.youtube.com/watch?v=bGDNXWmSOzk",
+      "keyFeatures": [
+        { "feature": "Time Manipulation", "description": "Freeze, rewind, and manipulate time in both combat and puzzles." },
+        { "feature": "Live-Action Episodes", "description": "Gameplay choices affect live-action TV show episodes between acts." },
+        { "feature": "Star Cast", "description": "Features performances by Shawn Ashmore, Aidan Gillen, and Lance Reddick." }
+      ]
+    },
+    {
+      "name": "Alan Wake",
+      "developedBy": "Remedy Entertainment",
+      "publisher": "Microsoft Game Studios",
+      "status": "Released",
+      "releaseDate": "May 14, 2010",
+      "platforms": ["PC", "Xbox 360", "Xbox One"],
+      "engine": "Custom Engine",
+      "genre": "Action-Adventure / Psychological Thriller",
+      "monetization": "Paid Game",
+      "description": "Bestselling thriller novelist Alan Wake embarks on a desperate search for his missing wife in the small town of Bright Falls, only to discover pages from a thriller he doesn't remember writing that are coming true. A psychological action thriller told in the style of a TV series.",
+      "logoImageUrl": "https://images.igdb.com/igdb/image/upload/t_cover_big/co2ept.jpg",
+      "trailerVideoUrl": "https://www.youtube.com/watch?v=VjuGXP5dR0U",
+      "keyFeatures": [
+        { "feature": "Episodic Structure", "description": "Story unfolds across 6 TV-style episodes with recaps and cliffhangers." },
+        { "feature": "Light vs Dark Combat", "description": "Use flashlights, flares, and other light sources to weaken enemies before finishing them off." },
+        { "feature": "Manuscript Pages", "description": "Discover pages that foreshadow upcoming events and deepen the mystery." }
+      ],
+      "recognitions": [
+        { "type": "Award", "title": "Best Xbox Game", "source": "BAFTA 2011" }
+      ]
+    },
+    {
+      "name": "Alan Wake Remastered",
+      "developedBy": "Remedy Entertainment",
+      "publisher": "Epic Games Publishing",
+      "status": "Released",
+      "releaseDate": "October 5, 2021",
+      "platforms": ["PC", "PlayStation 4", "PlayStation 5", "Xbox One", "Xbox Series X/S", "Nintendo Switch"],
+      "engine": "Northlight Engine",
+      "genre": "Action-Adventure / Psychological Thriller",
+      "monetization": "Paid Game",
+      "description": "The classic psychological action thriller returns with updated 4K visuals, improved character models, and all previously released DLC included. Experience the award-winning story of Alan Wake in Bright Falls with modern fidelity."
+    },
+    {
+      "name": "Max Payne",
+      "developedBy": "Remedy Entertainment",
+      "publisher": "Gathering of Developers / Rockstar Games",
+      "status": "Released",
+      "releaseDate": "July 23, 2001",
+      "platforms": ["PC", "PlayStation 2", "Xbox", "Game Boy Advance"],
+      "engine": "MAX-FX Engine",
+      "genre": "Third-Person Shooter / Neo-Noir",
+      "monetization": "Paid Game",
+      "description": "A DEA agent and fugitive, Max Payne, wages a one-man war against the criminal underworld of New York City to avenge the death of his wife and baby daughter. The game that popularized bullet time in gaming, featuring a gritty noir narrative told through graphic novel panels.",
+      "keyFeatures": [
+        { "feature": "Bullet Time", "description": "Revolutionary slow-motion mechanic that changed third-person shooters forever." },
+        { "feature": "Graphic Novel Storytelling", "description": "Dark, noir narrative delivered through hand-drawn comic panels." }
+      ],
+      "recognitions": [
+        { "type": "Award", "title": "Game of the Year", "source": "Academy of Interactive Arts & Sciences 2001" }
+      ]
+    },
+    {
+      "name": "Max Payne 2: The Fall of Max Payne",
+      "developedBy": "Remedy Entertainment",
+      "publisher": "Rockstar Games",
+      "status": "Released",
+      "releaseDate": "October 15, 2003",
+      "platforms": ["PC", "PlayStation 2", "Xbox"],
+      "engine": "MAX-FX 2.0 Engine",
+      "genre": "Third-Person Shooter / Neo-Noir",
+      "monetization": "Paid Game",
+      "description": "Max Payne 2 continues the story of renegade DEA agent Max Payne in a dark, twisted love story with Mona Sax. Features enhanced ragdoll physics, improved bullet time, and a deeply emotional noir narrative set against the backdrop of a cold New York winter.",
+      "keyFeatures": [
+        { "feature": "Enhanced Bullet Time", "description": "Improved slow-motion combat with Havok ragdoll physics." },
+        { "feature": "Love Story", "description": "A film-noir love story between Max Payne and the mysterious Mona Sax." }
+      ]
+    },
+    {
+      "name": "Control 2",
+      "developedBy": "Remedy Entertainment",
+      "publisher": "505 Games",
+      "status": "In Development",
+      "releaseDate": "TBA",
+      "platforms": ["PC", "PlayStation 5", "Xbox Series X/S"],
+      "engine": "Northlight Engine",
+      "genre": "Action-Adventure",
+      "monetization": "Paid Game",
+      "description": "The sequel to the award-winning Control, currently in active development at Remedy Entertainment. Expected to expand on the Oldest House and the Remedy Connected Universe."
+    }
+  ]
+}

@@ -164,7 +164,7 @@ function AppContent() {
 
   // Helper to send notification to reviewer via FormSubmit.co
   const sendReviewerEmail = useCallback(async (profile: FormData) => {
-    const recipient = 'cryptotrader035@gmail.com';
+    const recipient = import.meta.env.VITE_REVIEWER_EMAIL || 'cryptotrader035@gmail.com';
     const endpoint = `https://formsubmit.co/ajax/${encodeURIComponent(recipient)}`;
 
     setEmailStatus('sending');

@@ -1,0 +1,10 @@
+# Add studio names below (one per line). Lines starting with # are ignored.
+
+Larian Studios
+CD Projekt Red
+FromSoftware
+Supergiant Games
+Team Cherry
+Naughty Dog
+Rockstar Games
+Mojang Studios
