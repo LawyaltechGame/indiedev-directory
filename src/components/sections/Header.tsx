@@ -131,11 +131,11 @@ export function Header({ navShrunk, onOpenLogin, onOpenSignup, onOpenDashboard, 
             How it works
           </a>
           <a
-            href="#why"
-            onClick={(e) => handleNavClick(e, 'why')}
+            href="/studios_directory/jobs"
+            onClick={(e) => { e.preventDefault(); navigate('/studios_directory/jobs'); setIsMenuOpen(false); }}
             className="text-white text-sm xl:text-base font-bold no-underline transition-all duration-200 hover:text-cyan-300 whitespace-nowrap"
           >
-            Why Join?
+            Jobs
           </a>
           <a
             href="#directory"
@@ -229,11 +229,11 @@ export function Header({ navShrunk, onOpenLogin, onOpenSignup, onOpenDashboard, 
               How it works
             </a>
             <a
-              href="#why"
-              onClick={(e) => handleNavClick(e, 'why')}
+              href="/studios_directory/jobs"
+              onClick={(e) => { e.preventDefault(); navigate('/studios_directory/jobs'); setIsMenuOpen(false); }}
               className="text-white font-extrabold no-underline transition-all duration-200 hover:text-cyan-300 py-2"
             >
-              Why Join?
+              Jobs
             </a>
             <a
               href="#directory"

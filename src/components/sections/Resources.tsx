@@ -161,6 +161,7 @@ export default function Resources({ onCreateProfile, onOpenSignup, onEditProfile
             <a onClick={() => navigate('/studios_directory/publishers')} className={`cursor-pointer transition ${isPublishersActive ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}>Publishers</a>
             <a onClick={() => navigate('/studios_directory/tools')} className={`cursor-pointer transition ${isToolsActive ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}>Tools</a>
             <a onClick={() => navigate('/studios_directory/resources')} className={`cursor-pointer transition ${isResourcesActive ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}>Resources</a>
+            <a onClick={() => navigate('/studios_directory/jobs')} className={`cursor-pointer transition ${location.pathname.startsWith('/studios_directory/jobs') ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}>Jobs</a>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -204,6 +205,7 @@ export default function Resources({ onCreateProfile, onOpenSignup, onEditProfile
               <a onClick={() => { navigate('/studios_directory/publishers'); setIsMenuOpen(false); }} className={`cursor-pointer transition py-2 ${isPublishersActive ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}>Publishers</a>
               <a onClick={() => { navigate('/studios_directory/tools'); setIsMenuOpen(false); }} className={`cursor-pointer transition py-2 ${isToolsActive ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}>Tools</a>
               <a onClick={() => { navigate('/studios_directory/resources'); setIsMenuOpen(false); }} className={`cursor-pointer transition py-2 ${isResourcesActive ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}>Resources</a>
+              <a onClick={() => { navigate('/studios_directory/jobs'); setIsMenuOpen(false); }} className={`cursor-pointer transition py-2 ${location.pathname.startsWith('/studios_directory/jobs') ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}>Jobs</a>
               {user ? (
                 !hasProfile && onCreateProfile && (
                   <button

@@ -56,6 +56,7 @@ export default function StudiosDirectory({ onCreateProfile, onOpenSignup, onEdit
             <a onClick={() => navigate('/studios_directory/publishers')} className={`cursor-pointer transition ${isPublishersActive ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}>Publishers</a>
             <a onClick={() => navigate('/studios_directory/tools')} className={`cursor-pointer transition ${location.pathname.startsWith('/studios_directory/tools') ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}>Tools</a>
             <a onClick={() => navigate('/studios_directory/resources')} className={`cursor-pointer transition ${isResourcesActive ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}>Resources</a>
+            <a onClick={() => navigate('/studios_directory/jobs')} className={`cursor-pointer transition ${location.pathname.startsWith('/studios_directory/jobs') ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}>Jobs</a>
           </nav>
           
           {/* Right Actions */}
@@ -120,6 +121,12 @@ export default function StudiosDirectory({ onCreateProfile, onOpenSignup, onEdit
                 className={`cursor-pointer transition py-2 ${isResourcesActive ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}
               >
                 Resources
+              </a>
+              <a
+                onClick={() => { navigate('/studios_directory/jobs'); setIsMenuOpen(false); }}
+                className={`cursor-pointer transition py-2 ${location.pathname.startsWith('/studios_directory/jobs') ? 'text-white font-semibold' : 'text-cyan-300 hover:text-white'}`}
+              >
+                Jobs
               </a>
               {user ? (
                 onCreateProfile && (

@@ -4,6 +4,7 @@ import StudiosDirectory from './components/sections/StudiosDirectory';
 import Publishers from './components/sections/Publishers';
 import Tools from './components/sections/Tools';
 import Resources from './components/sections/Resources';
+import Jobs from './components/sections/Jobs';
 import { BlogsPage } from './components/sections/BlogsPage';
 import { NewsPage } from './components/sections/NewsPage';
 import { BlogPostDetail } from './components/sections/BlogPostDetail';
@@ -652,10 +653,14 @@ function AppContent() {
           path="/studios_directory/tools"
           element={<Tools onCreateProfile={handleCreateProfile} onEditProfile={handleEditProfile} onOpenSignup={handleOpenSignup} />}
         />
-        <Route
-          path="/studios_directory/resources"
-          element={<Resources onCreateProfile={handleCreateProfile} onEditProfile={handleEditProfile} onOpenSignup={handleOpenSignup} />}
-        />
+          <Route
+            path="/studios_directory/resources"
+            element={<Resources onCreateProfile={handleCreateProfile} onEditProfile={handleEditProfile} onOpenSignup={handleOpenSignup} />}
+          />
+          <Route
+            path="/studios_directory/jobs"
+            element={<Jobs onCreateProfile={handleCreateProfile} onEditProfile={handleEditProfile} onOpenSignup={handleOpenSignup} />}
+          />
         <Route
           path="/studio/:id"
           element={<StudioDetail />}
