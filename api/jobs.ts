@@ -1,18 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 /**
- * /api/jobs — Aggregates game & tech job listings from 5 free public APIs.
- * Uses multiple search queries per source to maximize coverage.
+ * /api/jobs — Verified Game Development Studio Jobs Only.
  *
- * Sources (all free, no API key required):
- *  1. Remotive    2. Himalayas    3. Jobicy    4. Arbeitnow    5. RemoteOK
- *
- * Query params:
- *   search  — keyword filter (optional, defaults to broad game-dev terms)
- *   limit   — max results (default 100, max 200)
+ * Fetches directly from public career APIs of game studios on Greenhouse, Lever, and Ashby.
+ * 100% of jobs are from real game development studios.
  */
 
-interface NormalizedJob {
+interface Job {
   id: string;
   title: string;
   company: string;
@@ -28,171 +23,199 @@ interface NormalizedJob {
   source: string;
 }
 
-const DEFAULT_SEARCHES = ['game', 'gaming', 'unity', 'unreal', 'game developer', 'game designer', '3d artist', 'gameplay'];
+// ─── Verified Game Studios on Greenhouse ─────────────────────────────────────
+const GREENHOUSE_STUDIOS: [string, string, string | null][] = [
+  ['riotgames', 'Riot Games', 'https://logo.clearbit.com/riotgames.com'],
+  ['roblox', 'Roblox', 'https://logo.clearbit.com/roblox.com'],
+  ['epicgames', 'Epic Games', 'https://logo.clearbit.com/epicgames.com'],
+  ['scopely', 'Scopely', 'https://logo.clearbit.com/scopely.com'],
+  ['2k', '2K Games', 'https://logo.clearbit.com/2k.com'],
+  ['remedy', 'Remedy Entertainment', 'https://logo.clearbit.com/remedygames.com'],
+  ['bungie', 'Bungie', 'https://logo.clearbit.com/bungie.com'],
+  ['bethesda', 'Bethesda Softworks', 'https://logo.clearbit.com/bethesda.net'],
+  ['visualconcepts', 'Visual Concepts', 'https://logo.clearbit.com/vcfx.com'],
+  ['firaxis', 'Firaxis Games', 'https://logo.clearbit.com/firaxis.com'],
+  ['catdaddy', 'Cat Daddy Games', null],
+  ['raven', 'Raven Software', 'https://logo.clearbit.com/ravensoftware.com'],
+  ['gearbox', 'Gearbox Software', 'https://logo.clearbit.com/gearboxsoftware.com'],
+  ['digitalextremes', 'Digital Extremes', 'https://logo.clearbit.com/digitalextremes.com'],
+  ['housemarque', 'Housemarque', 'https://logo.clearbit.com/housemarque.com'],
+];
 
-// ─── Remotive ────────────────────────────────────────────────────────────────
-async function fetchRemotive(search: string): Promise<NormalizedJob[]> {
+// ─── Verified Game Studios on Lever ──────────────────────────────────────────
+const LEVER_STUDIOS: [string, string, string | null][] = [
+  ['kabam', 'Kabam', 'https://logo.clearbit.com/kabam.com'],
+];
+
+// ─── Verified Game Studios on Ashby ──────────────────────────────────────────
+const ASHBY_STUDIOS: [string, string, string | null][] = [
+  ['thatgamecompany', 'thatgamecompany', 'https://logo.clearbit.com/thatgamecompany.com'],
+  ['seconddinner', 'Second Dinner', 'https://logo.clearbit.com/seconddinner.com'],
+  ['voodoo', 'Voodoo', 'https://logo.clearbit.com/voodoo.io'],
+  ['believer', 'Believer', null],
+  ['lightspeed', 'Lightspeed Studios', null],
+  ['yotta', 'Yotta Games', null],
+];
+
+// ─── Greenhouse Fetcher ──────────────────────────────────────────────────────
+async function fetchGreenhouseJobs(
+  boardToken: string,
+  studioName: string,
+  logoUrl: string | null
+): Promise<Job[]> {
   try {
-    const res = await fetch(`https://remotive.com/api/remote-jobs?search=${encodeURIComponent(search)}&limit=50`);
+    const res = await fetch(`https://boards-api.greenhouse.io/v1/boards/${boardToken}/jobs?content=true`);
     if (!res.ok) return [];
     const data = await res.json();
-    return (data?.jobs || []).map((j: any) => ({
-      id: `remotive-${j.id}`,
-      title: j.title || '',
-      company: j.company_name || '',
-      companyLogo: j.company_logo || null,
-      location: j.candidate_required_location || 'Remote',
-      remote: true,
-      type: fmtType(j.job_type),
-      salary: j.salary?.trim() || null,
-      description: strip(j.description || '').slice(0, 500),
-      tags: (j.tags || []).slice(0, 6),
-      postedDate: j.publication_date || '',
-      applyUrl: j.url || '#',
-      source: 'Remotive',
-    }));
-  } catch { return []; }
-}
+    const jobs: any[] = data?.jobs || [];
 
-// ─── Himalayas ───────────────────────────────────────────────────────────────
-async function fetchHimalayas(search: string): Promise<NormalizedJob[]> {
-  try {
-    const res = await fetch(`https://himalayas.app/jobs/api?q=${encodeURIComponent(search)}&limit=50`);
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data?.jobs || []).map((j: any) => {
-      let salary: string | null = null;
-      if (j.minSalary && j.maxSalary) salary = `$${Math.round(j.minSalary/1000)}k – $${Math.round(j.maxSalary/1000)}k`;
+    return jobs.map((j: any): Job => {
+      const loc = j.location?.name || 'Not specified';
+      const isRemote = /remote/i.test(loc) || /remote/i.test(j.title || '');
+      const dept = j.departments?.[0]?.name || '';
+
       return {
-        id: `himalayas-${j.id || rnd()}`,
-        title: j.title || '',
-        company: j.companyName || '',
-        companyLogo: j.companyLogo || null,
-        location: j.location || 'Worldwide',
-        remote: true,
-        type: j.employmentType || 'Full-Time',
-        salary,
-        description: strip(j.description || j.excerpt || '').slice(0, 500),
-        tags: (j.categories || j.tags || []).slice(0, 6),
-        postedDate: j.pubDate ? new Date(j.pubDate * 1000).toISOString() : '',
-        applyUrl: j.applicationLink || j.url || '#',
-        source: 'Himalayas',
+        id: `gh-${boardToken}-${j.id}`,
+        title: (j.title || 'Untitled').trim(),
+        company: studioName,
+        companyLogo: logoUrl,
+        location: loc,
+        remote: isRemote,
+        type: 'Full-Time',
+        salary: null,
+        description: stripHtml(j.content || '').slice(0, 600),
+        tags: [dept, ...extractTags(j.title)].filter(Boolean).slice(0, 5),
+        postedDate: formatDate(j.updated_at || j.created_at),
+        applyUrl: j.absolute_url || `https://boards.greenhouse.io/${boardToken}/jobs/${j.id}`,
+        source: studioName,
       };
     });
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
-// ─── Jobicy ──────────────────────────────────────────────────────────────────
-async function fetchJobicy(search: string): Promise<NormalizedJob[]> {
+// ─── Lever Fetcher ───────────────────────────────────────────────────────────
+async function fetchLeverJobs(
+  companySlug: string,
+  studioName: string,
+  logoUrl: string | null
+): Promise<Job[]> {
   try {
-    const tag = search.split(/\s+/)[0] || 'game';
-    const res = await fetch(`https://jobicy.com/api/v2/remote-jobs?tag=${encodeURIComponent(tag)}&count=50`);
+    const res = await fetch(`https://api.lever.co/v0/postings/${companySlug}?mode=json`);
     if (!res.ok) return [];
-    const data = await res.json();
-    return (data?.jobs || []).map((j: any) => ({
-      id: `jobicy-${j.id || rnd()}`,
-      title: j.jobTitle || '',
-      company: j.companyName || '',
-      companyLogo: j.companyLogo || null,
-      location: j.jobGeo || 'Remote',
-      remote: true,
-      type: Array.isArray(j.jobType) ? j.jobType[0] || 'Full-Time' : j.jobType || 'Full-Time',
-      salary: j.annualSalaryMin && j.annualSalaryMax
-        ? `$${Math.round(j.annualSalaryMin/1000)}k – $${Math.round(j.annualSalaryMax/1000)}k` : null,
-      description: strip(j.jobExcerpt || j.jobDescription || '').slice(0, 500),
-      tags: (j.jobIndustry || []).slice(0, 6),
-      postedDate: j.pubDate || '',
-      applyUrl: j.url || '#',
-      source: 'Jobicy',
-    }));
-  } catch { return []; }
-}
+    const jobs: any[] = await res.json();
+    if (!Array.isArray(jobs)) return [];
 
-// ─── Arbeitnow (3 pages) ────────────────────────────────────────────────────
-async function fetchArbeitnow(search: string): Promise<NormalizedJob[]> {
-  const results: NormalizedJob[] = [];
-  const keywords = ['game', 'developer', 'engineer', 'designer', 'artist', 'software', 'unity', 'unreal',
-    'frontend', 'backend', 'data', 'product', 'mobile', 'devops', 'cloud', 'marketing',
-    ...(search ? [search.toLowerCase()] : [])];
-  try {
-    for (const page of [1, 2, 3]) {
-      const res = await fetch(`https://www.arbeitnow.com/api/job-board-api?page=${page}`);
-      if (!res.ok) continue;
-      const data = await res.json();
-      for (const j of (data?.data || [])) {
-        const text = `${j.title || ''} ${(j.tags || []).join(' ')}`.toLowerCase();
-        if (keywords.some(kw => text.includes(kw))) {
-          results.push({
-            id: `arbeitnow-${j.slug || rnd()}`,
-            title: j.title || '',
-            company: j.company_name || '',
-            companyLogo: j.company_logo || null,
-            location: j.location || '',
-            remote: j.remote === true,
-            type: 'Full-Time',
-            salary: null,
-            description: strip(j.description || '').slice(0, 500),
-            tags: (j.tags || []).slice(0, 6),
-            postedDate: j.created_at ? new Date(j.created_at * 1000).toISOString() : '',
-            applyUrl: j.url || '#',
-            source: 'Arbeitnow',
-          });
-        }
-      }
-    }
-  } catch { /* ignore */ }
-  return results;
-}
+    return jobs.map((j: any): Job => {
+      const loc = j.categories?.location || 'Not specified';
+      const isRemote = /remote/i.test(loc) || /remote/i.test(j.workplaceType || '') || /remote/i.test(j.text || '');
+      const dept = j.categories?.department || j.categories?.team || '';
+      const commitment = j.categories?.commitment || 'Full-Time';
 
-// ─── RemoteOK ────────────────────────────────────────────────────────────────
-async function fetchRemoteOK(search: string): Promise<NormalizedJob[]> {
-  try {
-    const tag = search.split(/\s+/)[0] || 'dev';
-    const res = await fetch(`https://remoteok.com/api?tag=${encodeURIComponent(tag)}`, {
-      headers: { 'User-Agent': 'GameCentralen/1.0' },
+      return {
+        id: `lever-${companySlug}-${j.id}`,
+        title: (j.text || 'Untitled').trim(),
+        company: studioName,
+        companyLogo: logoUrl,
+        location: loc,
+        remote: isRemote,
+        type: commitment,
+        salary: j.salaryRange ? `${j.salaryRange.min} – ${j.salaryRange.max} ${j.salaryRange.currency || ''}`.trim() : null,
+        description: stripHtml(j.descriptionPlain || j.description || '').slice(0, 600),
+        tags: [dept, ...extractTags(j.text)].filter(Boolean).slice(0, 5),
+        postedDate: formatDate(j.createdAt),
+        applyUrl: j.hostedUrl || j.applyUrl || '#',
+        source: studioName,
+      };
     });
+  } catch {
+    return [];
+  }
+}
+
+// ─── Ashby Fetcher ───────────────────────────────────────────────────────────
+async function fetchAshbyJobs(
+  boardSlug: string,
+  studioName: string,
+  logoUrl: string | null
+): Promise<Job[]> {
+  try {
+    const res = await fetch(`https://api.ashbyhq.com/posting-api/job-board/${boardSlug}`);
     if (!res.ok) return [];
     const data = await res.json();
-    return (Array.isArray(data) ? data.slice(1) : []).map((j: any) => ({
-      id: `remoteok-${j.id || rnd()}`,
-      title: j.position || j.title || '',
-      company: j.company || '',
-      companyLogo: j.company_logo || j.logo || null,
-      location: j.location || 'Remote',
-      remote: true,
-      type: 'Full-Time',
-      salary: j.salary_min && j.salary_max
-        ? `$${Math.round(j.salary_min/1000)}k – $${Math.round(j.salary_max/1000)}k` : null,
-      description: strip(j.description || '').slice(0, 500),
-      tags: (j.tags || []).slice(0, 6),
-      postedDate: j.date || '',
-      applyUrl: j.url || j.apply_url || '#',
-      source: 'RemoteOK',
-    }));
-  } catch { return []; }
+    const jobs: any[] = data?.jobs || [];
+
+    return jobs.map((j: any): Job => {
+      const loc = j.location || (j.address?.postalAddress ? `${j.address.postalAddress.addressLocality || ''}, ${j.address.postalAddress.addressCountry || ''}` : 'Not specified');
+      const isRemote = j.isRemote === true || /remote/i.test(loc) || /remote/i.test(j.title || '');
+      const dept = j.department || j.team || '';
+
+      return {
+        id: `ashby-${boardSlug}-${j.id}`,
+        title: (j.title || 'Untitled').trim(),
+        company: studioName,
+        companyLogo: logoUrl,
+        location: loc,
+        remote: isRemote,
+        type: j.employmentType ? formatEmploymentType(j.employmentType) : 'Full-Time',
+        salary: null,
+        description: stripHtml(j.descriptionPlain || j.descriptionHtml || '').slice(0, 600),
+        tags: [dept, ...extractTags(j.title)].filter(Boolean).slice(0, 5),
+        postedDate: formatDate(j.publishedAt),
+        applyUrl: j.applyUrl || j.jobUrl || '#',
+        source: studioName,
+      };
+    });
+  } catch {
+    return [];
+  }
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-const rnd = () => Math.random().toString(36).slice(2);
 
-function strip(html: string): string {
+function extractTags(title: string): string[] {
+  const tags: string[] = [];
+  const t = (title || '').toLowerCase();
+  const checks: [string, string][] = [
+    ['unity', 'Unity'], ['unreal', 'Unreal'], ['c++', 'C++'], ['c#', 'C#'],
+    ['python', 'Python'], ['java', 'Java'], ['rust', 'Rust'], ['react', 'React'],
+    ['gameplay', 'Gameplay'], ['combat', 'Combat'], ['systems', 'Systems'],
+    ['level design', 'Level Design'], ['narrative', 'Narrative'],
+    ['artist', 'Art'], ['character', 'Character Art'], ['environment', 'Environment Art'],
+    ['animation', 'Animation'], ['animator', 'Animation'], ['vfx', 'VFX'], ['ui', 'UI/UX'],
+    ['designer', 'Design'], ['sound', 'Audio'], ['audio', 'Audio'],
+    ['producer', 'Production'], ['qa', 'QA'], ['test', 'QA'],
+    ['mobile', 'Mobile'], ['graphics', 'Graphics/Rendering'], ['shader', 'Shaders'],
+    ['engine', 'Engine'], ['network', 'Netcode'], ['multiplayer', 'Multiplayer'],
+    ['marketing', 'Marketing'], ['community', 'Community'],
+  ];
+  for (const [kw, tag] of checks) {
+    if (t.includes(kw) && !tags.includes(tag)) tags.push(tag);
+  }
+  return tags;
+}
+
+function formatEmploymentType(t: string): string {
+  if (/full/i.test(t)) return 'Full-Time';
+  if (/part/i.test(t)) return 'Part-Time';
+  if (/contract/i.test(t)) return 'Contract';
+  if (/intern/i.test(t)) return 'Internship';
+  if (/freelance/i.test(t)) return 'Freelance';
+  return 'Full-Time';
+}
+
+function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, ' ').replace(/&\w+;/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-function fmtType(t: string): string {
-  if (!t) return 'Full-Time';
-  const m: Record<string, string> = { full_time: 'Full-Time', part_time: 'Part-Time', contract: 'Contract', freelance: 'Freelance', internship: 'Internship' };
-  return m[t.toLowerCase()] || t;
-}
-
-function fmtDate(d: string): string {
+function formatDate(d: string | number | undefined | null): string {
   try {
     if (!d) return 'Recently';
-    const date = new Date(d);
+    const date = typeof d === 'number' ? new Date(d) : new Date(d);
     if (isNaN(date.getTime())) return 'Recently';
     const diff = Math.floor((Date.now() - date.getTime()) / 86400000);
-    if (diff < 0) return 'Today';
-    if (diff === 0) return 'Today';
+    if (diff <= 0) return 'Today';
     if (diff === 1) return '1 day ago';
     if (diff < 7) return `${diff} days ago`;
     if (diff < 14) return '1 week ago';
@@ -210,40 +233,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const userSearch = (req.query.search as string) || '';
-  const limit = Math.min(parseInt((req.query.limit as string) || '100', 10), 200);
-  const searches = userSearch ? [userSearch] : DEFAULT_SEARCHES;
+  const limit = Math.min(parseInt((req.query.limit as string) || '300', 10), 500);
 
-  // Build all fetch promises — multiple queries per source
-  const promises: Promise<NormalizedJob[]>[] = [];
+  const promises: Promise<Job[]>[] = [];
 
-  for (const s of searches.slice(0, 5)) promises.push(fetchRemotive(s));
-  for (const s of searches.slice(0, 4)) promises.push(fetchHimalayas(s));
-  for (const s of searches.slice(0, 3)) promises.push(fetchJobicy(s));
-  promises.push(fetchArbeitnow(userSearch));
-  for (const s of searches.slice(0, 3)) promises.push(fetchRemoteOK(s));
+  for (const [token, name, logo] of GREENHOUSE_STUDIOS) {
+    promises.push(fetchGreenhouseJobs(token, name, logo));
+  }
+  for (const [slug, name, logo] of LEVER_STUDIOS) {
+    promises.push(fetchLeverJobs(slug, name, logo));
+  }
+  for (const [slug, name, logo] of ASHBY_STUDIOS) {
+    promises.push(fetchAshbyJobs(slug, name, logo));
+  }
 
   const results = await Promise.allSettled(promises);
-  const all: NormalizedJob[] = [];
-  const sourceCounts: Record<string, number> = {};
+  let all: Job[] = [];
 
   for (const r of results) {
-    if (r.status === 'fulfilled') {
-      for (const job of r.value) {
-        all.push(job);
-        sourceCounts[job.source] = (sourceCounts[job.source] || 0) + 1;
-      }
-    }
+    if (r.status === 'fulfilled') all.push(...r.value);
+  }
+
+  // Filter if search query passed
+  if (userSearch.trim()) {
+    const q = userSearch.toLowerCase();
+    all = all.filter(j => {
+      const text = `${j.title} ${j.company} ${j.location} ${j.tags.join(' ')} ${j.description}`.toLowerCase();
+      return text.includes(q);
+    });
   }
 
   // Deduplicate
   const seen = new Set<string>();
-  const unique: NormalizedJob[] = [];
-  for (const job of all) {
-    const key = `${job.title.toLowerCase().replace(/[^a-z0-9]/g, '')}|${job.company.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+  const unique: Job[] = [];
+  for (const j of all) {
+    const key = `${j.title.toLowerCase().replace(/[^a-z0-9]/g, '')}|${j.company.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
     if (key.length > 2 && !seen.has(key)) {
       seen.add(key);
-      job.postedDate = fmtDate(job.postedDate);
-      unique.push(job);
+      unique.push(j);
     }
   }
 
@@ -257,13 +284,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return 0;
   });
 
-  const result = unique.slice(0, limit);
+  const finalJobs = unique.slice(0, limit);
 
-  res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=300');
+  res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=300');
   return res.status(200).json({
-    total: result.length,
-    totalBeforeDedup: all.length,
-    sources: sourceCounts,
-    jobs: result,
+    total: finalJobs.length,
+    totalRaw: all.length,
+    jobs: finalJobs,
   });
 }

@@ -271,7 +271,7 @@ export function ContentHub() {
                       className="bg-[rgba(20,28,42,0.6)] border border-white/8 rounded-2xl overflow-hidden hover:border-cyan-400/40 transition-all duration-300 hover:shadow-[0_8px_32px_rgba(34,211,238,0.2)] group cursor-pointer"
                       onClick={() => {
                         const slug = post.link.split('/').filter(Boolean).pop();
-                        navigate(`/content/${slug}`);
+                        window.open(`/content/${slug}`, '_blank');
                       }}
                     >
                       {post._embedded?.['wp:featuredmedia']?.[0]?.source_url && (
@@ -343,7 +343,7 @@ export function ContentHub() {
                       className="bg-[rgba(20,28,42,0.6)] border border-white/8 rounded-2xl overflow-hidden hover:border-cyan-400/40 transition-all duration-300 hover:shadow-[0_8px_32px_rgba(34,211,238,0.2)] group cursor-pointer"
                       onClick={() => {
                         const slug = post.link.split('/').filter(Boolean).pop();
-                        navigate(`/content/${slug}`);
+                        window.open(`/content/${slug}`, '_blank');
                       }}
                     >
                       <div className="flex flex-col md:flex-row gap-6 p-6">

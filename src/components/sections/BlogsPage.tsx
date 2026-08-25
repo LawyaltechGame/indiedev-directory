@@ -132,7 +132,7 @@ export function BlogsPage() {
                   <button
                     onClick={() => {
                       const slug = post.link.split('/').filter(Boolean).pop();
-                      navigate(`/blogs/${slug}`);
+                      window.open(`/blogs/${slug}`, '_blank');
                     }}
                     className="inline-flex items-center gap-2 text-cyan-300 hover:text-cyan-200 font-semibold transition-colors duration-200"
                   >

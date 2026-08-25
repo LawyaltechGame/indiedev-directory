@@ -39,15 +39,21 @@ const CATEGORY_KEYWORDS: Record<JobCategory, string[]> = {
 };
 
 function categorizeJob(job: JobListing): JobCategory {
-  const text = `${job.title} ${job.tags.join(' ')} ${job.description}`.toLowerCase();
-  let bestMatch: JobCategory = 'Programming'; // Default
+  const titleText = `${job.title} ${(job.tags || []).join(' ')}`.toLowerCase();
+  const descText = (job.description || '').toLowerCase();
+  let bestMatch: JobCategory = 'Programming';
   let bestScore = 0;
 
   for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
     if (category === 'All') continue;
     let score = 0;
     for (const kw of keywords) {
-      if (text.includes(kw.toLowerCase())) score++;
+      const lower = kw.toLowerCase();
+      if (titleText.includes(lower)) {
+        score += 4;
+      } else if (descText.includes(lower)) {
+        score += 1;
+      }
     }
     if (score > bestScore) {
       bestScore = score;
@@ -368,33 +374,33 @@ export default function Jobs({ onCreateProfile, onOpenSignup, onEditProfile }: J
           </nav>
 
           {/* ─── Hero Banner ─────────────────────────────────────────── */}
-          <section className="relative rounded-2xl overflow-hidden mb-10 bg-linear-to-br from-[#071826] via-[#0a1e32] to-[#07101b] border border-white/6">
+          <section className="relative rounded-2xl overflow-hidden mb-8 bg-linear-to-br from-[#071826] via-[#0a1e32] to-[#07101b] border border-white/6">
             {/* Decorative glow */}
             <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-400/5 rounded-full blur-3xl pointer-events-none" />
 
-            <div className="relative z-10 px-6 py-12 sm:px-10 sm:py-16 text-center">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-sm font-semibold mb-5">
+            <div className="relative z-10 px-4 py-8 sm:px-10 sm:py-14 text-center">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs sm:text-sm font-semibold mb-4">
                 <span>💼</span> Live Game Industry Jobs
               </div>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-4 leading-tight">
+              <h1 className="text-2xl sm:text-3xl lg:text-5xl font-extrabold text-white mb-3 leading-tight">
                 Find Your Next Role in<br />
                 <span className="bg-linear-to-r from-cyan-300 to-cyan-500 bg-clip-text text-transparent">Game Development</span>
               </h1>
-              <p className="text-cyan-200/70 max-w-2xl mx-auto text-base sm:text-lg mb-8">
+              <p className="text-cyan-200/70 max-w-2xl mx-auto text-sm sm:text-base mb-6">
                 Real-time job listings aggregated from top job boards. Fresh data loaded every time you visit.
               </p>
 
               {/* Search bar */}
               <div className="max-w-xl mx-auto">
                 <div className="flex items-center bg-[rgba(9,14,22,0.7)] rounded-xl border border-white/10 overflow-hidden focus-within:border-cyan-400/50 transition-colors">
-                  <span className="pl-4 text-cyan-300/50">🔍</span>
+                  <span className="pl-3 sm:pl-4 text-cyan-300/50">🔍</span>
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search by title, company, skill (e.g. Unity, artist, marketing)..."
-                    className="flex-1 bg-transparent px-3 py-3.5 text-cyan-100 outline-none placeholder:text-cyan-300/30"
+                    placeholder="Search by title, company, skill..."
+                    className="flex-1 bg-transparent px-2 sm:px-3 py-3 text-cyan-100 outline-none placeholder:text-cyan-300/30 text-sm sm:text-base"
                   />
                   {searchQuery && (
                     <button
@@ -411,15 +417,15 @@ export default function Jobs({ onCreateProfile, onOpenSignup, onEditProfile }: J
           </section>
 
           {/* ─── Filters Bar ─────────────────────────────────────────── */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-8">
-            {/* Category tabs */}
-            <div className="flex-1 overflow-x-auto">
-              <div className="flex gap-2 pb-1">
+          <div className="flex flex-col gap-4 mb-8">
+            {/* Category tabs — horizontally scrollable on mobile */}
+            <div className="overflow-x-auto -mx-6 px-6" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
+              <div className="flex gap-2 min-w-max pb-2">
                 {CATEGORIES.map((cat) => (
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
-                    className={`whitespace-nowrap px-4 py-2 rounded-lg text-sm font-semibold border transition-all
+                    className={`whitespace-nowrap px-4 py-2.5 rounded-lg text-sm font-semibold border transition-all min-w-fit
                       ${selectedCategory === cat
                         ? 'bg-cyan-500/15 text-cyan-200 border-cyan-500/40 shadow-[0_0_10px_rgba(34,211,238,0.15)]'
                         : 'bg-[#07101b] text-cyan-300/60 border-white/6 hover:border-cyan-500/30 hover:text-cyan-200'
@@ -432,15 +438,17 @@ export default function Jobs({ onCreateProfile, onOpenSignup, onEditProfile }: J
             </div>
 
             {/* Remote toggle */}
-            <label className="flex items-center gap-2 cursor-pointer shrink-0">
-              <div
-                className={`relative w-10 h-5 rounded-full transition-colors ${remoteOnly ? 'bg-cyan-500' : 'bg-white/10'}`}
-                onClick={() => setRemoteOnly(!remoteOnly)}
-              >
-                <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${remoteOnly ? 'translate-x-5' : 'translate-x-0.5'}`} />
-              </div>
-              <span className="text-sm text-cyan-200/70 font-medium">Remote only</span>
-            </label>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2.5 cursor-pointer">
+                <div
+                  className={`relative w-11 h-6 rounded-full transition-colors ${remoteOnly ? 'bg-cyan-500' : 'bg-white/10'}`}
+                  onClick={() => setRemoteOnly(!remoteOnly)}
+                >
+                  <div className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${remoteOnly ? 'translate-x-5' : 'translate-x-0'}`} />
+                </div>
+                <span className="text-sm text-cyan-200/70 font-medium">Remote only</span>
+              </label>
+            </div>
           </div>
 
           {/* ─── Results info ────────────────────────────────────────── */}
