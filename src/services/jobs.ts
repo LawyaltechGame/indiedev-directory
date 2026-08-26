@@ -2,7 +2,7 @@
  * Fetches jobs DIRECTLY from verified Game Studio career pages.
  *
  * Uses public APIs from Greenhouse, Lever, and Ashby.
- * Every single listing is guaranteed to be from an active game development studio.
+ * Every listing is from an active game development studio and filtered for game-industry relevance.
  */
 
 export interface JobListing {
@@ -55,6 +55,30 @@ const ASHBY_STUDIOS: [string, string, string | null][] = [
   ['yotta', 'Yotta Games', null],
 ];
 
+// ─── Non-Gaming Corporate Role Filter ────────────────────────────────────────
+// Exclude purely administrative / bureaucratic corporate roles
+const NON_GAME_TITLE_PATTERNS = [
+  /\bpublic policy\b/i,
+  /\blaw enforcement\b/i,
+  /\bgovernment affairs\b/i,
+  /\bgovernment relations\b/i,
+  /\bparalegal\b/i,
+  /\blitigation\b/i,
+  /\bcorporate tax\b/i,
+  /\bpayroll\b/i,
+  /\bfacilities manager\b/i,
+  /\bworkplace operations\b/i,
+  /\bdata center asset\b/i,
+  /\bjanitor\b/i,
+  /\bbenefits analyst\b/i,
+  /\bprocurement specialist\b/i,
+  /\bsox compliance\b/i,
+];
+
+function isGameRelevantJob(title: string): boolean {
+  return !NON_GAME_TITLE_PATTERNS.some(pattern => pattern.test(title));
+}
+
 // ─── Greenhouse Fetcher ──────────────────────────────────────────────────────
 async function fetchGreenhouseJobs(
   boardToken: string,
@@ -68,27 +92,29 @@ async function fetchGreenhouseJobs(
     const data = await res.json();
     const jobs: any[] = data?.jobs || [];
 
-    return jobs.map((j: any): JobListing => {
-      const loc = j.location?.name || 'Not specified';
-      const isRemote = /remote/i.test(loc) || /remote/i.test(j.title || '');
-      const dept = j.departments?.[0]?.name || '';
+    return jobs
+      .filter((j: any) => isGameRelevantJob(j.title || ''))
+      .map((j: any): JobListing => {
+        const loc = j.location?.name || 'Not specified';
+        const isRemote = /remote/i.test(loc) || /remote/i.test(j.title || '');
+        const dept = j.departments?.[0]?.name || '';
 
-      return {
-        id: `gh-${boardToken}-${j.id}`,
-        title: (j.title || 'Untitled').trim(),
-        company: studioName,
-        companyLogo: logoUrl,
-        location: loc,
-        remote: isRemote,
-        type: 'Full-Time',
-        salary: null,
-        description: stripHtml(j.content || '').slice(0, 600),
-        tags: [dept, ...extractTags(j.title)].filter(Boolean).slice(0, 5),
-        postedDate: formatDate(j.updated_at || j.created_at),
-        applyUrl: j.absolute_url || `https://boards.greenhouse.io/${boardToken}/jobs/${j.id}`,
-        source: studioName,
-      };
-    });
+        return {
+          id: `gh-${boardToken}-${j.id}`,
+          title: (j.title || 'Untitled').trim(),
+          company: studioName,
+          companyLogo: logoUrl,
+          location: loc,
+          remote: isRemote,
+          type: 'Full-Time',
+          salary: null,
+          description: stripHtml(j.content || '').slice(0, 600),
+          tags: [dept, ...extractTags(j.title)].filter(Boolean).slice(0, 5),
+          postedDate: formatDate(j.updated_at || j.created_at),
+          applyUrl: j.absolute_url || `https://boards.greenhouse.io/${boardToken}/jobs/${j.id}`,
+          source: studioName,
+        };
+      });
   } catch {
     return [];
   }
@@ -107,28 +133,30 @@ async function fetchLeverJobs(
     const jobs: any[] = await res.json();
     if (!Array.isArray(jobs)) return [];
 
-    return jobs.map((j: any): JobListing => {
-      const loc = j.categories?.location || 'Not specified';
-      const isRemote = /remote/i.test(loc) || /remote/i.test(j.workplaceType || '') || /remote/i.test(j.text || '');
-      const dept = j.categories?.department || j.categories?.team || '';
-      const commitment = j.categories?.commitment || 'Full-Time';
+    return jobs
+      .filter((j: any) => isGameRelevantJob(j.text || ''))
+      .map((j: any): JobListing => {
+        const loc = j.categories?.location || 'Not specified';
+        const isRemote = /remote/i.test(loc) || /remote/i.test(j.workplaceType || '') || /remote/i.test(j.text || '');
+        const dept = j.categories?.department || j.categories?.team || '';
+        const commitment = j.categories?.commitment || 'Full-Time';
 
-      return {
-        id: `lever-${companySlug}-${j.id}`,
-        title: (j.text || 'Untitled').trim(),
-        company: studioName,
-        companyLogo: logoUrl,
-        location: loc,
-        remote: isRemote,
-        type: commitment,
-        salary: j.salaryRange ? `${j.salaryRange.min} – ${j.salaryRange.max} ${j.salaryRange.currency || ''}`.trim() : null,
-        description: stripHtml(j.descriptionPlain || j.description || '').slice(0, 600),
-        tags: [dept, ...extractTags(j.text)].filter(Boolean).slice(0, 5),
-        postedDate: formatDate(j.createdAt),
-        applyUrl: j.hostedUrl || j.applyUrl || '#',
-        source: studioName,
-      };
-    });
+        return {
+          id: `lever-${companySlug}-${j.id}`,
+          title: (j.text || 'Untitled').trim(),
+          company: studioName,
+          companyLogo: logoUrl,
+          location: loc,
+          remote: isRemote,
+          type: commitment,
+          salary: j.salaryRange ? `${j.salaryRange.min} – ${j.salaryRange.max} ${j.salaryRange.currency || ''}`.trim() : null,
+          description: stripHtml(j.descriptionPlain || j.description || '').slice(0, 600),
+          tags: [dept, ...extractTags(j.text)].filter(Boolean).slice(0, 5),
+          postedDate: formatDate(j.createdAt),
+          applyUrl: j.hostedUrl || j.applyUrl || '#',
+          source: studioName,
+        };
+      });
   } catch {
     return [];
   }
@@ -147,27 +175,29 @@ async function fetchAshbyJobs(
     const data = await res.json();
     const jobs: any[] = data?.jobs || [];
 
-    return jobs.map((j: any): JobListing => {
-      const loc = j.location || (j.address?.postalAddress ? `${j.address.postalAddress.addressLocality || ''}, ${j.address.postalAddress.addressCountry || ''}` : 'Not specified');
-      const isRemote = j.isRemote === true || /remote/i.test(loc) || /remote/i.test(j.title || '');
-      const dept = j.department || j.team || '';
+    return jobs
+      .filter((j: any) => isGameRelevantJob(j.title || ''))
+      .map((j: any): JobListing => {
+        const loc = j.location || (j.address?.postalAddress ? `${j.address.postalAddress.addressLocality || ''}, ${j.address.postalAddress.addressCountry || ''}` : 'Not specified');
+        const isRemote = j.isRemote === true || /remote/i.test(loc) || /remote/i.test(j.title || '');
+        const dept = j.department || j.team || '';
 
-      return {
-        id: `ashby-${boardSlug}-${j.id}`,
-        title: (j.title || 'Untitled').trim(),
-        company: studioName,
-        companyLogo: logoUrl,
-        location: loc,
-        remote: isRemote,
-        type: j.employmentType ? formatEmploymentType(j.employmentType) : 'Full-Time',
-        salary: null,
-        description: stripHtml(j.descriptionPlain || j.descriptionHtml || '').slice(0, 600),
-        tags: [dept, ...extractTags(j.title)].filter(Boolean).slice(0, 5),
-        postedDate: formatDate(j.publishedAt),
-        applyUrl: j.applyUrl || j.jobUrl || '#',
-        source: studioName,
-      };
-    });
+        return {
+          id: `ashby-${boardSlug}-${j.id}`,
+          title: (j.title || 'Untitled').trim(),
+          company: studioName,
+          companyLogo: logoUrl,
+          location: loc,
+          remote: isRemote,
+          type: j.employmentType ? formatEmploymentType(j.employmentType) : 'Full-Time',
+          salary: null,
+          description: stripHtml(j.descriptionPlain || j.descriptionHtml || '').slice(0, 600),
+          tags: [dept, ...extractTags(j.title)].filter(Boolean).slice(0, 5),
+          postedDate: formatDate(j.publishedAt),
+          applyUrl: j.applyUrl || j.jobUrl || '#',
+          source: studioName,
+        };
+      });
   } catch {
     return [];
   }
@@ -225,7 +255,7 @@ export async function fetchJobs(search?: string): Promise<JobListing[]> {
 
 function extractTags(title: string): string[] {
   const tags: string[] = [];
-  const t = title.toLowerCase();
+  const t = (title || '').toLowerCase();
   const checks: [string, string][] = [
     ['unity', 'Unity'], ['unreal', 'Unreal'], ['c++', 'C++'], ['c#', 'C#'],
     ['python', 'Python'], ['java', 'Java'], ['rust', 'Rust'], ['react', 'React'],
@@ -276,8 +306,32 @@ function deduplicateAndSort(jobs: JobListing[]): JobListing[] {
   return unique;
 }
 
+function decodeHtmlEntities(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&#039;|&apos;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&#(\d+);/g, (_, num) => String.fromCharCode(Number(num)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+}
+
 function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, ' ').replace(/&\w+;/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!html) return '';
+  // Decode HTML entities first so encoded tags (&lt;div&gt;) are recognized
+  let text = decodeHtmlEntities(html);
+  // Remove script and style tags and contents
+  text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ');
+  text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ');
+  // Remove all HTML tags
+  text = text.replace(/<[^>]+>/g, ' ');
+  // Decode any remaining entities
+  text = decodeHtmlEntities(text);
+  // Collapse multiple whitespaces and trim
+  return text.replace(/\s+/g, ' ').trim();
 }
 
 function formatDate(d: string | number | undefined | null): string {

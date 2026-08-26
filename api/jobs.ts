@@ -4,7 +4,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
  * /api/jobs — Verified Game Development Studio Jobs Only.
  *
  * Fetches directly from public career APIs of game studios on Greenhouse, Lever, and Ashby.
- * 100% of jobs are from real game development studios.
+ * 100% of jobs are from real game development studios and filtered for game-industry relevance.
  */
 
 interface Job {
@@ -57,6 +57,29 @@ const ASHBY_STUDIOS: [string, string, string | null][] = [
   ['yotta', 'Yotta Games', null],
 ];
 
+// ─── Non-Gaming Corporate Role Filter ────────────────────────────────────────
+const NON_GAME_TITLE_PATTERNS = [
+  /\bpublic policy\b/i,
+  /\blaw enforcement\b/i,
+  /\bgovernment affairs\b/i,
+  /\bgovernment relations\b/i,
+  /\bparalegal\b/i,
+  /\blitigation\b/i,
+  /\bcorporate tax\b/i,
+  /\bpayroll\b/i,
+  /\bfacilities manager\b/i,
+  /\bworkplace operations\b/i,
+  /\bdata center asset\b/i,
+  /\bjanitor\b/i,
+  /\bbenefits analyst\b/i,
+  /\bprocurement specialist\b/i,
+  /\bsox compliance\b/i,
+];
+
+function isGameRelevantJob(title: string): boolean {
+  return !NON_GAME_TITLE_PATTERNS.some(pattern => pattern.test(title));
+}
+
 // ─── Greenhouse Fetcher ──────────────────────────────────────────────────────
 async function fetchGreenhouseJobs(
   boardToken: string,
@@ -69,27 +92,29 @@ async function fetchGreenhouseJobs(
     const data = await res.json();
     const jobs: any[] = data?.jobs || [];
 
-    return jobs.map((j: any): Job => {
-      const loc = j.location?.name || 'Not specified';
-      const isRemote = /remote/i.test(loc) || /remote/i.test(j.title || '');
-      const dept = j.departments?.[0]?.name || '';
+    return jobs
+      .filter((j: any) => isGameRelevantJob(j.title || ''))
+      .map((j: any): Job => {
+        const loc = j.location?.name || 'Not specified';
+        const isRemote = /remote/i.test(loc) || /remote/i.test(j.title || '');
+        const dept = j.departments?.[0]?.name || '';
 
-      return {
-        id: `gh-${boardToken}-${j.id}`,
-        title: (j.title || 'Untitled').trim(),
-        company: studioName,
-        companyLogo: logoUrl,
-        location: loc,
-        remote: isRemote,
-        type: 'Full-Time',
-        salary: null,
-        description: stripHtml(j.content || '').slice(0, 600),
-        tags: [dept, ...extractTags(j.title)].filter(Boolean).slice(0, 5),
-        postedDate: formatDate(j.updated_at || j.created_at),
-        applyUrl: j.absolute_url || `https://boards.greenhouse.io/${boardToken}/jobs/${j.id}`,
-        source: studioName,
-      };
-    });
+        return {
+          id: `gh-${boardToken}-${j.id}`,
+          title: (j.title || 'Untitled').trim(),
+          company: studioName,
+          companyLogo: logoUrl,
+          location: loc,
+          remote: isRemote,
+          type: 'Full-Time',
+          salary: null,
+          description: stripHtml(j.content || '').slice(0, 600),
+          tags: [dept, ...extractTags(j.title)].filter(Boolean).slice(0, 5),
+          postedDate: formatDate(j.updated_at || j.created_at),
+          applyUrl: j.absolute_url || `https://boards.greenhouse.io/${boardToken}/jobs/${j.id}`,
+          source: studioName,
+        };
+      });
   } catch {
     return [];
   }
@@ -107,28 +132,30 @@ async function fetchLeverJobs(
     const jobs: any[] = await res.json();
     if (!Array.isArray(jobs)) return [];
 
-    return jobs.map((j: any): Job => {
-      const loc = j.categories?.location || 'Not specified';
-      const isRemote = /remote/i.test(loc) || /remote/i.test(j.workplaceType || '') || /remote/i.test(j.text || '');
-      const dept = j.categories?.department || j.categories?.team || '';
-      const commitment = j.categories?.commitment || 'Full-Time';
+    return jobs
+      .filter((j: any) => isGameRelevantJob(j.text || ''))
+      .map((j: any): Job => {
+        const loc = j.categories?.location || 'Not specified';
+        const isRemote = /remote/i.test(loc) || /remote/i.test(j.workplaceType || '') || /remote/i.test(j.text || '');
+        const dept = j.categories?.department || j.categories?.team || '';
+        const commitment = j.categories?.commitment || 'Full-Time';
 
-      return {
-        id: `lever-${companySlug}-${j.id}`,
-        title: (j.text || 'Untitled').trim(),
-        company: studioName,
-        companyLogo: logoUrl,
-        location: loc,
-        remote: isRemote,
-        type: commitment,
-        salary: j.salaryRange ? `${j.salaryRange.min} – ${j.salaryRange.max} ${j.salaryRange.currency || ''}`.trim() : null,
-        description: stripHtml(j.descriptionPlain || j.description || '').slice(0, 600),
-        tags: [dept, ...extractTags(j.text)].filter(Boolean).slice(0, 5),
-        postedDate: formatDate(j.createdAt),
-        applyUrl: j.hostedUrl || j.applyUrl || '#',
-        source: studioName,
-      };
-    });
+        return {
+          id: `lever-${companySlug}-${j.id}`,
+          title: (j.text || 'Untitled').trim(),
+          company: studioName,
+          companyLogo: logoUrl,
+          location: loc,
+          remote: isRemote,
+          type: commitment,
+          salary: j.salaryRange ? `${j.salaryRange.min} – ${j.salaryRange.max} ${j.salaryRange.currency || ''}`.trim() : null,
+          description: stripHtml(j.descriptionPlain || j.description || '').slice(0, 600),
+          tags: [dept, ...extractTags(j.text)].filter(Boolean).slice(0, 5),
+          postedDate: formatDate(j.createdAt),
+          applyUrl: j.hostedUrl || j.applyUrl || '#',
+          source: studioName,
+        };
+      });
   } catch {
     return [];
   }
@@ -146,27 +173,29 @@ async function fetchAshbyJobs(
     const data = await res.json();
     const jobs: any[] = data?.jobs || [];
 
-    return jobs.map((j: any): Job => {
-      const loc = j.location || (j.address?.postalAddress ? `${j.address.postalAddress.addressLocality || ''}, ${j.address.postalAddress.addressCountry || ''}` : 'Not specified');
-      const isRemote = j.isRemote === true || /remote/i.test(loc) || /remote/i.test(j.title || '');
-      const dept = j.department || j.team || '';
+    return jobs
+      .filter((j: any) => isGameRelevantJob(j.title || ''))
+      .map((j: any): Job => {
+        const loc = j.location || (j.address?.postalAddress ? `${j.address.postalAddress.addressLocality || ''}, ${j.address.postalAddress.addressCountry || ''}` : 'Not specified');
+        const isRemote = j.isRemote === true || /remote/i.test(loc) || /remote/i.test(j.title || '');
+        const dept = j.department || j.team || '';
 
-      return {
-        id: `ashby-${boardSlug}-${j.id}`,
-        title: (j.title || 'Untitled').trim(),
-        company: studioName,
-        companyLogo: logoUrl,
-        location: loc,
-        remote: isRemote,
-        type: j.employmentType ? formatEmploymentType(j.employmentType) : 'Full-Time',
-        salary: null,
-        description: stripHtml(j.descriptionPlain || j.descriptionHtml || '').slice(0, 600),
-        tags: [dept, ...extractTags(j.title)].filter(Boolean).slice(0, 5),
-        postedDate: formatDate(j.publishedAt),
-        applyUrl: j.applyUrl || j.jobUrl || '#',
-        source: studioName,
-      };
-    });
+        return {
+          id: `ashby-${boardSlug}-${j.id}`,
+          title: (j.title || 'Untitled').trim(),
+          company: studioName,
+          companyLogo: logoUrl,
+          location: loc,
+          remote: isRemote,
+          type: j.employmentType ? formatEmploymentType(j.employmentType) : 'Full-Time',
+          salary: null,
+          description: stripHtml(j.descriptionPlain || j.descriptionHtml || '').slice(0, 600),
+          tags: [dept, ...extractTags(j.title)].filter(Boolean).slice(0, 5),
+          postedDate: formatDate(j.publishedAt),
+          applyUrl: j.applyUrl || j.jobUrl || '#',
+          source: studioName,
+        };
+      });
   } catch {
     return [];
   }
@@ -205,8 +234,27 @@ function formatEmploymentType(t: string): string {
   return 'Full-Time';
 }
 
+function decodeHtmlEntities(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&#039;|&apos;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&#(\d+);/g, (_, num) => String.fromCharCode(Number(num)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+}
+
 function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, ' ').replace(/&\w+;/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!html) return '';
+  let text = decodeHtmlEntities(html);
+  text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ');
+  text = text.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ');
+  text = text.replace(/<[^>]+>/g, ' ');
+  text = decodeHtmlEntities(text);
+  return text.replace(/\s+/g, ' ').trim();
 }
 
 function formatDate(d: string | number | undefined | null): string {

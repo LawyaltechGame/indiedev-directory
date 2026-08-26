@@ -4,6 +4,13 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useHasProfile } from '../../hooks/useHasProfile';
 import { AccountMenu } from '../ui/AccountMenu';
 import { fetchJobs, type JobListing } from '../../services/jobs';
+import {
+  getSavedLocalResume,
+  calculateJobMatch,
+  type ResumeMatchResult,
+} from '../../services/resumeMatcher';
+import { ResumeMatcherModal } from '../ui/ResumeMatcherModal';
+import { JobMatchBreakdownModal } from '../ui/JobMatchBreakdownModal';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 type JobCategory = 'All' | 'Programming' | 'Art & Design' | 'Audio' | 'Game Design' | 'Production' | 'QA' | 'Marketing' | 'Community';
@@ -28,14 +35,14 @@ const TYPE_COLORS: Record<string, string> = {
 // Category keyword matching
 const CATEGORY_KEYWORDS: Record<JobCategory, string[]> = {
   'All': [],
-  'Programming': ['developer', 'engineer', 'programmer', 'software', 'backend', 'frontend', 'fullstack', 'full-stack', 'devops', 'unity', 'unreal', 'c++', 'c#', 'godot', 'rust', 'python', 'javascript', 'typescript', 'react', 'node'],
-  'Art & Design': ['artist', 'art', 'design', 'designer', 'ui', 'ux', '2d', '3d', 'graphic', 'visual', 'illustrat', 'animator', 'animation', 'modeler', 'modeling', 'concept', 'texture', 'environment art', 'character art'],
+  'Programming': ['developer', 'engineer', 'programmer', 'software', 'backend', 'frontend', 'fullstack', 'full-stack', 'devops', 'unity', 'unreal', 'c++', 'c#', 'godot', 'rust', 'python', 'javascript', 'typescript', 'react', 'node', 'graphics', 'rendering', 'shader', 'netcode'],
+  'Art & Design': ['artist', 'art', 'design', 'designer', 'ui', 'ux', '2d', '3d', 'graphic', 'visual', 'illustrat', 'animator', 'animation', 'modeler', 'modeling', 'concept', 'texture', 'environment art', 'character art', 'vfx', 'rigger', 'rigging'],
   'Audio': ['audio', 'sound', 'music', 'composer', 'acoustic', 'voice', 'sfx', 'wwise', 'fmod'],
-  'Game Design': ['game design', 'level design', 'narrative design', 'systems design', 'quest design', 'game mechanic', 'gameplay', 'world build'],
-  'Production': ['producer', 'production', 'project manager', 'scrum', 'agile', 'program manager', 'coordinator'],
-  'QA': ['qa', 'quality assurance', 'test', 'testing', 'tester', 'bug'],
-  'Marketing': ['marketing', 'growth', 'acquisition', 'campaign', 'brand', 'content market', 'seo', 'analytics', 'copywriter'],
-  'Community': ['community', 'social media', 'discord', 'moderator', 'support', 'customer success', 'engagement'],
+  'Game Design': ['game design', 'level design', 'narrative design', 'systems design', 'quest design', 'game mechanic', 'gameplay', 'world build', 'economy design', 'combat design'],
+  'Production': ['producer', 'production', 'project manager', 'scrum', 'agile', 'program manager', 'coordinator', 'director', 'operations'],
+  'QA': ['qa', 'quality assurance', 'test', 'testing', 'tester', 'bug', 'playtesting', 'compliance'],
+  'Marketing': ['marketing', 'growth', 'acquisition', 'campaign', 'brand', 'content market', 'seo', 'analytics', 'copywriter', 'pr', 'public relations'],
+  'Community': ['community', 'social media', 'discord', 'moderator', 'support', 'customer success', 'engagement', 'player support'],
 };
 
 function categorizeJob(job: JobListing): JobCategory {
@@ -104,18 +111,24 @@ const JobCardSkeleton = () => (
 );
 
 // ─── Job Card Component ─────────────────────────────────────────────────────
-const JobCard = ({ job }: { job: JobListing & { category?: JobCategory } }) => (
-  <article className="bg-[#07101b] border border-white/6 rounded-xl overflow-hidden transition-all hover:border-cyan-400/50 hover:shadow-lg hover:shadow-cyan-500/10 group">
+interface JobCardProps {
+  job: JobListing & { category?: JobCategory };
+  matchResult?: ResumeMatchResult | null;
+  onOpenMatchModal: () => void;
+  onOpenResumeUpload: () => void;
+}
+
+const JobCard = ({ job, matchResult, onOpenMatchModal, onOpenResumeUpload }: JobCardProps) => (
+  <article className="bg-[#07101b] border border-white/6 rounded-xl overflow-hidden transition-all hover:border-cyan-400/50 hover:shadow-lg hover:shadow-cyan-500/10 group flex flex-col justify-between">
     <div className="p-5">
       {/* Header row */}
-      <div className="flex items-start gap-4 mb-4">
+      <div className="flex items-start gap-4 mb-3">
         {job.companyLogo ? (
           <img
             src={job.companyLogo}
             alt={job.company}
             className="w-12 h-12 rounded-xl bg-[#0f172a] object-contain shrink-0"
             onError={(e) => {
-              // If logo fails to load, replace with emoji
               const target = e.target as HTMLImageElement;
               target.style.display = 'none';
               target.parentElement?.insertAdjacentHTML(
@@ -130,19 +143,51 @@ const JobCard = ({ job }: { job: JobListing & { category?: JobCategory } }) => (
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <h3 className="text-lg font-bold text-white group-hover:text-cyan-200 transition-colors truncate">
-            {job.title}
-          </h3>
-          <div className="text-sm text-cyan-300 mt-0.5">{job.company}</div>
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-cyan-200 transition-colors truncate">
+              {job.title}
+            </h3>
+          </div>
+          <div className="text-xs sm:text-sm text-cyan-300 mt-0.5">{job.company}</div>
         </div>
       </div>
 
+      {/* Resume Match Badge Row */}
+      {matchResult ? (
+        <div className="mb-3">
+          <button
+            onClick={onOpenMatchModal}
+            className={`w-full py-1.5 px-3 rounded-lg border text-xs font-semibold flex items-center justify-between transition-all hover:opacity-90 cursor-pointer ${matchResult.ratingColor}`}
+          >
+            <div className="flex items-center gap-1.5">
+              <span>🎯</span>
+              <span>{matchResult.score}% Match</span>
+              <span className="opacity-70 font-normal">({matchResult.rating})</span>
+            </div>
+            <span className="text-[11px] underline">View Breakdown →</span>
+          </button>
+        </div>
+      ) : (
+        <div className="mb-3">
+          <button
+            onClick={onOpenResumeUpload}
+            className="w-full py-1.5 px-3 rounded-lg border border-dashed border-white/10 bg-white/3 hover:bg-cyan-500/10 hover:border-cyan-500/30 text-cyan-300/70 hover:text-cyan-200 text-xs font-medium flex items-center justify-between transition-all cursor-pointer"
+          >
+            <span className="flex items-center gap-1.5">
+              <span>🎯</span>
+              <span>Test Resume Fit</span>
+            </span>
+            <span className="text-[10px] text-cyan-400 font-semibold">+ Add Resume</span>
+          </button>
+        </div>
+      )}
+
       {/* Meta row */}
       <div className="flex flex-wrap items-center gap-2 mb-3">
-        <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border ${TYPE_COLORS[job.type] || TYPE_COLORS['Other']}`}>
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold border ${TYPE_COLORS[job.type] || TYPE_COLORS['Other']}`}>
           {job.type}
         </span>
-        <span className="text-xs text-cyan-200/70 flex items-center gap-1">
+        <span className="text-xs text-cyan-200/70 flex items-center gap-1 truncate max-w-[180px]">
           📍 {job.location}
         </span>
         {job.remote && (
@@ -154,13 +199,13 @@ const JobCard = ({ job }: { job: JobListing & { category?: JobCategory } }) => (
 
       {/* Salary */}
       {job.salary && (
-        <div className="text-sm text-emerald-300 font-semibold mb-3">
+        <div className="text-xs sm:text-sm text-emerald-300 font-semibold mb-3">
           {job.salary}
         </div>
       )}
 
       {/* Description */}
-      <p className="text-cyan-100/80 text-sm leading-relaxed mb-4 line-clamp-3">
+      <p className="text-cyan-100/80 text-xs sm:text-sm leading-relaxed mb-4 line-clamp-3">
         {job.description}
       </p>
 
@@ -168,28 +213,41 @@ const JobCard = ({ job }: { job: JobListing & { category?: JobCategory } }) => (
       {job.tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-4">
           {job.tags.map((tag) => (
-            <span key={tag} className="inline-block px-2 py-0.5 rounded-md bg-[#071826] border border-[#123044] text-xs text-cyan-200">
+            <span key={tag} className="inline-block px-2 py-0.5 rounded-md bg-[#071826] border border-[#123044] text-[11px] text-cyan-200">
               {tag}
             </span>
           ))}
         </div>
       )}
+    </div>
 
-      {/* Footer row */}
+    {/* Footer row */}
+    <div className="p-5 pt-0">
       <div className="flex items-center justify-between pt-3 border-t border-white/6">
         <div className="flex items-center gap-2">
           <span className="text-xs text-cyan-300/50">{job.postedDate}</span>
           <span className="text-xs text-cyan-300/30">•</span>
           <span className="text-xs text-cyan-300/40">{job.source}</span>
         </div>
-        <a
-          href={job.applyUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center px-4 py-2 rounded-lg bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] text-sm font-bold hover:shadow-lg hover:shadow-cyan-500/30 transition-all active:scale-[0.97]"
-        >
-          Apply →
-        </a>
+        <div className="flex items-center gap-2">
+          {matchResult && (
+            <button
+              onClick={onOpenMatchModal}
+              className="px-2.5 py-1.5 rounded-lg bg-white/6 hover:bg-white/12 text-cyan-300 hover:text-white text-xs font-semibold transition-colors cursor-pointer"
+              title="View match breakdown"
+            >
+              Fit Details
+            </button>
+          )}
+          <a
+            href={job.applyUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center px-4 py-1.5 rounded-lg bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] text-xs sm:text-sm font-bold hover:shadow-lg hover:shadow-cyan-500/30 transition-all active:scale-[0.97]"
+          >
+            Apply →
+          </a>
+        </div>
       </div>
     </div>
   </article>
@@ -219,6 +277,12 @@ export default function Jobs({ onCreateProfile, onOpenSignup, onEditProfile }: J
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<JobCategory>('All');
   const [remoteOnly, setRemoteOnly] = useState(false);
+
+  // Resume Matcher Local State
+  const [localResume, setLocalResume] = useState<{ text: string; fileName: string; date: string } | null>(() => getSavedLocalResume());
+  const [isResumeModalOpen, setIsResumeModalOpen] = useState(false);
+  const [selectedJobForMatch, setSelectedJobForMatch] = useState<{ job: JobListing; match: ResumeMatchResult } | null>(null);
+  const [sortByMatch, setSortByMatch] = useState(false);
 
   // Scroll to top on mount
   useEffect(() => {
@@ -251,24 +315,47 @@ export default function Jobs({ onCreateProfile, onOpenSignup, onEditProfile }: J
     loadJobs(debouncedSearch || undefined);
   }, [debouncedSearch, loadJobs]);
 
+  // Precompute match scores map if resume is present (100% locally calculated)
+  const matchesMap = useMemo(() => {
+    if (!localResume?.text) return new Map<string, ResumeMatchResult>();
+    const map = new Map<string, ResumeMatchResult>();
+    for (const job of jobs) {
+      const res = calculateJobMatch(localResume.text, job);
+      map.set(job.id, res);
+    }
+    return map;
+  }, [jobs, localResume]);
+
   // Categorize and filter jobs client-side
   const filteredJobs = useMemo(() => {
-    return jobs
+    const list = jobs
       .map((job) => ({
         ...job,
         category: categorizeJob(job),
+        matchResult: matchesMap.get(job.id) || null,
       }))
       .filter((job) => {
         if (selectedCategory !== 'All' && job.category !== selectedCategory) return false;
         if (remoteOnly && !job.remote) return false;
         return true;
       });
-  }, [jobs, selectedCategory, remoteOnly]);
+
+    // Optional sort by match score
+    if (sortByMatch && localResume) {
+      list.sort((a, b) => {
+        const scoreA = a.matchResult?.score || 0;
+        const scoreB = b.matchResult?.score || 0;
+        return scoreB - scoreA;
+      });
+    }
+
+    return list;
+  }, [jobs, selectedCategory, remoteOnly, matchesMap, sortByMatch, localResume]);
 
   return (
     <>
       {/* ─── StudioHub Header ──────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 bg-linear-to-b bg-[#0B1020] backdrop-blur-xl border-b border-white/8">
+      <header className="sticky top-0 z-40 bg-linear-to-b bg-[#0B1020] backdrop-blur-xl border-b border-white/8">
         <div className="max-w-[1240px] mx-auto px-6 py-4 flex items-center justify-between h-20">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-linear-to-br from-cyan-400 to-cyan-500 flex items-center justify-center text-[#001018] font-bold text-lg">
@@ -303,7 +390,7 @@ export default function Jobs({ onCreateProfile, onOpenSignup, onEditProfile }: J
                 {!hasProfile && (
                   <button
                     onClick={onCreateProfile}
-                    className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all hidden md:block"
+                    className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all hidden md:block cursor-pointer"
                   >
                     Create a Profile
                   </button>
@@ -321,7 +408,7 @@ export default function Jobs({ onCreateProfile, onOpenSignup, onEditProfile }: J
             ) : (
               <button
                 onClick={onOpenSignup}
-                className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all hidden md:block"
+                className="px-4 h-10 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold hover:shadow-lg hover:shadow-cyan-500/50 transition-all hidden md:block cursor-pointer"
               >
                 Sign up to create a profile
               </button>
@@ -374,21 +461,20 @@ export default function Jobs({ onCreateProfile, onOpenSignup, onEditProfile }: J
           </nav>
 
           {/* ─── Hero Banner ─────────────────────────────────────────── */}
-          <section className="relative rounded-2xl overflow-hidden mb-8 bg-linear-to-br from-[#071826] via-[#0a1e32] to-[#07101b] border border-white/6">
-            {/* Decorative glow */}
+          <section className="relative rounded-2xl overflow-hidden mb-6 bg-linear-to-br from-[#071826] via-[#0a1e32] to-[#07101b] border border-white/6">
             <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-400/5 rounded-full blur-3xl pointer-events-none" />
 
-            <div className="relative z-10 px-4 py-8 sm:px-10 sm:py-14 text-center">
+            <div className="relative z-10 px-4 py-8 sm:px-10 sm:py-12 text-center">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs sm:text-sm font-semibold mb-4">
-                <span>💼</span> Live Game Industry Jobs
+                <span>💼</span> Live Game Industry Career Board
               </div>
               <h1 className="text-2xl sm:text-3xl lg:text-5xl font-extrabold text-white mb-3 leading-tight">
                 Find Your Next Role in<br />
                 <span className="bg-linear-to-r from-cyan-300 to-cyan-500 bg-clip-text text-transparent">Game Development</span>
               </h1>
               <p className="text-cyan-200/70 max-w-2xl mx-auto text-sm sm:text-base mb-6">
-                Real-time job listings aggregated from top job boards. Fresh data loaded every time you visit.
+                Verified game studio openings directly from Riot, Epic, Roblox, 2K, thatgamecompany, and top indie studios.
               </p>
 
               {/* Search bar */}
@@ -399,7 +485,7 @@ export default function Jobs({ onCreateProfile, onOpenSignup, onEditProfile }: J
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search by title, company, skill..."
+                    placeholder="Search by title, company, skill (e.g. Unity, Unreal, C++, Art)..."
                     className="flex-1 bg-transparent px-2 sm:px-3 py-3 text-cyan-100 outline-none placeholder:text-cyan-300/30 text-sm sm:text-base"
                   />
                   {searchQuery && (
@@ -416,16 +502,75 @@ export default function Jobs({ onCreateProfile, onOpenSignup, onEditProfile }: J
             </div>
           </section>
 
+          {/* ─── Local Resume Matcher Control Bar ────────────────────────── */}
+          <div className="mb-8 p-4 rounded-2xl bg-linear-to-r from-[#071b2b] via-[#092237] to-[#071b2b] border border-cyan-500/30 shadow-lg shadow-cyan-950/20 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3 text-center md:text-left">
+              <div className="w-11 h-11 rounded-xl bg-cyan-500/20 border border-cyan-400/30 flex items-center justify-center text-xl shrink-0">
+                🎯
+              </div>
+              <div>
+                <div className="flex items-center gap-2 justify-center md:justify-start flex-wrap">
+                  <span className="text-sm font-bold text-white">Resume Fit & ATS Matcher</span>
+                </div>
+                <p className="text-xs text-cyan-200/70 mt-0.5">
+                  {localResume
+                    ? `Active resume: "${localResume.fileName}" — match scores computed for all jobs.`
+                    : 'Compare your resume against all studio openings to find the best fit.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0 flex-wrap justify-center">
+              {localResume ? (
+                <>
+                  <button
+                    onClick={() => setSortByMatch(!sortByMatch)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                      sortByMatch
+                        ? 'bg-cyan-500 text-[#001018] border-cyan-400 shadow-md shadow-cyan-500/30'
+                        : 'bg-white/6 text-cyan-200 border-white/10 hover:bg-white/12'
+                    }`}
+                  >
+                    {sortByMatch ? '✓ Sorted by Fit Score' : 'Sort by Best Fit'}
+                  </button>
+                  <button
+                    onClick={() => setIsResumeModalOpen(true)}
+                    className="px-3.5 py-2 rounded-xl bg-white/8 hover:bg-white/15 border border-white/12 text-cyan-100 text-xs font-semibold transition-all cursor-pointer"
+                  >
+                    Edit Resume
+                  </button>
+                  <button
+                    onClick={() => {
+                      setLocalResume(null);
+                      setSortByMatch(false);
+                    }}
+                    className="px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-300 text-xs font-semibold transition-all cursor-pointer"
+                    title="Remove resume from browser"
+                  >
+                    Clear
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setIsResumeModalOpen(true)}
+                  className="px-5 py-2.5 rounded-xl bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] font-bold text-xs sm:text-sm hover:shadow-lg hover:shadow-cyan-500/40 transition-all cursor-pointer"
+                >
+                  Upload Resume to Test Fit →
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* ─── Filters Bar ─────────────────────────────────────────── */}
           <div className="flex flex-col gap-4 mb-8">
-            {/* Category tabs — horizontally scrollable on mobile */}
+            {/* Category tabs */}
             <div className="overflow-x-auto -mx-6 px-6" style={{ scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
               <div className="flex gap-2 min-w-max pb-2">
                 {CATEGORIES.map((cat) => (
                   <button
                     key={cat}
                     onClick={() => setSelectedCategory(cat)}
-                    className={`whitespace-nowrap px-4 py-2.5 rounded-lg text-sm font-semibold border transition-all min-w-fit
+                    className={`whitespace-nowrap px-4 py-2.5 rounded-lg text-sm font-semibold border transition-all min-w-fit cursor-pointer
                       ${selectedCategory === cat
                         ? 'bg-cyan-500/15 text-cyan-200 border-cyan-500/40 shadow-[0_0_10px_rgba(34,211,238,0.15)]'
                         : 'bg-[#07101b] text-cyan-300/60 border-white/6 hover:border-cyan-500/30 hover:text-cyan-200'
@@ -455,7 +600,7 @@ export default function Jobs({ onCreateProfile, onOpenSignup, onEditProfile }: J
           <div className="flex items-center justify-between mb-6">
             <p className="text-sm text-cyan-300/60">
               {loading ? (
-                'Loading fresh jobs...'
+                'Loading fresh studio jobs...'
               ) : error ? (
                 <span className="text-red-300">{error}</span>
               ) : (
@@ -464,13 +609,14 @@ export default function Jobs({ onCreateProfile, onOpenSignup, onEditProfile }: J
                   {selectedCategory !== 'All' && <span> in <strong className="text-cyan-300">{selectedCategory}</strong></span>}
                   {remoteOnly && <span> • Remote only</span>}
                   {debouncedSearch && <span> • Search: "<strong className="text-cyan-300">{debouncedSearch}</strong>"</span>}
+                  {sortByMatch && localResume && <span> • Sorted by Resume Fit</span>}
                 </>
               )}
             </p>
             {!loading && (
               <button
                 onClick={() => loadJobs(debouncedSearch || undefined)}
-                className="text-xs text-cyan-300/50 hover:text-cyan-200 transition-colors flex items-center gap-1"
+                className="text-xs text-cyan-300/50 hover:text-cyan-200 transition-colors flex items-center gap-1 cursor-pointer"
                 title="Refresh jobs"
               >
                 🔄 Refresh
@@ -492,7 +638,7 @@ export default function Jobs({ onCreateProfile, onOpenSignup, onEditProfile }: J
               <p className="text-cyan-200/60 max-w-md mx-auto mb-6">{error}</p>
               <button
                 onClick={() => loadJobs(debouncedSearch || undefined)}
-                className="px-5 py-2.5 rounded-lg bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] text-sm font-bold hover:shadow-lg hover:shadow-cyan-500/30 transition-all"
+                className="px-5 py-2.5 rounded-lg bg-linear-to-b from-cyan-500 to-cyan-400 text-[#001018] text-sm font-bold hover:shadow-lg hover:shadow-cyan-500/30 transition-all cursor-pointer"
               >
                 Try Again
               </button>
@@ -500,7 +646,19 @@ export default function Jobs({ onCreateProfile, onOpenSignup, onEditProfile }: J
           ) : filteredJobs.length > 0 ? (
             <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {filteredJobs.map((job) => (
-                <JobCard key={job.id} job={job} />
+                <JobCard
+                  key={job.id}
+                  job={job}
+                  matchResult={job.matchResult}
+                  onOpenMatchModal={() => {
+                    if (job.matchResult) {
+                      setSelectedJobForMatch({ job, match: job.matchResult });
+                    } else {
+                      setIsResumeModalOpen(true);
+                    }
+                  }}
+                  onOpenResumeUpload={() => setIsResumeModalOpen(true)}
+                />
               ))}
             </div>
           ) : (
@@ -508,11 +666,11 @@ export default function Jobs({ onCreateProfile, onOpenSignup, onEditProfile }: J
               <div className="text-5xl mb-4">🔎</div>
               <h3 className="text-xl font-bold text-white mb-2">No jobs found</h3>
               <p className="text-cyan-200/60 max-w-md mx-auto">
-                Try adjusting your search or filters. New positions are added regularly.
+                Try adjusting your search or filters. New positions are added regularly from studio hiring boards.
               </p>
               <button
                 onClick={() => { setSearchQuery(''); setSelectedCategory('All'); setRemoteOnly(false); }}
-                className="mt-6 px-5 py-2.5 rounded-lg bg-[#07101b] border border-white/10 text-cyan-200 text-sm font-semibold hover:border-cyan-500/40 transition-all"
+                className="mt-6 px-5 py-2.5 rounded-lg bg-[#07101b] border border-white/10 text-cyan-200 text-sm font-semibold hover:border-cyan-500/40 transition-all cursor-pointer"
               >
                 Clear all filters
               </button>
@@ -527,7 +685,7 @@ export default function Jobs({ onCreateProfile, onOpenSignup, onEditProfile }: J
                 <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-3">
                   Hiring for your game studio?
                 </h2>
-                <p className="text-cyan-200/70 max-w-lg">
+                <p className="text-cyan-200/70 max-w-lg text-sm sm:text-base">
                   Post your open positions and reach thousands of talented game developers, artists, designers, and producers in the indie community.
                 </p>
               </div>
@@ -543,6 +701,28 @@ export default function Jobs({ onCreateProfile, onOpenSignup, onEditProfile }: J
           <footer className="mt-8 text-sm text-cyan-300">© {new Date().getFullYear()} StudioHub</footer>
         </div>
       </main>
+
+      {/* ─── Modals ────────────────────────────────────────────────────────── */}
+      <ResumeMatcherModal
+        isOpen={isResumeModalOpen}
+        onClose={() => setIsResumeModalOpen(false)}
+        currentResume={localResume}
+        onResumeUpdated={(updated) => {
+          setLocalResume(updated);
+        }}
+      />
+
+      <JobMatchBreakdownModal
+        isOpen={Boolean(selectedJobForMatch)}
+        onClose={() => setSelectedJobForMatch(null)}
+        job={selectedJobForMatch?.job || null}
+        matchResult={selectedJobForMatch?.match || null}
+        resumeFileName={localResume?.fileName || 'My Resume'}
+        onEditResume={() => {
+          setSelectedJobForMatch(null);
+          setIsResumeModalOpen(true);
+        }}
+      />
     </>
   );
 }
